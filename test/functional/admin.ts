@@ -3,7 +3,12 @@ import expect from 'unexpected';
 
 import { dbAdapter } from '../../app/models';
 import cleanDB from '../dbCleaner';
-import { ROLE_ADMIN, ROLE_MODERATOR } from '../../app/models/admins';
+import {
+  ACT_GIVE_MODERATOR_RIGHTS,
+  ACT_REMOVE_MODERATOR_RIGHTS,
+  ROLE_ADMIN,
+  ROLE_MODERATOR,
+} from '../../app/models/admins';
 
 import {
   type UserCtx,
@@ -14,11 +19,13 @@ import {
 } from './functional_test_helper';
 
 describe('Admin API', () => {
+  before(() => cleanDB(dbAdapter.database));
+
   let luna: UserCtx;
   let mars: UserCtx;
   let venus: UserCtx;
+
   before(async () => {
-    await cleanDB(dbAdapter.database);
     [luna, mars, venus] = await createTestUsers(['luna', 'mars', 'venus']);
     await Promise.all([
       dbAdapter.setUserAdminRole(luna.user.id, ROLE_ADMIN, true, {
@@ -68,6 +75,33 @@ describe('Admin API', () => {
         __httpCode: 200,
         user: { id: luna.user.id, roles: [ROLE_ADMIN] },
       });
+    });
+  });
+
+  describe('Journal', () => {
+    it(`should not let anonymous users to see journal`, async () => {
+      const response = await performJSONRequest('GET', `/api/admin/journal`);
+      await expect(response, 'to satisfy', { __httpCode: 401 });
+    });
+
+    it(`should not let regular users to see journal`, async () => {
+      const response = await performJSONRequest(
+        'GET',
+        `/api/admin/journal`,
+        null,
+        authHeaders(venus),
+      );
+      await expect(response, 'to satisfy', { __httpCode: 403 });
+    });
+
+    it(`should let moderators to see journal`, async () => {
+      const response = await performJSONRequest(
+        'GET',
+        `/api/admin/journal`,
+        null,
+        authHeaders(mars),
+      );
+      await expect(response, 'to satisfy', { __httpCode: 200, actions: [], isLastPage: true });
     });
   });
 
@@ -128,6 +162,26 @@ describe('Admin API', () => {
       await expect(response, 'to satisfy', { __httpCode: 200, user: { roles: [] } });
     });
 
+    it(`should have record about it in journal`, async () => {
+      const response = await performJSONRequest(
+        'GET',
+        `/api/admin/journal`,
+        null,
+        authHeaders(luna),
+      );
+      await expect(response, 'to satisfy', {
+        __httpCode: 200,
+        actions: [
+          {
+            action_name: ACT_REMOVE_MODERATOR_RIGHTS,
+            admin_username: luna.username,
+            target_username: mars.username,
+          },
+        ],
+        isLastPage: true,
+      });
+    });
+
     it(`should return members list without Mars`, async () => {
       const response = await performJSONRequest(
         'GET',
@@ -149,6 +203,31 @@ describe('Admin API', () => {
         authHeaders(luna),
       );
       await expect(response, 'to satisfy', { __httpCode: 200, user: { roles: [ROLE_MODERATOR] } });
+    });
+
+    it(`should have record about it in journal`, async () => {
+      const response = await performJSONRequest(
+        'GET',
+        `/api/admin/journal`,
+        null,
+        authHeaders(luna),
+      );
+      await expect(response, 'to satisfy', {
+        __httpCode: 200,
+        actions: [
+          {
+            action_name: ACT_GIVE_MODERATOR_RIGHTS,
+            admin_username: luna.username,
+            target_username: mars.username,
+          },
+          {
+            action_name: ACT_REMOVE_MODERATOR_RIGHTS,
+            admin_username: luna.username,
+            target_username: mars.username,
+          },
+        ],
+        isLastPage: true,
+      });
     });
   });
 });

@@ -11,7 +11,7 @@ import {
 } from '../../models/auth-tokens/types';
 import { SessionTokenV1 } from '../../models/auth-tokens';
 import { T_EVENT_TYPE } from '../EventTypes';
-import { AdminRole } from '../../models/admins';
+import { AdminAction, AdminRole } from '../../models/admins';
 
 type QueryBindings = readonly Knex.RawBinding[] | Knex.ValueDict | Knex.RawBinding;
 
@@ -278,6 +278,25 @@ export class DbAdapter {
     role: AdminRole,
     doSet?: boolean,
     flags?: { YES_I_WANT_TO_SET_ADMIN_FOR_TEST_ONLY: boolean },
-  ): Promise<void>;
+  ): Promise<boolean>;
   getUsersWithAdminRoles(): Promise<UUID[]>;
+  createAdminAction(
+    action_name: AdminAction,
+    admin_username: string,
+    target_username: string | null,
+    details: any,
+  ): Promise<UUID>;
+  getAdminActions(
+    limit?: number,
+    offset?: number,
+  ): Promise<
+    {
+      id: UUID;
+      created_at: Date;
+      action_name: AdminAction;
+      admin_username: string;
+      target_username: string | null;
+      details: any;
+    }[]
+  >;
 }

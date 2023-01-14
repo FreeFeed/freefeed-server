@@ -1,6 +1,6 @@
 import Router from '@koa/router';
 
-import { whoAmI } from '../../../controllers/api/admin/CommonController';
+import { journal, whoAmI } from '../../../controllers/api/admin/CommonController';
 import { adminRolesRequired } from '../../../controllers/middlewares/admin-only';
 
 export default function addRoutes(router: Router) {
@@ -8,6 +8,7 @@ export default function addRoutes(router: Router) {
   r.use(adminRolesRequired());
 
   r.get('/whoami', whoAmI);
+  r.get('/journal', journal);
 
   router.use(r.routes(), r.allowedMethods());
 }

@@ -20,15 +20,16 @@ export const up =
         PRIMARY KEY (user_id, role)
       );
       
-      CREATE TABLE administrators_actions (
-        id SERIAL NOT NULL PRIMARY KEY,
-        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        username TEXT NOT NULL,
-        action_name TEXT NOT NULL,
-        details JSONB
+      CREATE TABLE admin_actions (
+        id uuid not null default gen_random_uuid() primary key,
+        created_at timestamptz not null default now(),
+        admin_username text not null,
+        target_username text,
+        action_name text not null,
+        details jsonb not null default '{}'
       );
 
-      CREATE FUNCTION administrators_actions_abort_tf() RETURNS TRIGGER LANGUAGE plpgsql AS
+      CREATE FUNCTION admin_actions_abort_tf() RETURNS TRIGGER LANGUAGE plpgsql AS
       $$
       begin
           return null;
@@ -36,17 +37,16 @@ export const up =
       $$;
 
       CREATE TRIGGER no_update_or_delete_t
-          BEFORE UPDATE OR DELETE ON administrators_actions
-          FOR EACH ROW EXECUTE FUNCTION administrators_actions_abort_tf();
+          BEFORE UPDATE OR DELETE ON admin_actions
+          FOR EACH ROW EXECUTE FUNCTION admin_actions_abort_tf();
 `);
 
 export const down = (knex: Knex) =>
   // language=PostgreSQL
   knex.schema.raw(`
-    DROP TRIGGER no_update_or_delete_t ON administrators_actions;
-    DROP FUNCTION administrators_actions_abort_tf;
-    DROP TABLE administrators_actions;
-    DROP TABLE administrators_roles_links;
-    DROP TABLE administrators_roles;
-    DROP TABLE administrators;
-  `);
+    DROP TRIGGER no_update_or_delete_t ON admin_actions;
+    DROP FUNCTION admin_actions_abort_tf;
+    DROP TABLE admin_actions;
+    DROP TABLE admin_users_roles;
+    DROP TABLE admin_roles;
+ `);

@@ -1,15 +1,22 @@
-import compose from 'koa-compose';
-
-import { User } from '../../../models';
+import { User, dbAdapter } from '../../../models';
 import { Ctx } from '../../../support/types';
-import { adminRolesRequired } from '../../middlewares/admin-only';
 
+import { getQueryParams } from './query-params';
 import { serializeUser } from './serializers';
 
-export const whoAmI = compose([
-  adminRolesRequired(),
-  async (ctx: Ctx<{ user: User }>) => {
-    const { user } = ctx.state;
-    ctx.body = { user: await serializeUser(user.id) };
-  },
-]);
+export async function whoAmI(ctx: Ctx<{ user: User }>) {
+  const { user } = ctx.state;
+  ctx.body = { user: await serializeUser(user.id) };
+}
+
+export async function journal(ctx: Ctx) {
+  const { limit, offset } = getQueryParams(ctx.request.query);
+  const actions = await dbAdapter.getAdminActions(limit + 1, offset);
+  const isLastPage = actions.length <= limit;
+
+  if (!isLastPage) {
+    actions.length = limit;
+  }
+
+  ctx.body = { actions, isLastPage };
+}

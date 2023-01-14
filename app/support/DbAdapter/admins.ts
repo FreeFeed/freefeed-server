@@ -1,4 +1,4 @@
-import { AdminRole, ROLE_ADMIN } from '../../models/admins';
+import { AdminAction, AdminRole, ROLE_ADMIN } from '../../models/admins';
 import { type UUID } from '../types';
 
 import { type DbAdapter } from './index';
@@ -34,7 +34,7 @@ const adminsTrait = (superClass: typeof DbAdapter) =>
       role: AdminRole,
       doSet = true,
       { YES_I_WANT_TO_SET_ADMIN_FOR_TEST_ONLY = false } = {},
-    ): Promise<void> {
+    ): Promise<boolean> {
       if (
         role === ROLE_ADMIN &&
         !(YES_I_WANT_TO_SET_ADMIN_FOR_TEST_ONLY && process.env.NODE_ENV === 'test')
@@ -43,21 +43,66 @@ const adminsTrait = (superClass: typeof DbAdapter) =>
       }
 
       if (doSet) {
-        await this.database.raw(
-          `insert into admin_users_roles (user_id, role) values (:userId, :role) on conflict do nothing`,
+        return !!(await this.database.getOne(
+          `insert into admin_users_roles (user_id, role) values (:userId, :role)
+            on conflict do nothing
+            returning true`,
           { userId, role },
-        );
-      } else {
-        await this.database.raw(
-          `delete from admin_users_roles where (user_id, role) = (:userId, :role)`,
-          { userId, role },
-        );
+        ));
       }
+
+      return !!(await this.database.getOne(
+        `delete from admin_users_roles where (user_id, role) = (:userId, :role)
+          returning true`,
+        { userId, role },
+      ));
     }
 
     getUsersWithAdminRoles(): Promise<UUID[]> {
       return this.database.getCol(
         `select distinct user_id from admin_users_roles order by user_id`,
+      );
+    }
+
+    createAdminAction(
+      action_name: AdminAction,
+      admin_username: string,
+      target_username: string | null,
+      details: any,
+    ): Promise<UUID> {
+      return this.database.getOne(
+        `insert into admin_actions 
+        (
+          action_name,
+          admin_username,
+          target_username,
+          details
+        ) values (
+          :action_name,
+          :admin_username,
+          :target_username,
+          :details
+        ) returning id`,
+        { action_name, admin_username, target_username, details },
+      );
+    }
+
+    getAdminActions(
+      limit = 30,
+      offset = 0,
+    ): Promise<
+      {
+        id: UUID;
+        created_at: Date;
+        action_name: AdminAction;
+        admin_username: string;
+        target_username: string | null;
+        details: any;
+      }[]
+    > {
+      return this.database.getAll(
+        `select * from admin_actions order by created_at desc limit :limit offset :offset`,
+        { limit, offset },
       );
     }
   };
