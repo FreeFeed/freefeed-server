@@ -49,9 +49,11 @@ export const freezeUser = compose([
       throw new ValidationException(`'freezeUntil' should be in the future`);
     }
 
-    await targetUser.freeze(freezeTime.toISO());
-    await dbAdapter.createAdminAction(ACT_FREEZE_USER, user, targetUser, {
-      freezeUntil: freezeTime.toISO(),
+    await dbAdapter.doInTransaction(async () => {
+      await targetUser.freeze(freezeTime.toISO());
+      await dbAdapter.createAdminAction(ACT_FREEZE_USER, user, targetUser, {
+        freezeUntil: freezeTime.toISO(),
+      });
     });
 
     ctx.body = {};
@@ -67,8 +69,10 @@ export const unfreezeUser = compose([
       throw new ForbiddenException('Only user can be frozen');
     }
 
-    await targetUser.freeze(0);
-    await dbAdapter.createAdminAction(ACT_UNFREEZE_USER, user, targetUser);
+    await dbAdapter.doInTransaction(async () => {
+      await targetUser.freeze(0);
+      await dbAdapter.createAdminAction(ACT_UNFREEZE_USER, user, targetUser);
+    });
 
     ctx.body = {};
   },

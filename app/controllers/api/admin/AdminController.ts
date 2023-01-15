@@ -27,15 +27,17 @@ export const promoteModerator = (doPromote: boolean) =>
         throw new ForbiddenException('Only user can be moderator');
       }
 
-      const ok = await dbAdapter.setUserAdminRole(targetUser.id, ROLE_MODERATOR, doPromote);
+      await dbAdapter.doInTransaction(async () => {
+        const ok = await dbAdapter.setUserAdminRole(targetUser.id, ROLE_MODERATOR, doPromote);
 
-      if (ok) {
-        await dbAdapter.createAdminAction(
-          doPromote ? ACT_GIVE_MODERATOR_RIGHTS : ACT_REMOVE_MODERATOR_RIGHTS,
-          user,
-          targetUser,
-        );
-      }
+        if (ok) {
+          await dbAdapter.createAdminAction(
+            doPromote ? ACT_GIVE_MODERATOR_RIGHTS : ACT_REMOVE_MODERATOR_RIGHTS,
+            user,
+            targetUser,
+          );
+        }
+      });
 
       ctx.body = { user: await serializeUser(targetUser.id) };
     },
