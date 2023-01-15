@@ -29,6 +29,7 @@ import ServerInfoRoute from './routes/api/v2/ServerInfo';
 import ExtAuthRoute from './routes/api/v2/ExtAuth';
 import AdminCommonRoute from './routes/api/admin/CommonRoute';
 import AdminAdminRoute from './routes/api/admin/AdminRoute';
+import AdminModeratorRoute from './routes/api/admin/ModeratorRoute';
 import { withAuthToken } from './controllers/middlewares/with-auth-token';
 import { apiNotFoundMiddleware } from './setup/initializers/api-not-found';
 import { authRequired } from './controllers/middlewares';
@@ -98,6 +99,7 @@ export function createRouter() {
     adminRouter.use(authRequired());
     AdminCommonRoute(adminRouter);
     AdminAdminRoute(adminRouter);
+    AdminModeratorRoute(adminRouter);
     router.use('/api/admin', adminRouter.routes(), adminRouter.allowedMethods());
   }
 

@@ -73,7 +73,7 @@ export class DbAdapter {
 
   database: Knex & CommonDBHelpers & TrxDBHelpers;
 
-  now(): Promise<string>;
+  now(): Promise<Date>;
 
   // Subscription requests
   getUserSubscriptionPendingRequestsIds(userId: UUID): Promise<UUID[]>;
@@ -137,6 +137,10 @@ export class DbAdapter {
   userFrozenUntil(userId: UUID): Promise<Date | null>;
   isUserFrozen(userId: UUID): Promise<boolean>;
   cleanFrozenUsers(): Promise<void>;
+  getFrozenUsers(
+    limit?: number,
+    offset?: number,
+  ): Promise<{ userId: UUID; createdAt: Date; expiresAt: Date }[]>;
 
   // Bans
   getUserBansIds(id: UUID): Promise<UUID[]>;

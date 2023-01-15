@@ -2,6 +2,7 @@ import config from 'config';
 import _ from 'lodash';
 import validator from 'validator';
 import { DateTime } from 'luxon';
+import { camelizeKeys } from 'humps';
 
 import { User, Group, Comment } from '../../models';
 import { normalizeEmail } from '../email-norm';
@@ -576,6 +577,18 @@ const usersTrait = (superClass) =>
 
     async cleanFrozenUsers() {
       await this.database.raw(`delete from frozen_users where expires_at < now()`);
+    }
+
+    getFrozenUsers(limit = 30, offset = 0) {
+      return this.database
+        .getAll(
+          `select * from frozen_users 
+          where expires_at > now()
+          order by expires_at asc
+          limit :limit offset :offset`,
+          { limit, offset },
+        )
+        .then((rows) => camelizeKeys(rows));
     }
   };
 

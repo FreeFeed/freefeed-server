@@ -1,14 +1,13 @@
 import Router from '@koa/router';
+import { DefaultState } from 'koa';
 
 import { journal, whoAmI } from '../../../controllers/api/admin/CommonController';
 import { adminRolesRequired } from '../../../controllers/middlewares/admin-only';
+import { AppContext } from '../../../support/types';
 
-export default function addRoutes(router: Router) {
-  const r = new Router();
-  r.use(adminRolesRequired());
+export default function addRoutes(router: Router<DefaultState, AppContext>) {
+  const mw = adminRolesRequired();
 
-  r.get('/whoami', whoAmI);
-  r.get('/journal', journal);
-
-  router.use(r.routes(), r.allowedMethods());
+  router.get('/whoami', mw, whoAmI);
+  router.get('/journal', mw, journal);
 }

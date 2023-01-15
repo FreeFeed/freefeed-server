@@ -1,16 +1,15 @@
 import Router from '@koa/router';
+import { DefaultStateExtends } from 'koa';
 
 import { listUsers, promoteModerator } from '../../../controllers/api/admin/AdminController';
 import { adminRolesRequired } from '../../../controllers/middlewares/admin-only';
 import { ROLE_ADMIN } from '../../../models/admins';
+import { AppContext } from '../../../support/types';
 
-export default function addRoutes(router: Router) {
-  const r = new Router();
-  r.use(adminRolesRequired(ROLE_ADMIN));
+export default function addRoutes(router: Router<DefaultStateExtends, AppContext>) {
+  const mw = adminRolesRequired(ROLE_ADMIN);
 
-  r.get('/members', listUsers);
-  r.post('/members/:username/promote', promoteModerator(true));
-  r.post('/members/:username/demote', promoteModerator(false));
-
-  router.use(r.routes(), r.allowedMethods());
+  router.get('/members', mw, listUsers);
+  router.post('/members/:username/promote', mw, promoteModerator(true));
+  router.post('/members/:username/demote', mw, promoteModerator(false));
 }
