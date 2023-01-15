@@ -69,6 +69,25 @@ class DbAdapterBase {
 
     return this._pgVersion;
   }
+
+  doInTransaction(action) {
+    if (this._inTransaction) {
+      throw new Error(`Nested transactions aren't supported yet`);
+    }
+
+    return this.database.transaction(async (tx) => {
+      const prevDb = this.database;
+      this.database = withDbHelpers(tx);
+      this._inTransaction = true;
+
+      try {
+        return await action();
+      } finally {
+        this.database = prevDb;
+        this._inTransaction = false;
+      }
+    });
+  }
 }
 
 // Extending DbAdapterBase by traits
