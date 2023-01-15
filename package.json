@@ -171,5 +171,5 @@
     "unexpected-sinon": "~11.1.0",
     "xml-parser": "~1.2.1"
   },
-  "packageManager": "yarn@3.2.1"
+  "packageManager": "yarn@3.3.1"
 }
