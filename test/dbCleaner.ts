@@ -1,7 +1,7 @@
 import pgFormat from 'pg-format';
 import { type Knex } from 'knex';
 
-const tablesToKeep = ['admin_roles'];
+const tablesToKeep = ['admin_roles', 'event_types'];
 
 export default function cleanDB(knex: Knex) {
   return knex.raw(
