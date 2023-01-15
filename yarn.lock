@@ -4742,7 +4742,7 @@ __metadata:
     koa-response-time: ~2.1.0
     koa-static: ~5.0.0
     lodash: ~4.17.21
-    luxon: ~3.1.1
+    luxon: ~3.2.1
     mailparser: ~3.6.2
     media-type: ~0.3.1
     mime-types: ~2.1.35
@@ -6931,10 +6931,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"luxon@npm:^3.1.0, luxon@npm:~3.1.1":
+"luxon@npm:^3.1.0":
   version: 3.1.1
   resolution: "luxon@npm:3.1.1"
   checksum: 388fb35d3c51a19d8b305a3338e7e74634b08562e7d2f9ed5c05a7f4bc9ee1c1ab6a2546b6d9c4c104516b24043757d65f5f3fe3d78b206fbf55a9586ab62230
+  languageName: node
+  linkType: hard
+
+"luxon@npm:~3.2.1":
+  version: 3.2.1
+  resolution: "luxon@npm:3.2.1"
+  checksum: 3fa3def2c5f5d3032b4c46220c4da8aeb467ac979888fc9d2557adcd22195f93516b4ad5909a75862bec8dc6ddc0953b0f38e6d2f4a8ab8450ddc531a83cf20d
   languageName: node
   linkType: hard
 
