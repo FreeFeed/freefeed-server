@@ -50,9 +50,9 @@ export class User {
   static validateEmail(email: string | null): Promise<void>;
   newComment(params: { body: string; postId: UUID }): Comment;
 
-  getGenericTimeline(name: typeof User.feedNames[number]): Promise<Timeline | null>;
-  getGenericTimelineId(name: typeof User.feedNames[number]): Promise<UUID | null>;
-  getGenericTimelineIntId(name: typeof User.feedNames[number]): Promise<number | null>;
+  getGenericTimeline(name: (typeof User.feedNames)[number]): Promise<Timeline | null>;
+  getGenericTimelineId(name: (typeof User.feedNames)[number]): Promise<UUID | null>;
+  getGenericTimelineIntId(name: (typeof User.feedNames)[number]): Promise<number | null>;
 
   getRiverOfNewsTimelineId(): Promise<UUID | null>;
   getHidesTimelineId(): Promise<UUID | null>;

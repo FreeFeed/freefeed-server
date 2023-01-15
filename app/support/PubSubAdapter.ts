@@ -19,7 +19,7 @@ export const eventNames = {
   EVENT_CREATED: 'event:new',
 } as const;
 
-export type EventName = typeof eventNames[keyof typeof eventNames];
+export type EventName = (typeof eventNames)[keyof typeof eventNames];
 
 interface IPublisher {
   publish(eventName: string, payload: string): Promise<any>;
