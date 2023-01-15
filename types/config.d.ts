@@ -134,6 +134,8 @@ declare module 'config' {
         methodOverrides?: Record<string, { duration?: number; maxRequests?: number }>;
       };
     };
+
+    ianaTimeZone: string;
   };
 
   const c: Config;

@@ -33,6 +33,7 @@ export class User {
   description: string;
   createdAt: string; // numeric string
   updatedAt: string; // numeric string
+  profilePictureLargeUrl: string;
   readonly isActive: boolean;
   type: 'user';
   setGoneStatus(status: keyof typeof GONE_NAMES): Promise<void>;

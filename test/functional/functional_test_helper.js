@@ -1197,3 +1197,10 @@ export function withEmailCapture({ clearBeforeEach = true, multiple = false } = 
   clearBeforeEach && beforeEach(() => (ref.current = multiple ? [] : null));
   return ref;
 }
+
+export function cmpBy(key) {
+  return (a, b) => {
+    // eslint-disable-next-line no-nested-ternary
+    return a[key] < b[key] ? -1 : a[key] > b[key] ? 1 : 0;
+  };
+}

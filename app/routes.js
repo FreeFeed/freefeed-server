@@ -1,5 +1,6 @@
 /* eslint babel/semi: "error" */
 import Router from '@koa/router';
+import cors from '@koa/cors';
 
 import AttachmentsRoute from './routes/api/v1/AttachmentsRoute';
 import AttachmentsRouteV2 from './routes/api/v2/AttachmentsRoute';
@@ -26,8 +27,12 @@ import InvitationsRoute from './routes/api/v2/InvitationsRoute';
 import AppTokensRoute from './routes/api/v2/AppTokens';
 import ServerInfoRoute from './routes/api/v2/ServerInfo';
 import ExtAuthRoute from './routes/api/v2/ExtAuth';
+import AdminCommonRoute from './routes/api/admin/CommonRoute';
+import AdminAdminRoute from './routes/api/admin/AdminRoute';
+import AdminModeratorRoute from './routes/api/admin/ModeratorRoute';
 import { withAuthToken } from './controllers/middlewares/with-auth-token';
 import { apiNotFoundMiddleware } from './setup/initializers/api-not-found';
+import { authRequired } from './controllers/middlewares';
 import { rateLimiterMiddleware } from './support/rateLimiter';
 
 export default function (app) {
@@ -35,55 +40,68 @@ export default function (app) {
   app.use(router.routes());
   app.use(router.allowedMethods());
 
-  // Not Found middleware for API-like URIs
+  app.use(cors());
   app.use(apiNotFoundMiddleware);
 }
 
 export function createRouter() {
-  const router = new Router({ prefix: '/v([1-9]\\d*)' });
+  const publicRouter = new Router();
 
   // unauthenticated routes
-  PasswordsRoute(router);
+  PasswordsRoute(publicRouter);
 
   // Fix for ctx._matchedRoute
   // koa-router puts most generic instead of most specific route to the ctx._matchedRoute
   // See https://github.com/ZijianHe/koa-router/issues/246
-  router.use((ctx, next) => {
+  publicRouter.use((ctx, next) => {
     ctx.state.matchedRoute = ctx.matched.find((layer) => layer.methods.includes(ctx.method)).path;
     return next();
   });
 
   // [at least optionally] authenticated routes
-  router.use(withAuthToken);
+  publicRouter.use(withAuthToken);
 
-  router.use(rateLimiterMiddleware);
+  publicRouter.use(rateLimiterMiddleware);
 
-  SessionRoute(router);
+  SessionRoute(publicRouter);
 
-  AttachmentsRoute(router);
-  BookmarkletRoute(router);
-  CommentsRoute(router);
-  GroupsRoute(router);
-  PostsRoute(router);
-  UsersRouteV2(router);
-  UsersRoute(router);
-  StatsRouteV2(router);
+  AttachmentsRoute(publicRouter);
+  BookmarkletRoute(publicRouter);
+  CommentsRoute(publicRouter);
+  GroupsRoute(publicRouter);
+  PostsRoute(publicRouter);
+  UsersRouteV2(publicRouter);
+  UsersRoute(publicRouter);
+  StatsRouteV2(publicRouter);
 
-  GroupsRouteV2(router);
-  RequestsRouteV2(router);
-  SearchRoute(router);
-  SummaryRoute(router);
-  TimelinesRouteV2(router);
-  PostsRouteV2(router);
-  ArchivesRoute(router);
-  ArchivesStatsRouteV2(router);
-  NotificationsRoute(router);
-  CommentLikesRoute(router);
-  InvitationsRoute(router);
-  AppTokensRoute(router);
-  ServerInfoRoute(router);
-  ExtAuthRoute(router);
-  AttachmentsRouteV2(router);
+  GroupsRouteV2(publicRouter);
+  RequestsRouteV2(publicRouter);
+  SearchRoute(publicRouter);
+  SummaryRoute(publicRouter);
+  TimelinesRouteV2(publicRouter);
+  PostsRouteV2(publicRouter);
+  ArchivesRoute(publicRouter);
+  ArchivesStatsRouteV2(publicRouter);
+  NotificationsRoute(publicRouter);
+  CommentLikesRoute(publicRouter);
+  InvitationsRoute(publicRouter);
+  AppTokensRoute(publicRouter);
+  ServerInfoRoute(publicRouter);
+  ExtAuthRoute(publicRouter);
+  AttachmentsRouteV2(publicRouter);
+
+  const router = new Router();
+  router.use('/v([1-9]\\d*)', publicRouter.routes(), publicRouter.allowedMethods());
+
+  {
+    const adminRouter = new Router();
+    adminRouter.use(withAuthToken);
+    adminRouter.use(authRequired());
+    AdminCommonRoute(adminRouter);
+    AdminAdminRoute(adminRouter);
+    AdminModeratorRoute(adminRouter);
+    router.use('/api/admin', adminRouter.routes(), adminRouter.allowedMethods());
+  }
 
   return router;
 }

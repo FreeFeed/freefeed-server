@@ -11,6 +11,7 @@ import {
 } from '../../models/auth-tokens/types';
 import { SessionTokenV1 } from '../../models/auth-tokens';
 import { T_EVENT_TYPE } from '../EventTypes';
+import { AdminAction, AdminRole } from '../../models/admins';
 
 type QueryBindings = readonly Knex.RawBinding[] | Knex.ValueDict | Knex.RawBinding;
 
@@ -72,7 +73,9 @@ export class DbAdapter {
 
   database: Knex & CommonDBHelpers & TrxDBHelpers;
 
-  now(): Promise<string>;
+  now(): Promise<Date>;
+
+  doInTransaction<T>(action: () => Promise<T>): Promise<T>;
 
   // Subscription requests
   getUserSubscriptionPendingRequestsIds(userId: UUID): Promise<UUID[]>;
@@ -136,6 +139,10 @@ export class DbAdapter {
   userFrozenUntil(userId: UUID): Promise<Date | null>;
   isUserFrozen(userId: UUID): Promise<boolean>;
   cleanFrozenUsers(): Promise<void>;
+  getFrozenUsers(
+    limit?: number,
+    offset?: number,
+  ): Promise<{ userId: UUID; createdAt: Date; expiresAt: Date }[]>;
 
   // Bans
   getUserBansIds(id: UUID): Promise<UUID[]>;
@@ -268,4 +275,34 @@ export class DbAdapter {
   createEmailVerificationCode(email: string, ipAddress: IPAddr): Promise<string | null>;
   checkEmailVerificationCode(code: string, email: string): Promise<boolean>;
   cleanOldEmailVerificationCodes(): Promise<void>;
+
+  // Admin-related methods
+  getUserAdminRoles(userId: UUID): Promise<AdminRole[]>;
+  getUsersAdminRolesAssoc(userIds: UUID[]): Promise<{ [id: UUID]: AdminRole[] }>;
+  setUserAdminRole(
+    userId: UUID,
+    role: AdminRole,
+    doSet?: boolean,
+    flags?: { YES_I_WANT_TO_SET_ADMIN_FOR_TEST_ONLY: boolean },
+  ): Promise<boolean>;
+  getUsersWithAdminRoles(): Promise<UUID[]>;
+  createAdminAction(
+    action_name: AdminAction,
+    admin: { username: string },
+    target_user?: { username: string } | null,
+    details?: object,
+  ): Promise<UUID>;
+  getAdminActions(
+    limit?: number,
+    offset?: number,
+  ): Promise<
+    {
+      id: UUID;
+      created_at: Date;
+      action_name: AdminAction;
+      admin_username: string;
+      target_username: string | null;
+      details: object;
+    }[]
+  >;
 }

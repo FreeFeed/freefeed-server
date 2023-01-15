@@ -573,6 +573,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@koa/cors@npm:~4.0.0":
+  version: 4.0.0
+  resolution: "@koa/cors@npm:4.0.0"
+  dependencies:
+    vary: ^1.1.2
+  checksum: e0760544823532f2d71d792e3076858e38bab9b1c090abea175f1319fd91ea58a1da384a2fe7f5108f1c681e3830b01f62a1cafe271d6406751976af443187aa
+  languageName: node
+  linkType: hard
+
 "@koa/router@npm:^9.0.0":
   version: 9.4.0
   resolution: "@koa/router@npm:9.4.0"
@@ -889,6 +898,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/humps@npm:~2.0.2":
+  version: 2.0.2
+  resolution: "@types/humps@npm:2.0.2"
+  checksum: db2ca91423eb2b59a2d18a1dbbdd67eabc9862205dd93284b2a1f61ba4e289851879542816398bc3e86298409987b5c48b0ede05d3b4c998a0b0adaeb862f95e
+  languageName: node
+  linkType: hard
+
 "@types/ioredis@npm:^4.28.10":
   version: 4.28.10
   resolution: "@types/ioredis@npm:4.28.10"
@@ -1026,6 +1042,15 @@ __metadata:
     "@types/koa-compose": "*"
     "@types/node": "*"
   checksum: e3b634d934b79ce8f394bf4130511596081f9c073dbfb4309aa32e4c421c47049a002b65111f8d9687eabec55d5a27b1b9ae0699afa83894cb7032c3536bfa17
+  languageName: node
+  linkType: hard
+
+"@types/koa__router@npm:~12.0.0":
+  version: 12.0.0
+  resolution: "@types/koa__router@npm:12.0.0"
+  dependencies:
+    "@types/koa": "*"
+  checksum: ebfee772f7a9c5ff5e296a24443eb2c288fa2e5b8c60afbb460b41f0bd0d68c8a722fff5984eef7b7d90d057fe6f556171695ea83e2cdbeef3e2462f73c362b7
   languageName: node
   linkType: hard
 
@@ -4711,11 +4736,13 @@ __metadata:
   resolution: "freefeed-server@workspace:."
   dependencies:
     "@babel/core": ~7.20.12
+    "@koa/cors": ~4.0.0
     "@koa/router": ~12.0.0
     "@types/bytes": ~3.1.1
     "@types/cache-manager": ~3.4.3
     "@types/cache-manager-ioredis": ~2.0.3
     "@types/debug": ~4.1.7
+    "@types/humps": ~2.0.2
     "@types/jsonwebtoken": ~8.5.9
     "@types/koa": ~2.13.5
     "@types/koa-conditional-get": ~2.0.0
@@ -4724,6 +4751,7 @@ __metadata:
     "@types/koa-passport": ~4.0.3
     "@types/koa-response-time": ~2.1.2
     "@types/koa-static": ~4.0.2
+    "@types/koa__router": ~12.0.0
     "@types/lodash": ~4.14.191
     "@types/mocha": ~10.0.1
     "@types/n3": ~1.10.4
@@ -4773,6 +4801,7 @@ __metadata:
     gifsicle: ~7.0.1
     gm: ~1.23.1
     grapheme-breaker: 0.3.2
+    humps: ~2.0.1
     ioredis: ~5.2.5
     jsonwebtoken: ~9.0.0
     juice: ~7.0.0
@@ -5665,6 +5694,13 @@ __metadata:
   version: 0.0.2
   resolution: "humanize-number@npm:0.0.2"
   checksum: 9c98c9d06b0f3d801960be3957199232a5df52377e2502acae92e4f71de633fa62c315a83f24bf96bef76f47b2e3e0e1e4f4157c891e27074fd3272cad6724bb
+  languageName: node
+  linkType: hard
+
+"humps@npm:~2.0.1":
+  version: 2.0.1
+  resolution: "humps@npm:2.0.1"
+  checksum: 7d5a674cfca2f34c04562f6fd0d129b4c43a5caf85fcc1c9eacf5d0729554c9375db362c4232519b37369c94dd2560d85f96ad4091a8fbf4af4e625ab5214a30
   languageName: node
   linkType: hard
 
