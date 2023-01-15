@@ -32,9 +32,8 @@ export const promoteModerator = (doPromote: boolean) =>
       if (ok) {
         await dbAdapter.createAdminAction(
           doPromote ? ACT_GIVE_MODERATOR_RIGHTS : ACT_REMOVE_MODERATOR_RIGHTS,
-          user.username,
-          targetUser.username,
-          {},
+          user,
+          targetUser,
         );
       }
 

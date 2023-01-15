@@ -1,4 +1,4 @@
-import type Knex from 'knex';
+import type { Knex } from 'knex';
 
 export const up =
   // language=PostgreSQL
@@ -27,6 +27,7 @@ export const up =
         target_username text,
         action_name text not null,
         details jsonb not null default '{}'
+          check (jsonb_typeof(details) = 'object')
       );
 
       CREATE FUNCTION admin_actions_abort_tf() RETURNS TRIGGER LANGUAGE plpgsql AS

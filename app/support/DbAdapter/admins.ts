@@ -66,10 +66,14 @@ const adminsTrait = (superClass: typeof DbAdapter) =>
 
     createAdminAction(
       action_name: AdminAction,
-      admin_username: string,
-      target_username: string | null,
-      details: any,
+      admin: { username: string },
+      target_user: { username: string } | null = null,
+      details: object = {},
     ): Promise<UUID> {
+      if (typeof details !== 'object' || details === null) {
+        throw new Error("The 'details' argument must be object");
+      }
+
       return this.database.getOne(
         `insert into admin_actions 
         (
@@ -81,9 +85,14 @@ const adminsTrait = (superClass: typeof DbAdapter) =>
           :action_name,
           :admin_username,
           :target_username,
-          :details
+          :details  
         ) returning id`,
-        { action_name, admin_username, target_username, details },
+        {
+          action_name,
+          admin_username: admin.username,
+          target_username: target_user?.username ?? null,
+          details,
+        },
       );
     }
 

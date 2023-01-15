@@ -50,7 +50,7 @@ export const freezeUser = compose([
     }
 
     await targetUser.freeze(freezeTime.toISO());
-    await dbAdapter.createAdminAction(ACT_FREEZE_USER, user.username, targetUser.username, {
+    await dbAdapter.createAdminAction(ACT_FREEZE_USER, user, targetUser, {
       freezeUntil: freezeTime.toISO(),
     });
 
@@ -68,7 +68,7 @@ export const unfreezeUser = compose([
     }
 
     await targetUser.freeze(0);
-    await dbAdapter.createAdminAction(ACT_UNFREEZE_USER, user.username, targetUser.username, {});
+    await dbAdapter.createAdminAction(ACT_UNFREEZE_USER, user, targetUser);
 
     ctx.body = {};
   },

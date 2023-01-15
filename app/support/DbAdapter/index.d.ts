@@ -286,9 +286,9 @@ export class DbAdapter {
   getUsersWithAdminRoles(): Promise<UUID[]>;
   createAdminAction(
     action_name: AdminAction,
-    admin_username: string,
-    target_username: string | null,
-    details: any,
+    admin: { username: string },
+    target_user?: { username: string } | null,
+    details?: object,
   ): Promise<UUID>;
   getAdminActions(
     limit?: number,
@@ -300,7 +300,7 @@ export class DbAdapter {
       action_name: AdminAction;
       admin_username: string;
       target_username: string | null;
-      details: any;
+      details: object;
     }[]
   >;
 }
