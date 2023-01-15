@@ -4739,6 +4739,7 @@ __metadata:
     koa-methodoverride: 2.0.0
     koa-morgan: 1.0.1
     koa-passport: ~5.0.0
+    koa-requestid: ^2.1.0
     koa-response-time: ~2.1.0
     koa-static: ~5.0.0
     lodash: ~4.17.21
@@ -6602,6 +6603,15 @@ __metadata:
   dependencies:
     passport: ^0.6.0
   checksum: d0cc2df188851444e518462241543cb97833b2f0aaf3269ac07145a4a98e443c0186c63ba94a2fe2f23242a5c0a6bcc8b5eea115031b38c19318f6ff37afd24b
+  languageName: node
+  linkType: hard
+
+"koa-requestid@npm:^2.1.0":
+  version: 2.1.0
+  resolution: "koa-requestid@npm:2.1.0"
+  dependencies:
+    uuid: ^3.0.1
+  checksum: 8491e6c56f5dec8aa93d0a893c8df92f3372211c7aa5c4eafe73198e6da4fe4f312388c20c2939fb5d6ffabe424b9a81b876d799693addb9af97d65b291345e4
   languageName: node
   linkType: hard
 
