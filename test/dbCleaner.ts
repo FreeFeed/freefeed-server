@@ -1,4 +1,4 @@
-import Knex from 'knex';
+import { type Knex } from 'knex';
 
 export default function cleanDB(knex: Knex) {
   return knex.raw(`

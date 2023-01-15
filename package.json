@@ -61,7 +61,7 @@
     "ioredis": "~5.2.4",
     "jsonwebtoken": "~9.0.0",
     "juice": "~7.0.0",
-    "knex": "~0.21.21",
+    "knex": "~2.3.0",
     "koa": "~2.14.1",
     "koa-body": "~5.0.0",
     "koa-compose": "~4.1.0",

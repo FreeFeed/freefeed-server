@@ -1,4 +1,4 @@
-import Knex, { RawBinding, ValueDict, Transaction } from 'knex';
+import { Knex } from 'knex';
 
 import { IPAddr, Nullable, UUID } from '../types';
 import { AppTokenV1, Attachment, Comment, Group, Post, Timeline, User, Job } from '../../models';
@@ -12,7 +12,7 @@ import {
 import { SessionTokenV1 } from '../../models/auth-tokens';
 import { T_EVENT_TYPE } from '../EventTypes';
 
-type QueryBindings = readonly RawBinding[] | ValueDict | RawBinding;
+type QueryBindings = readonly Knex.RawBinding[] | Knex.ValueDict | Knex.RawBinding;
 
 type CommonDBHelpers = {
   getAll<R = any>(sql: string, bindings?: QueryBindings): Promise<R[]>;
@@ -22,8 +22,8 @@ type CommonDBHelpers = {
 };
 
 type TrxDBHelpers = {
-  transaction(): Promise<Transaction & CommonDBHelpers>;
-  transaction<T>(action: (trx: Transaction & CommonDBHelpers) => Promise<T>): Promise<T>;
+  transaction(): Promise<Knex.Transaction & CommonDBHelpers>;
+  transaction<T>(action: (trx: Knex.Transaction & CommonDBHelpers) => Promise<T>): Promise<T>;
 };
 
 type ExtProfileData = {

@@ -1,4 +1,4 @@
-import Knex from 'knex';
+import { Knex } from 'knex';
 
 import { DbAdapter } from './support/DbAdapter';
 import PubSubAdapter from './pubsub';

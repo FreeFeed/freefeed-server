@@ -8,7 +8,7 @@ import pgFormat from 'pg-format';
 import noop from 'lodash/noop';
 import config from 'config';
 import { QueryResultRow } from 'pg';
-import Knex from 'knex';
+import { type Knex } from 'knex';
 
 import { DbAdapter } from '../support/DbAdapter';
 

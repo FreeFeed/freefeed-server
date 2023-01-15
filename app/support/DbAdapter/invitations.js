@@ -14,7 +14,7 @@ const invitationsTrait = (superClass) =>
       return this.database('invitations').first().where('secure_id', secureId);
     }
 
-    createInvitation(authorIntId, message, lang, singleUse, userNames, groupNames) {
+    async createInvitation(authorIntId, message, lang, singleUse, userNames, groupNames) {
       const payload = {
         author: authorIntId,
         message,
@@ -26,7 +26,8 @@ const invitationsTrait = (superClass) =>
         },
       };
 
-      return this.database('invitations').insert(payload).returning('secure_id');
+      const res = await this.database('invitations').insert(payload).returning('secure_id');
+      return res[0].secure_id;
     }
 
     useInvitation(secureId) {

@@ -22,7 +22,9 @@ const postsTrait = (superClass) =>
         // https://github.com/knex/knex/issues/2622
         toTSVector(preparedPayload.body).replace(/\?/g, '\\?'),
       );
-      const [postId] = await this.database('posts').returning('uid').insert(preparedPayload);
+      const [{ uid: postId }] = await this.database('posts')
+        .returning('uid')
+        .insert(preparedPayload);
 
       // Update backlinks in the post body
       await this.updateBacklinks(payload.body, postId);

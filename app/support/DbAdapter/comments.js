@@ -34,7 +34,7 @@ const commentsTrait = (superClass) =>
 
         preparedPayload.seq_number = (maxCommentNumber || 0) + 1;
 
-        const [commentId] = await trx('comments').returning('uid').insert(preparedPayload);
+        const [{ uid: commentId }] = await trx('comments').returning('uid').insert(preparedPayload);
 
         // Update backlinks in the comment body
         await this.updateBacklinks(payload.body, payload.postId, commentId, trx);
@@ -223,7 +223,7 @@ const commentsTrait = (superClass) =>
         throw new Error(`Undefined body of HIDDEN_ARCHIVED comment`);
       }
 
-      const [uid] = await this.database('comments')
+      const [{ uid }] = await this.database('comments')
         .returning('uid')
         .insert({
           post_id: params.postId,
