@@ -1,4 +1,4 @@
-import Knex from 'knex';
+import { Knex } from 'knex';
 
 export const up = (knex: Knex) =>
   knex.schema.raw(`do $$begin
