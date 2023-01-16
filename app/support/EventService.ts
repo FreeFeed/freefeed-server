@@ -529,7 +529,7 @@ export class EventService {
     );
   }
 
-  static async onBansInGroupDisabled(group: Group, userId: UUID, initiatorId: UUID) {
+  static async onBansInGroupDisabled(group: Group, userId: UUID, initiatorId: UUID = userId) {
     const [user, initiator] = await dbAdapter.getFeedOwnersByIds([userId, initiatorId]);
 
     if (!user || !initiator) {

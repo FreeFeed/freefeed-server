@@ -182,9 +182,8 @@ export function addModel(dbAdapter) {
       }
     }
 
-    async addAdministrator(adminId, initiatorId = adminId) {
+    async addAdministrator(adminId) {
       await dbAdapter.addAdministratorToGroup(this.id, adminId);
-      await this.disableBansFor(adminId, initiatorId);
     }
 
     async removeAdministrator(feedId) {

@@ -1734,12 +1734,6 @@ describe('EventService', () => {
             created_by_user_id: lunaUserModel.intId,
             group_id: dubheGroupModel.intId,
           },
-          {
-            user_id: lunaUserModel.intId,
-            event_type: 'bans_in_group_disabled',
-            created_by_user_id: lunaUserModel.intId,
-            group_id: dubheGroupModel.intId,
-          },
         ]);
       });
 

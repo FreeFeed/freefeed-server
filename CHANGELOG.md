@@ -19,10 +19,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   There is a new file, _doc/visibility-rules.md_, with description of this
   algorithm.
   
-  When a user becomes a group administrator (by creating a group or being
-  promoted by another user), the bans in that group are disabled for him. He can
-  enable bans back manually.
-
   API changes:
   - New methods `POST /groups/:groupName/disableBans` and `POST
     /groups/:groupName/enableBans`;

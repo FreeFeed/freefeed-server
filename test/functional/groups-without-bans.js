@@ -2,11 +2,11 @@
 /* global $database, $pg_database */
 import expect from 'unexpected';
 
-import cleanDB from '../dbCleaner';
 import { getSingleton } from '../../app/app';
 import { PubSub, dbAdapter } from '../../app/models';
-import { PubSubAdapter } from '../../app/support/PubSubAdapter';
 import { EVENT_TYPES } from '../../app/support/EventTypes';
+import { PubSubAdapter } from '../../app/support/PubSubAdapter';
+import cleanDB from '../dbCleaner';
 
 import {
   authHeaders,
@@ -16,12 +16,10 @@ import {
   createGroupAsync,
   createTestUsers,
   deletePostAsync,
-  demoteFromAdmin,
   getUserEvents,
   like,
   likeComment,
   performJSONRequest,
-  promoteToAdmin,
   removeCommentAsync,
   unbanUser,
 } from './functional_test_helper';
@@ -51,15 +49,6 @@ describe('Groups without bans', () => {
   });
 
   describe('Enable/disable bans', () => {
-    it(`should be an 'bans_in_group_disabled' event for Mars (as admin of Celestials)`, async () => {
-      const events = await getUserEvents(mars);
-      expect(events.Notifications, 'to have an item satisfying', {
-        event_type: EVENT_TYPES.BANS_IN_GROUP_DISABLED,
-        group_id: celestials.group.id,
-        created_user_id: mars.user.id,
-      });
-    });
-
     it(`should return 'disable_bans' in 'youCan' for Mars in Selenites`, async () => {
       const resp = await performJSONRequest(
         'GET',
@@ -105,51 +94,6 @@ describe('Groups without bans', () => {
         event_type: EVENT_TYPES.BANS_IN_GROUP_ENABLED,
         group_id: selenites.group.id,
         created_user_id: mars.user.id,
-      });
-    });
-
-    it(`should return 'undisable_bans' in 'youCan' for Mars (as admin) in Celestials`, async () => {
-      const resp = await performJSONRequest(
-        'GET',
-        `/v1/users/${celestials.username}`,
-        null,
-        authHeaders(mars),
-      );
-      expect(resp.users.youCan, 'to contain', 'undisable_bans');
-    });
-
-    describe('New admin promotion', () => {
-      after(() => setBansDisabled(celestials, jupiter, false));
-
-      it(`should disable bans for new Celestial admin, Jupiter`, async () => {
-        await promoteToAdmin(celestials, mars, jupiter);
-        const resp = await performJSONRequest(
-          'GET',
-          `/v1/users/${celestials.username}`,
-          null,
-          authHeaders(jupiter),
-        );
-        expect(resp.users.youCan, 'to contain', 'undisable_bans');
-      });
-
-      it(`should be an 'bans_in_group_disabled' event for Jupiter created by Mars`, async () => {
-        const events = await getUserEvents(jupiter);
-        expect(events.Notifications, 'to have an item satisfying', {
-          event_type: EVENT_TYPES.BANS_IN_GROUP_DISABLED,
-          group_id: celestials.group.id,
-          created_user_id: mars.user.id,
-        });
-      });
-
-      it(`should keep disabled bans when Jupiter demotes from admins`, async () => {
-        await demoteFromAdmin(celestials, mars, jupiter);
-        const resp = await performJSONRequest(
-          'GET',
-          `/v1/users/${celestials.username}`,
-          null,
-          authHeaders(jupiter),
-        );
-        expect(resp.users.youCan, 'to contain', 'undisable_bans');
       });
     });
   });
@@ -405,8 +349,8 @@ describe('Groups without bans', () => {
     });
 
     describe('Luna (as admin) should see posts in Selenites group from Venus who banned her', () => {
-      before(() => banUser(venus, luna));
-      after(() => unbanUser(venus, luna));
+      before(() => Promise.all([banUser(venus, luna), setBansDisabled(selenites, luna)]));
+      after(() => Promise.all([unbanUser(venus, luna), setBansDisabled(selenites, luna, false)]));
 
       it(`should not see post to Celestials group only`, () =>
         shouldNotSeePost(postFromVenusToCelestials, luna));
