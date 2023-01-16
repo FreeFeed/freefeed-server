@@ -1348,8 +1348,8 @@ export function addModel(dbAdapter) {
       return await dbAdapter.getInvitationById(this.invitationId);
     }
 
-    async createInvitation(params) {
-      const [invitationId] = await dbAdapter.createInvitation(
+    createInvitation(params) {
+      return dbAdapter.createInvitation(
         this.intId,
         params.message,
         params.lang,
@@ -1357,7 +1357,6 @@ export function addModel(dbAdapter) {
         params.users,
         params.groups,
       );
-      return invitationId;
     }
 
     isInvitesDisabled() {
