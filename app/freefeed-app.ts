@@ -11,6 +11,7 @@ import passport from 'koa-passport';
 import conditional from 'koa-conditional-get';
 import etag from 'koa-etag';
 import koaStatic from 'koa-static';
+import requestId from 'koa-requestid';
 
 import { version as serverVersion } from '../package.json';
 
@@ -20,6 +21,7 @@ import { maintenanceCheck } from './support/maintenance';
 import { reportError } from './support/exceptions';
 import { normalizeInputStrings } from './controllers/middlewares/normalize-input';
 import { AppContext } from './support/types';
+import { apiVersionMiddleware } from './setup/initializers/api-version';
 
 const env = process.env.NODE_ENV || 'development';
 
@@ -48,6 +50,7 @@ class FreefeedApp extends Application<DefaultState, AppContext> {
     );
     this.use(passport.initialize());
     this.use(originMiddleware);
+    this.use(apiVersionMiddleware);
     this.use(
       methodOverride((req) => {
         if (req.body && typeof req.body === 'object' && '_method' in req.body) {
@@ -88,6 +91,8 @@ class FreefeedApp extends Application<DefaultState, AppContext> {
     this.use(koaStatic(`${__dirname}/../${config.attachments.storage.rootDir}`));
 
     this.use(maintenanceCheck);
+
+    this.use(requestId({ expose: 'X-Request-Id', header: false, query: false }));
 
     this.use(async (ctx, next) => {
       try {

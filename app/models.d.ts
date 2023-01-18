@@ -1,4 +1,4 @@
-import Knex from 'knex';
+import { Knex } from 'knex';
 
 import { DbAdapter } from './support/DbAdapter';
 import PubSubAdapter from './pubsub';
@@ -33,6 +33,7 @@ export class User {
   description: string;
   createdAt: string; // numeric string
   updatedAt: string; // numeric string
+  profilePictureLargeUrl: string;
   readonly isActive: boolean;
   type: 'user';
   setGoneStatus(status: keyof typeof GONE_NAMES): Promise<void>;
@@ -50,9 +51,9 @@ export class User {
   static validateEmail(email: string | null): Promise<void>;
   newComment(params: { body: string; postId: UUID }): Comment;
 
-  getGenericTimeline(name: typeof User.feedNames[number]): Promise<Timeline | null>;
-  getGenericTimelineId(name: typeof User.feedNames[number]): Promise<UUID | null>;
-  getGenericTimelineIntId(name: typeof User.feedNames[number]): Promise<number | null>;
+  getGenericTimeline(name: (typeof User.feedNames)[number]): Promise<Timeline | null>;
+  getGenericTimelineId(name: (typeof User.feedNames)[number]): Promise<UUID | null>;
+  getGenericTimelineIntId(name: (typeof User.feedNames)[number]): Promise<number | null>;
 
   getRiverOfNewsTimelineId(): Promise<UUID | null>;
   getHidesTimelineId(): Promise<UUID | null>;

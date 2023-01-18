@@ -309,7 +309,7 @@ describe('withAuthToken middleware', () => {
     });
 
     describe('Token with previous issue', () => {
-      let session, tokenString;
+      let session, tokenString, nowDate;
 
       before(async () => {
         session = await sessionTokenV1Store.create(luna.id);
@@ -317,9 +317,13 @@ describe('withAuthToken middleware', () => {
         await session.reissue();
       });
 
+      beforeEach(async () => {
+        nowDate = new Date(await dbAdapter.now());
+      });
+
       it('should return token when issue is changed not long ago', async () => {
         const updatedAt = new Date(
-          Date.now() - 1000 * (config.authSessions.reissueGraceIntervalSec - 10),
+          nowDate.getTime() - 1000 * (config.authSessions.reissueGraceIntervalSec - 10),
         );
 
         await dbAdapter.updateAuthSession(session.id, { updatedAt });
@@ -334,7 +338,7 @@ describe('withAuthToken middleware', () => {
 
       it('should not return token when issue is changed long ago', async () => {
         const updatedAt = new Date(
-          Date.now() - 1000 * (config.authSessions.reissueGraceIntervalSec + 10),
+          nowDate.getTime() - 1000 * (config.authSessions.reissueGraceIntervalSec + 10),
         );
 
         await dbAdapter.updateAuthSession(session.id, { updatedAt });

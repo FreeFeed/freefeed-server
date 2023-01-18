@@ -6,8 +6,8 @@ import {
 } from '../../../controllers/api/v2/ExtAuthController';
 
 export default function addRoutes(app) {
-  app.get('/v2/ext-auth/profiles', listProfiles);
-  app.delete('/v2/ext-auth/profiles/:profileId', removeProfile);
-  app.post('/v2/ext-auth/auth-start', authStart);
-  app.post('/v2/ext-auth/auth-finish', authFinish);
+  app.get('/ext-auth/profiles', listProfiles);
+  app.delete('/ext-auth/profiles/:profileId', removeProfile);
+  app.post('/ext-auth/auth-start', authStart);
+  app.post('/ext-auth/auth-finish', authFinish);
 }

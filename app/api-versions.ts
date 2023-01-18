@@ -1,0 +1,4 @@
+export const API_VERSION_2 = 2;
+
+export const API_VERSION_ACTUAL = API_VERSION_2;
+export const API_VERSION_MINIMAL = API_VERSION_2;

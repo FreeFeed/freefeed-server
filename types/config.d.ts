@@ -119,6 +119,23 @@ declare module 'config' {
         limitPerIP: { count: number; interval: number };
       };
     };
+
+    rateLimit: {
+      enabled: boolean;
+      allowlist: string[];
+      anonymous: {
+        duration: number;
+        maxRequests: number;
+        methodOverrides?: Record<string, { duration?: number; maxRequests?: number }>;
+      };
+      authenticated: {
+        duration: number;
+        maxRequests: number;
+        methodOverrides?: Record<string, { duration?: number; maxRequests?: number }>;
+      };
+    };
+
+    ianaTimeZone: string;
   };
 
   const c: Config;

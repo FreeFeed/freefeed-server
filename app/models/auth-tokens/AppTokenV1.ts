@@ -113,7 +113,8 @@ export class AppTokenV1 extends AuthToken {
 
     // Route access
     {
-      const route = `${ctx.method === 'HEAD' ? 'GET' : ctx.method} ${ctx.state.matchedRoute}`;
+      const matchedAPIRoute = normalizeRoutePath(ctx.state.matchedRoute);
+      const route = `${ctx.method === 'HEAD' ? 'GET' : ctx.method} ${matchedAPIRoute}`;
       const routeAllowed =
         !alwaysDisallowedRoutes.includes(route) &&
         (alwaysAllowedRoutes.includes(route) ||
@@ -243,4 +244,8 @@ export class AppTokenV1 extends AuthToken {
   static normalizeActivationCode(input: string) {
     return normalizeBase32Code(input, 6);
   }
+}
+
+export function normalizeRoutePath(path: string) {
+  return path.replace(/^\/v[^/]+/, '/vN');
 }

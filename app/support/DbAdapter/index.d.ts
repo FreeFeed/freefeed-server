@@ -1,4 +1,4 @@
-import Knex, { RawBinding, ValueDict, Transaction } from 'knex';
+import { Knex } from 'knex';
 
 import { IPAddr, Nullable, UUID } from '../types';
 import { AppTokenV1, Attachment, Comment, Group, Post, Timeline, User, Job } from '../../models';
@@ -11,8 +11,9 @@ import {
 } from '../../models/auth-tokens/types';
 import { SessionTokenV1 } from '../../models/auth-tokens';
 import { T_EVENT_TYPE } from '../EventTypes';
+import { AdminAction, AdminRole } from '../../models/admins';
 
-type QueryBindings = readonly RawBinding[] | ValueDict | RawBinding;
+type QueryBindings = readonly Knex.RawBinding[] | Knex.ValueDict | Knex.RawBinding;
 
 type CommonDBHelpers = {
   getAll<R = any>(sql: string, bindings?: QueryBindings): Promise<R[]>;
@@ -22,8 +23,8 @@ type CommonDBHelpers = {
 };
 
 type TrxDBHelpers = {
-  transaction(): Promise<Transaction & CommonDBHelpers>;
-  transaction<T>(action: (trx: Transaction & CommonDBHelpers) => Promise<T>): Promise<T>;
+  transaction(): Promise<Knex.Transaction & CommonDBHelpers>;
+  transaction<T>(action: (trx: Knex.Transaction & CommonDBHelpers) => Promise<T>): Promise<T>;
 };
 
 type ExtProfileData = {
@@ -71,6 +72,10 @@ export class DbAdapter {
   constructor(connection: Knex);
 
   database: Knex & CommonDBHelpers & TrxDBHelpers;
+
+  now(): Promise<Date>;
+
+  doInTransaction<T>(action: () => Promise<T>): Promise<T>;
 
   // Subscription requests
   getUserSubscriptionPendingRequestsIds(userId: UUID): Promise<UUID[]>;
@@ -134,6 +139,10 @@ export class DbAdapter {
   userFrozenUntil(userId: UUID): Promise<Date | null>;
   isUserFrozen(userId: UUID): Promise<boolean>;
   cleanFrozenUsers(): Promise<void>;
+  getFrozenUsers(
+    limit?: number,
+    offset?: number,
+  ): Promise<{ userId: UUID; createdAt: Date; expiresAt: Date }[]>;
 
   // Bans
   getUserBansIds(id: UUID): Promise<UUID[]>;
@@ -266,4 +275,34 @@ export class DbAdapter {
   createEmailVerificationCode(email: string, ipAddress: IPAddr): Promise<string | null>;
   checkEmailVerificationCode(code: string, email: string): Promise<boolean>;
   cleanOldEmailVerificationCodes(): Promise<void>;
+
+  // Admin-related methods
+  getUserAdminRoles(userId: UUID): Promise<AdminRole[]>;
+  getUsersAdminRolesAssoc(userIds: UUID[]): Promise<{ [id: UUID]: AdminRole[] }>;
+  setUserAdminRole(
+    userId: UUID,
+    role: AdminRole,
+    doSet?: boolean,
+    flags?: { YES_I_WANT_TO_SET_ADMIN_FOR_TEST_ONLY: boolean },
+  ): Promise<boolean>;
+  getUsersWithAdminRoles(): Promise<UUID[]>;
+  createAdminAction(
+    action_name: AdminAction,
+    admin: { username: string },
+    target_user?: { username: string } | null,
+    details?: object,
+  ): Promise<UUID>;
+  getAdminActions(
+    limit?: number,
+    offset?: number,
+  ): Promise<
+    {
+      id: UUID;
+      created_at: Date;
+      action_name: AdminAction;
+      admin_username: string;
+      target_username: string | null;
+      details: object;
+    }[]
+  >;
 }

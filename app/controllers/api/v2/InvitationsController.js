@@ -36,7 +36,7 @@ export default class InvitationsController {
 
     await validateInvitation(ctx.request);
 
-    const [invitationId] = await dbAdapter.createInvitation(
+    const invitationId = await dbAdapter.createInvitation(
       ctx.state.user.intId,
       ctx.request.body.message,
       ctx.request.body.lang,

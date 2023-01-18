@@ -37,6 +37,7 @@ import authSessionsTrait from './auth-sessions';
 import backlinksTrait from './backlinks';
 import groupBlocksTrait from './group-blocks';
 import emailVerificationTrait from './email-verification';
+import adminTrait from './admins';
 
 class DbAdapterBase {
   constructor(database) {
@@ -67,6 +68,25 @@ class DbAdapterBase {
     }
 
     return this._pgVersion;
+  }
+
+  doInTransaction(action) {
+    if (this._inTransaction) {
+      throw new Error(`Nested transactions aren't supported yet`);
+    }
+
+    return this.database.transaction(async (tx) => {
+      const prevDb = this.database;
+      this.database = withDbHelpers(tx);
+      this._inTransaction = true;
+
+      try {
+        return await action();
+      } finally {
+        this.database = prevDb;
+        this._inTransaction = false;
+      }
+    });
   }
 }
 
@@ -104,4 +124,5 @@ export const DbAdapter = _.flow([
   backlinksTrait,
   groupBlocksTrait,
   emailVerificationTrait,
+  adminTrait,
 ])(DbAdapterBase);

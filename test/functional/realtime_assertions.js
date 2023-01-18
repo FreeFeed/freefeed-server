@@ -1,5 +1,6 @@
 import SocketIO from 'socket.io-client';
 
+import { API_VERSION_ACTUAL } from '../../app/api-versions';
 import { getSingleton as initApp } from '../../app/app';
 
 import * as funcTestHelper from './functional_test_helper';
@@ -16,8 +17,8 @@ class Session {
     const port = process.env.PEPYATKA_SERVER_PORT || app.context.config.port;
     const options = {
       transports: ['websocket'],
-      'force new connection': true,
-      query: `token=${encodeURIComponent(userContext.authToken)}`,
+      forceNew: true,
+      query: { token: userContext.authToken, apiVersion: API_VERSION_ACTUAL },
     };
     return new Promise((resolve, reject) => {
       const socket = SocketIO.connect(`http://localhost:${port}/`, options);

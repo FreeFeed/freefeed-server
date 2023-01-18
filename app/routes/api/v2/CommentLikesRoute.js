@@ -1,7 +1,7 @@
 import { CommentLikesController } from '../../../controllers';
 
 export default function addRoutes(app) {
-  app.post('/v2/comments/:commentId/like', CommentLikesController.like);
-  app.post('/v2/comments/:commentId/unlike', CommentLikesController.unlike);
-  app.get('/v2/comments/:commentId/likes', CommentLikesController.likes);
+  app.post('/comments/:commentId/like', CommentLikesController.like);
+  app.post('/comments/:commentId/unlike', CommentLikesController.unlike);
+  app.get('/comments/:commentId/likes', CommentLikesController.likes);
 }

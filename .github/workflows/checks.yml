@@ -11,7 +11,7 @@ jobs:
       fail-fast: false
       matrix:
         node-version: [14, 16, 18]
-        postgres-version: ["12.10", "13.6", "14.2"]
+        postgres-version: ["12.13", "13.9", "14.6", "15.1"]
         redis-version: [6, 7]
 
     services:
@@ -44,16 +44,16 @@ jobs:
 
     - name: Get yarn cache directory path
       id: yarn-cache-dir-path
-      run: echo "::set-output name=dir::$(yarn cache dir)"
+      run: echo "::set-output name=dir::$(yarn config get cacheFolder)"
 
     - uses: actions/cache@v3
-      id: yarn-cache
+      id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
       with:
         path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
         key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
         restore-keys: |
           ${{ runner.os }}-yarn-
-        
+
     - name: create directories for attachments
       run: |
         mkdir -p /tmp/pepyatka-media/attachments
