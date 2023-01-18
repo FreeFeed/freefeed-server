@@ -6,6 +6,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [2.7.0] - Not Released
+### Added
+- The server administrator can disallow registration without invites. The
+  ability to create new invites can be limited or disabled for the given user.
+  One can see who invited the user (this is public information).
+  - The _config.invitations_ section was added with two fields:
+    _requiredForSignUp_ (boolean, false by default) and _canCreateIf_ (array of
+    conditions, empty by default).
+  - If _config.invitations.requiredForSignUp_ is true, then:
+    - Registration without invites is not allowed;
+    - Multi-use invites are not not allowed.
+  - API changes:
+    - `GET /v2/server-info` method returns new _registrationRequiresInvite_ and
+      _multiUseInvitesEnabled_ boolean fields.
+    - `GET /v2/users/:userName` method returns new _invitedBy_ field. The value
+      is either _null_ or the name of the user who invited it.
+    - New method `GET /v2/invitations/info` returns invitations creation
+      parameters for the current user: _canCreateNew_ (boolean), _singleUseOnly_
+      (boolean), _reasonNotCreate_ (null or object).
+  - The server administrator can disable invites via the 'usermod' script for
+    the given user.
 
 ## [2.6.0] - 2023-01-18
 ### Added

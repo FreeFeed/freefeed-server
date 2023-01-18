@@ -469,6 +469,8 @@ export const serverInfoResponse = {
     comment: expect.it('to be a number'),
     description: expect.it('to be a number'),
   },
+  registrationRequiresInvite: expect.it('to be a boolean'),
+  multiUseInvitesEnabled: expect.it('to be a boolean'),
 };
 
 export const externalProfile = {

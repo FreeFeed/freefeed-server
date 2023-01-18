@@ -35,6 +35,16 @@ import { GONE_NAMES, GONE_COOLDOWN, GONE_SUSPENDED, GONE_DELETION } from '../app
       .argument('<username>', 'user to unfreeze')
       .description('Unfreeze account')
       .action(freezeUser(0));
+    program
+      .command('invites-off')
+      .argument('<username>', 'user to disable invites')
+      .description('Disable invites for user')
+      .action(disableInvites(true));
+    program
+      .command('invites-on')
+      .argument('<username>', 'user to enable invites')
+      .description('Enable invites for user')
+      .action(disableInvites(false));
 
     await program.parseAsync(process.argv);
 
@@ -149,6 +159,24 @@ function freezeUser(setDays) {
   };
 }
 
+function disableInvites(doDisable) {
+  return async function (username) {
+    const account = await loadAccount(username);
+
+    if (!account.isUser()) {
+      throw new Error(`This operation is only applicable to users`);
+    }
+
+    await account.setInvitesDisabled(doDisable);
+
+    if (doDisable) {
+      process.stdout.write(`Done! Invitations disabled.\n\n`);
+    } else {
+      process.stdout.write(`Done! Invitations enabled.\n\n`);
+    }
+  };
+}
+
 async function loadAccount(username) {
   const account = await dbAdapter.getFeedOwnerByUsername(username);
 
@@ -180,6 +208,9 @@ async function loadAccount(username) {
   if (account.type === 'user') {
     const upTo = await account.frozenUntil();
     process.stdout.write(`Frozen:  ${upTo ? `up to ${upTo.toISOString()}` : 'no'}\n`);
+
+    const invitesDisabled = await account.isInvitesDisabled();
+    process.stdout.write(`Invites: ${invitesDisabled ? 'disabled' : 'enabled'}\n`);
   }
 
   const pastUsernames = await account.getPastUsernames();

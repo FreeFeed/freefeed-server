@@ -29,5 +29,7 @@ export async function serverInfo(ctx) {
       description: config.maxLength.description,
     },
     emailVerificationEnabled: config.emailVerification.enabled,
+    registrationRequiresInvite: config.invitations.requiredForSignUp,
+    multiUseInvitesEnabled: !config.invitations.requiredForSignUp,
   };
 }

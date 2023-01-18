@@ -2,8 +2,8 @@
 /* global $pg_database */
 import expect from 'unexpected';
 
-import cleanDB from '../../dbCleaner';
-import { User, dbAdapter } from '../../../app/models';
+import cleanDB from '../../../dbCleaner';
+import { User, dbAdapter } from '../../../../app/models';
 
 describe('Change username', () => {
   beforeEach(() => cleanDB($pg_database));

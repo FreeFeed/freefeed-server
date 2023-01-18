@@ -1,6 +1,6 @@
 import { Knex } from 'knex';
 
-import { DbAdapter } from './support/DbAdapter';
+import { DbAdapter, type InvitationRecord } from './support/DbAdapter';
 import PubSubAdapter from './pubsub';
 import { GONE_NAMES } from './models/user';
 import { Nullable, UUID } from './support/types';
@@ -36,6 +36,7 @@ export class User {
   profilePictureLargeUrl: string;
   readonly isActive: boolean;
   type: 'user';
+  invitationId: number | null;
   setGoneStatus(status: keyof typeof GONE_NAMES): Promise<void>;
   unban(usernames: string): Promise<1>;
   unsubscribeFrom(targetUser: User): Promise<boolean>;
@@ -76,6 +77,17 @@ export class User {
   freeze(freezeTime: number | string): Promise<void>;
   isFrozen(): Promise<boolean>;
   frozenUntil(): Promise<Date | null>;
+
+  getInvitation(): Promise<InvitationRecord | null>;
+  createInvitation(params: {
+    message: string;
+    lang: 'ru' | 'en';
+    singleUse: boolean;
+    users: string[];
+    groups: string[];
+  }): Promise<UUID>;
+  isInvitesDisabled(): Promise<boolean>;
+  setInvitesDisabled(isDisabled: boolean): Promise<void>;
 }
 
 export class Group {
