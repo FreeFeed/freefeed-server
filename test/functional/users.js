@@ -3,7 +3,7 @@
 import fetch from 'node-fetch';
 import jwt from 'jsonwebtoken';
 import _ from 'lodash';
-import mkdirp from 'mkdirp';
+import { mkdirp } from 'mkdirp';
 import request from 'superagent';
 import expect from 'unexpected';
 import config from 'config';
