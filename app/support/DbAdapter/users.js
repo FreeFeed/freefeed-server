@@ -621,6 +621,16 @@ const usersTrait = (superClass) =>
         { path: [key], value: JSON.stringify(value), userId },
       );
     }
+
+    getAllUsersIds(limit = 30, offset = 0, types = ['user']) {
+      return this.database.getCol(
+        `select uid from users 
+          where type = any(:types)
+          order by created_at desc
+          limit :limit offset :offset`,
+        { limit, offset, types },
+      );
+    }
   };
 
 export default usersTrait;

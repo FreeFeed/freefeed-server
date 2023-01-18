@@ -392,4 +392,18 @@ describe('Admin API', () => {
       });
     });
   });
+
+  describe('List of all users', () => {
+    it(`should return list of all users ordered by createdAt`, async () => {
+      const sortedUsers = [luna, mars, venus].sort(
+        (a, b) => parseInt(b.user.createdAt) - parseInt(a.user.createdAt),
+      );
+      const response = await performJSONRequest('GET', `/api/admin/users`, null, authHeaders(mars));
+      await expect(response, 'to satisfy', {
+        __httpCode: 200,
+        users: sortedUsers.map((c) => ({ id: c.user.id })),
+        isLastPage: true,
+      });
+    });
+  });
 });

@@ -11,6 +11,19 @@ import { getQueryParams } from './query-params';
 import { serializeUsers } from './serializers';
 import { freezeUserInputSchema } from './data-schemes/freeze';
 
+export async function listAll(ctx: Ctx) {
+  const { limit, offset } = getQueryParams(ctx.request.query);
+
+  const userIds = await dbAdapter.getAllUsersIds(limit + 1, offset, ['user']);
+  const isLastPage = userIds.length <= limit;
+
+  if (!isLastPage) {
+    userIds.length = limit;
+  }
+
+  ctx.body = { users: await serializeUsers(userIds), isLastPage };
+}
+
 export async function listFrozen(ctx: Ctx) {
   const { limit, offset } = getQueryParams(ctx.request.query);
 

@@ -144,6 +144,7 @@ export class DbAdapter {
   ): Promise<
     Map<UUID, typeof User.ACCEPT_DIRECTS_FROM_ALL | typeof User.ACCEPT_DIRECTS_FROM_FRIENDS>
   >;
+  getAllUsersIds(limit?: number, offset?: number, types?: ('user' | 'group')[]): Promise<UUID[]>;
 
   getUsersIdsByIntIds(intIds: number[]): Promise<{ id: number; uid: UUID }[]>;
   getPostsIdsByIntIds(intIds: number[]): Promise<{ id: number; uid: UUID }[]>;
