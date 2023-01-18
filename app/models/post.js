@@ -7,7 +7,6 @@ import { extractHashtags } from '../support/hashtags';
 import { PubSub as pubSub } from '../models';
 import { getRoomsOfPost } from '../pubsub-listener';
 import { EventService } from '../support/EventService';
-import { List } from '../support/open-lists';
 import { getUpdatedUUIDs, notifyBacklinkedLater, notifyBacklinkedNow } from '../support/backlinks';
 
 import {
@@ -20,6 +19,7 @@ import {
  * @typedef { import("../models").User } User
  * @typedef { import("../models").Timeline } Timeline
  * @typedef { import("../support/DbAdapter").DbAdapter } DbAdapter
+ * @typedef { import("../support/open-lists").List } List
  */
 
 /**
@@ -827,43 +827,16 @@ export function addModel(dbAdapter) {
      * or for anonymous if viewer is null.
      *
      *  Viewer CAN NOT see post if:
-     * - viwer is anonymous and post is not public or
+     * - viewer is anonymous and post is not public or
      * - viewer is authorized and
      *   - post author banned viewer or was banned by viewer or
      *   - post is private and viewer cannot read any of post's destination feeds
      *
      * @param {User|null} viewer
-     * @returns {boolean}
+     * @returns {Promise<boolean>}
      */
-    async isVisibleFor(viewer) {
-      const author = await dbAdapter.getUserById(this.userId);
-
-      if (!author.isActive) {
-        return false;
-      }
-
-      // Check if viewer is anonymous and post is not public
-      if (!viewer) {
-        return this.isProtected === '0';
-      }
-
-      // Check if post author banned viewer or was banned by viewer
-      const bannedUserIds = await dbAdapter.getUsersBansOrWasBannedBy(viewer.id);
-
-      if (bannedUserIds.includes(this.userId)) {
-        return false;
-      }
-
-      // Check if post is private and viewer cannot read any of post's destination feeds
-      if (this.isPrivate === '1') {
-        const privateFeedIds = await dbAdapter.getVisiblePrivateFeedIntIds(viewer.id);
-
-        if (_.isEmpty(_.intersection(this.destinationFeedIds, privateFeedIds))) {
-          return false;
-        }
-      }
-
-      return true;
+    isVisibleFor(viewer) {
+      return dbAdapter.isPostVisibleForViewer(this.id, viewer?.id);
     }
 
     /**
@@ -894,15 +867,10 @@ export function addModel(dbAdapter) {
      * @returns {Promise<List>}
      */
     async usersCanSee() {
-      const bannedIds = await dbAdapter.getUsersBansOrWasBannedBy(this.userId);
-      const allExceptBanned = new List(bannedIds, false);
-
-      if (this.isPrivate === '0') {
-        return allExceptBanned;
-      }
-
-      const allowedIds = await dbAdapter.getUsersWhoCanSeePrivateFeeds(this.destinationFeedIds);
-      return List.intersection(allowedIds, allExceptBanned);
+      return await dbAdapter.getUsersWhoCanSeePost({
+        authorId: this.userId,
+        destFeeds: this.destinationFeedIds,
+      });
     }
 
     async processHashtagsOnCreate() {

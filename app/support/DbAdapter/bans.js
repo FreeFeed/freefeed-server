@@ -113,6 +113,72 @@ const bansTrait = (superClass) =>
         })
         .delete();
     }
+
+    async getGroupsWithDisabledBans(userId, groupIds = null) {
+      if (!groupIds) {
+        return await this.database.getCol(
+          `select group_id from groups_without_bans where user_id = :userId`,
+          { userId },
+        );
+      }
+
+      return await this.database.getCol(
+        `select group_id from groups_without_bans
+          where user_id = :userId and group_id = any(:groupIds)`,
+        { userId, groupIds },
+      );
+    }
+
+    getPostsToGroupsWithDisabledBans(userId, postIds) {
+      if (!userId) {
+        return [];
+      }
+
+      return this.database.getCol(
+        `select p.uid from
+            posts p
+            join feeds f on array[f.id] && p.destination_feed_ids and f.name = 'Posts'
+            join groups_without_bans g on f.user_id = g.group_id
+          where g.user_id = :userId and p.uid = any(:postIds)`,
+        { userId, postIds },
+      );
+    }
+
+    async getUsersWithDisabledBansInGroups(groupIds) {
+      return groupIds.length > 0
+        ? await this.database.getAll(
+            `select
+                gb.user_id,
+                a.user_id is not null as is_admin
+            from
+                groups_without_bans gb 
+                left join group_admins a on
+                  (a.group_id, a.user_id) = (gb.group_id, gb.user_id)
+            where
+                gb.group_id = any(:groupIds)`,
+            { groupIds },
+          )
+        : [];
+    }
+
+    async disableBansInGroup(userId, groupId, doDisable) {
+      if (doDisable) {
+        return !!(await this.database.getOne(
+          `insert into groups_without_bans
+            (user_id, group_id) values (:userId, :groupId)
+            on conflict do nothing
+            returning true`,
+          { userId, groupId },
+        ));
+      }
+
+      return !!(await this.database.getOne(
+        `delete from groups_without_bans
+          where (user_id, group_id) = (:userId, :groupId)
+          returning true`,
+        { userId, groupId },
+      ));
+    }
   };
 
 export default bansTrait;

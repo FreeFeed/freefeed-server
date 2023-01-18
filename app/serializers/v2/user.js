@@ -78,6 +78,10 @@ const defaultStats = {
  * @returns {Promise<Array>}
  */
 export async function serializeUsersByIds(userIds, viewerId = null, withAdmins = true) {
+  if (userIds.length === 0) {
+    return [];
+  }
+
   let allUserIds = uniq(userIds);
   const adminsAssoc = await dbAdapter.getGroupsAdministratorsIds(userIds, viewerId);
 
@@ -97,6 +101,7 @@ export async function serializeUsersByIds(userIds, viewerId = null, withAdmins =
     // Bans
     viewerBans,
     theyBans,
+    groupsWithDisabledBans,
     // Directs
     directModes,
   ] = await Promise.all([
@@ -106,6 +111,7 @@ export async function serializeUsersByIds(userIds, viewerId = null, withAdmins =
     dbAdapter.getMutualSubscriptionRequestStatuses(viewerId, allUserIds),
     viewerId ? dbAdapter.getUserBansIds(viewerId) : [],
     viewerId ? dbAdapter.getUserIdsWhoBannedUser(viewerId) : [],
+    viewerId ? dbAdapter.getGroupsWithDisabledBans(viewerId, allUserIds) : [],
     viewerId ? dbAdapter.getDirectModesMap(allUserIds) : null,
   ]);
 
@@ -168,6 +174,8 @@ export async function serializeUsersByIds(userIds, viewerId = null, withAdmins =
       } else if (obj.isPrivate === '0' || viewerSubscribed) {
         obj.youCan.push('post');
       }
+
+      obj.youCan.push(groupsWithDisabledBans.includes(id) ? 'undisable_bans' : 'disable_bans');
     } else {
       // Regular user
       // Bans
