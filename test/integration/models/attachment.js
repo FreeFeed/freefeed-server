@@ -4,7 +4,7 @@ import { promises as fsPromises } from 'fs';
 import path from 'path';
 import util from 'util';
 
-import mkdirp from 'mkdirp';
+import { mkdirp } from 'mkdirp';
 import gm from 'gm';
 import chai from 'chai';
 import chaiFS from 'chai-fs';

@@ -1,7 +1,7 @@
 /* eslint-env node, mocha */
 /* global $pg_database */
 import request from 'superagent';
-import mkdirp from 'mkdirp';
+import { mkdirp } from 'mkdirp';
 import config from 'config';
 
 import cleanDB from '../dbCleaner';
