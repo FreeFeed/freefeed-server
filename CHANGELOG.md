@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.6.0] - Not released
 ### Added
+- Server now can handle multiple API versions simultaneously as described in
+  [RFC](https://paper.dropbox.com/doc/FreeFeed-API-SblfMOTWnFJcpSjvHs9h5). The
+  current version is '2'. Added new file [API_VERSIONS.md](API_VERSIONS.md) with
+  version history and brief description of FreeFeed versioning principles for
+  API users.
+  - Internally, the requested API version is available via the
+    `ctx.state.apiVersion` property in REST controllers and via the
+    `socket.apiVersion` property in the realtime handler.
+  - Added new realtime command, 'status'. It returns the current properties of
+    socket connection, which includes *userId*, *apiVersion* and *rooms* fields.
+- Rate Limiter for API. It allows to specify number of anonymous and
+  authenticated requests, which IP is allowed to make during configurable
+  time-frame.
+- Total number of requests is tracked via statsd.
 - Administrative API. This API (with `/api/admin` prefix) is not a part of
   official and supported/versioned server API.
 
@@ -94,16 +108,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     info, including the new _youCan_ (with "post") and _theyDid_ (with "block")
     fields, so the listening user can determine, if he can or cannot post to the
     group, and why.
-- Server now can handle multiple API versions simultaneously as described in
-  [RFC](https://paper.dropbox.com/doc/FreeFeed-API-SblfMOTWnFJcpSjvHs9h5). The
-  current version is '2'. Added new file [API_VERSIONS.md](API_VERSIONS.md) with
-  version history and brief description of FreeFeed versioning principles for
-  API users.
-  - Internally, the requested API version is available via the
-    `ctx.state.apiVersion` property in REST controllers and via the
-    `socket.apiVersion` property in the realtime handler.
-  - Added new realtime command, 'status'. It returns the current properties of
-    socket connection, which includes *userId*, *apiVersion* and *rooms* fields.
 
 ## Changed
 - Notifications: hide the initiator of some events from the event target user.
