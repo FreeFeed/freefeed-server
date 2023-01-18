@@ -393,7 +393,7 @@ describe('Admin API', () => {
     });
   });
 
-  describe('List of all users', () => {
+  describe('Users list and user info', () => {
     it(`should return list of all users ordered by createdAt`, async () => {
       const sortedUsers = [luna, mars, venus].sort(
         (a, b) => parseInt(b.user.createdAt) - parseInt(a.user.createdAt),
@@ -403,6 +403,19 @@ describe('Admin API', () => {
         __httpCode: 200,
         users: sortedUsers.map((c) => ({ id: c.user.id })),
         isLastPage: true,
+      });
+    });
+
+    it(`should return info about user`, async () => {
+      const response = await performJSONRequest(
+        'GET',
+        `/api/admin/users/${luna.username}/info`,
+        null,
+        authHeaders(mars),
+      );
+      await expect(response, 'to satisfy', {
+        __httpCode: 200,
+        user: { id: luna.user.id },
       });
     });
   });

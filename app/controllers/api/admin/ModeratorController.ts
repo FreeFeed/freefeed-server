@@ -8,7 +8,7 @@ import { ForbiddenException, ValidationException } from '../../../support/except
 import { ACT_FREEZE_USER, ACT_UNFREEZE_USER } from '../../../models/admins';
 
 import { getQueryParams } from './query-params';
-import { serializeUsers } from './serializers';
+import { serializeUser, serializeUsers } from './serializers';
 import { freezeUserInputSchema } from './data-schemes/freeze';
 
 export async function listAll(ctx: Ctx) {
@@ -88,5 +88,16 @@ export const unfreezeUser = compose([
     });
 
     ctx.body = {};
+  },
+]);
+
+export const userInfo = compose([
+  targetUserRequired(),
+  async (ctx: Ctx<{ targetUser: User }>) => {
+    const { targetUser } = ctx.state;
+
+    ctx.body = {
+      user: await serializeUser(targetUser.id),
+    };
   },
 ]);
