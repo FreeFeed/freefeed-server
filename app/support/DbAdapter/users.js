@@ -665,7 +665,9 @@ const usersTrait = (superClass) =>
       return this.database.getCol(
         `select uid from users 
           where type = any(:types)
-          order by created_at desc
+          order by
+              created_at desc,
+              id desc
           limit :limit offset :offset`,
         { limit, offset, types },
       );
