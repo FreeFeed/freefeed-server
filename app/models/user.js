@@ -563,6 +563,14 @@ export function addModel(dbAdapter) {
       await Promise.all(managedGroupIds.map((id) => pubSub.globalUserUpdate(id)));
     }
 
+    get goneStatusName() {
+      if (this.goneStatus === null) {
+        return 'ACTIVE';
+      }
+
+      return GONE_NAMES[this.goneStatus] ?? `STATUS_${this.goneStatus}`;
+    }
+
     async getPastUsernames() {
       return await dbAdapter.getPastUsernames(this.id);
     }

@@ -9,7 +9,9 @@ import {
   ACT_FREEZE_USER,
   ACT_GIVE_MODERATOR_RIGHTS,
   ACT_REMOVE_MODERATOR_RIGHTS,
+  ACT_SUSPEND_USER,
   ACT_UNFREEZE_USER,
+  ACT_UNSUSPEND_USER,
   ROLE_ADMIN,
   ROLE_MODERATOR,
 } from '../../app/models/admins';
@@ -406,16 +408,104 @@ describe('Admin API', () => {
     });
 
     it(`should return info about user`, async () => {
-      const response = await performJSONRequest(
-        'GET',
-        `/api/admin/users/${luna.username}/info`,
-        null,
-        authHeaders(mars),
-      );
+      const response = await getUserInfo(luna, mars);
       await expect(response, 'to satisfy', {
         __httpCode: 200,
         user: { id: luna.user.id },
       });
     });
   });
+
+  describe('User suspend/unsuspend', () => {
+    it(`should suspend Venus`, async () => {
+      const response = await performJSONRequest(
+        'POST',
+        `/api/admin/users/${venus.username}/suspend`,
+        null,
+        authHeaders(mars),
+      );
+      await expect(response, 'to satisfy', { __httpCode: 200 });
+      await expect(await getUserInfo(venus, mars), 'to satisfy', {
+        __httpCode: 200,
+        user: { goneStatus: 'SUSPENDED' },
+      });
+    });
+
+    it(`should have record about it in journal`, async () => {
+      const response = await performJSONRequest(
+        'GET',
+        `/api/admin/journal?limit=1`,
+        null,
+        authHeaders(luna),
+      );
+
+      await expect(response, 'to satisfy', {
+        __httpCode: 200,
+        actions: [
+          {
+            action_name: ACT_SUSPEND_USER,
+            admin_username: mars.username,
+            target_username: venus.username,
+            details: {},
+          },
+        ],
+        isLastPage: false,
+      });
+    });
+
+    it(`should unsuspend Venus`, async () => {
+      const response = await performJSONRequest(
+        'POST',
+        `/api/admin/users/${venus.username}/unsuspend`,
+        null,
+        authHeaders(mars),
+      );
+      await expect(response, 'to satisfy', { __httpCode: 200 });
+      await expect(await getUserInfo(venus, mars), 'to satisfy', {
+        __httpCode: 200,
+        user: { goneStatus: 'ACTIVE' },
+      });
+    });
+
+    it(`should have record about it in journal`, async () => {
+      const response = await performJSONRequest(
+        'GET',
+        `/api/admin/journal?limit=1`,
+        null,
+        authHeaders(luna),
+      );
+
+      await expect(response, 'to satisfy', {
+        __httpCode: 200,
+        actions: [
+          {
+            action_name: ACT_UNSUSPEND_USER,
+            admin_username: mars.username,
+            target_username: venus.username,
+            details: {},
+          },
+        ],
+        isLastPage: false,
+      });
+    });
+
+    it(`should not allow to unsuspend active Venus`, async () => {
+      const response = await performJSONRequest(
+        'POST',
+        `/api/admin/users/${venus.username}/unsuspend`,
+        null,
+        authHeaders(mars),
+      );
+      await expect(response, 'to satisfy', { __httpCode: 422, err: /not in SUSPENDED status/ });
+    });
+  });
 });
+
+function getUserInfo(userCtx: UserCtx, reqUserCtx: UserCtx | null = null) {
+  return performJSONRequest(
+    'GET',
+    `/api/admin/users/${userCtx.username}/info`,
+    null,
+    authHeaders(reqUserCtx),
+  );
+}

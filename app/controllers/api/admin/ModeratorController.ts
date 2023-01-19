@@ -5,7 +5,13 @@ import { User, dbAdapter } from '../../../models';
 import { Ctx } from '../../../support/types';
 import { inputSchemaRequired, targetUserRequired } from '../../middlewares';
 import { ForbiddenException, ValidationException } from '../../../support/exceptions';
-import { ACT_FREEZE_USER, ACT_UNFREEZE_USER } from '../../../models/admins';
+import {
+  ACT_FREEZE_USER,
+  ACT_SUSPEND_USER,
+  ACT_UNFREEZE_USER,
+  ACT_UNSUSPEND_USER,
+} from '../../../models/admins';
+import { GONE_SUSPENDED } from '../../../models/user';
 
 import { getQueryParams } from './query-params';
 import { serializeUser, serializeUsers } from './serializers';
@@ -111,3 +117,36 @@ export const userInfo = compose([
     };
   },
 ]);
+
+export const suspendUser = (doSuspend: boolean) =>
+  compose([
+    targetUserRequired(),
+    async (ctx: Ctx<{ user: User; targetUser: User }>) => {
+      const { user, targetUser } = ctx.state;
+
+      if (!targetUser.isUser()) {
+        throw new ForbiddenException('Only user can be suspended');
+      }
+
+      if (doSuspend && targetUser.goneStatus !== null) {
+        throw new ValidationException(`User already in ${targetUser.goneStatusName} status`);
+      }
+
+      if (!doSuspend && targetUser.goneStatus !== GONE_SUSPENDED) {
+        throw new ValidationException(
+          `User is not in SUSPENDED status (actual status is ${targetUser.goneStatusName})`,
+        );
+      }
+
+      await dbAdapter.doInTransaction(async () => {
+        await targetUser.setGoneStatus(doSuspend ? GONE_SUSPENDED : null);
+        await dbAdapter.createAdminAction(
+          doSuspend ? ACT_SUSPEND_USER : ACT_UNSUSPEND_USER,
+          user,
+          targetUser,
+        );
+      });
+
+      ctx.body = {};
+    },
+  ]);

@@ -37,7 +37,9 @@ export class User {
   readonly isActive: boolean;
   type: 'user';
   invitationId: number | null;
-  setGoneStatus(status: keyof typeof GONE_NAMES): Promise<void>;
+  goneStatus: keyof typeof GONE_NAMES | null;
+  goneStatusName: string;
+  setGoneStatus(status: keyof typeof GONE_NAMES | null): Promise<void>;
   unban(usernames: string): Promise<1>;
   unsubscribeFrom(targetUser: User): Promise<boolean>;
   getHomeFeeds(): Promise<Timeline[]>;

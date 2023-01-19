@@ -12,6 +12,7 @@ export async function serializeUsers(userIds: UUID[]) {
     username: user.username,
     screenName: user.screenName,
     profilePicture: user.profilePictureLargeUrl,
+    goneStatus: user.goneStatusName,
     roles: rolesAssoc[user.id] ?? [],
   }));
 }

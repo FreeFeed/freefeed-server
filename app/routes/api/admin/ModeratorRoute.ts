@@ -7,6 +7,7 @@ import {
   freezeUser,
   listAll,
   listFrozen,
+  suspendUser,
   unfreezeUser,
   userInfo,
 } from '../../../controllers/api/admin/ModeratorController';
@@ -20,4 +21,6 @@ export default function addRoutes(router: Router<DefaultState, AppContext>) {
   router.get('/users/:username/info', mw, userInfo);
   router.post('/users/:username/freeze', mw, freezeUser);
   router.post('/users/:username/unfreeze', mw, unfreezeUser);
+  router.post('/users/:username/suspend', mw, suspendUser(true));
+  router.post('/users/:username/unsuspend', mw, suspendUser(false));
 }
