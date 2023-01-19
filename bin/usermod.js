@@ -148,7 +148,7 @@ function freezeUser(setDays) {
       throw new Error(`Invalid 'days' value`);
     }
 
-    await account.freeze(days * 24 * 3600);
+    await account.freeze(`P${days}D`);
     const upTo = await account.frozenUntil();
 
     if (upTo) {

@@ -1,17 +1,20 @@
 import config from 'config';
 import _ from 'lodash';
 import validator from 'validator';
-import { DateTime } from 'luxon';
+import { DateTime, Duration } from 'luxon';
 import { camelizeKeys } from 'humps';
 
 import { User, Group, Comment } from '../../models';
 import { normalizeEmail } from '../email-norm';
 import { List } from '../open-lists';
+import { MAX_DATE } from '../constants';
 
 import { initObject, prepareModelPayload } from './utils';
 
 /**
  * @typedef {import('../types').UUID} UUID
+ * @typedef {import('../types').ISO8601DateTimeString} ISO8601DateTimeString
+ * @typedef {import('../types').ISO8601DurationString} ISO8601DurationString
  */
 
 const usersTrait = (superClass) =>
@@ -550,22 +553,38 @@ const usersTrait = (superClass) =>
 
     /**
      * @param {UUID} userId
-     * @param {string|number} freezeTime
+     * @param {ISO8601DateTimeString | ISO8601DurationString | "Infinity"} freezeTime
      * @returns {Promise<void>}
      */
     async freezeUser(userId, freezeTime) {
-      if (Number.isFinite(freezeTime)) {
-        // Time in seconds
-        freezeTime = this.database.raw(`now() + ? * '1 second'::interval`, freezeTime);
+      let expiresAt;
+
+      if (freezeTime === 'Infinity') {
+        expiresAt = freezeTime;
+      } else if (freezeTime.startsWith('P')) {
+        // Duration
+        const d = Duration.fromISO(freezeTime);
+
+        if (!d.isValid) {
+          throw new Error(`Invalid duration string: "${freezeTime}"`);
+        }
+
+        expiresAt = this.database.raw(`now() + ?`, freezeTime);
       } else {
         // Time as ISO time string
-        freezeTime = DateTime.fromISO(freezeTime, { zone: config.ianaTimeZone }).toJSDate();
+        const d = DateTime.fromISO(freezeTime, { zone: config.ianaTimeZone });
+
+        if (!d.isValid) {
+          throw new Error(`Invalid datetime string: "${freezeTime}"`);
+        }
+
+        expiresAt = DateTime.fromISO(freezeTime, { zone: config.ianaTimeZone }).toJSDate();
       }
 
       await this.database.raw(
-        `insert into frozen_users (user_id, expires_at) values (:userId, :freezeTime)
+        `insert into frozen_users (user_id, expires_at) values (:userId, :expiresAt)
         on conflict (user_id) do update set expires_at = excluded.expires_at`,
-        { userId, freezeTime },
+        { userId, expiresAt },
       );
     }
 
@@ -582,11 +601,31 @@ const usersTrait = (superClass) =>
      * @returns {Promise<string|null>}
      */
     async userFrozenUntil(userId) {
-      const exp = await this.database.getOne(
-        `select expires_at from frozen_users where user_id = :userId and expires_at > now()`,
-        { userId },
+      return (await this.usersFrozenUntil([userId]))[0];
+    }
+
+    /**
+     * @param {UUID[]} userId
+     * @returns {Promise<(string|null)[]>}
+     */
+    async usersFrozenUntil(userIds) {
+      const exps = await this.database.getCol(
+        `select f.expires_at 
+          from
+            unnest(:userIds::uuid[]) with ordinality as src (uid, ord)
+            left join frozen_users f on f.user_id = src.uid and f.expires_at > now()
+          order by src.ord
+          `,
+        { userIds },
       );
-      return exp || null;
+
+      return exps.map((exp) => {
+        if (!exp || exp instanceof Date) {
+          return exp ?? null;
+        }
+
+        return MAX_DATE;
+      });
     }
 
     async cleanFrozenUsers() {
@@ -619,6 +658,16 @@ const usersTrait = (superClass) =>
           set sys_preferences = jsonb_set(coalesce(sys_preferences, '{}'::jsonb), :path, :value)
           where uid = :userId`,
         { path: [key], value: JSON.stringify(value), userId },
+      );
+    }
+
+    getAllUsersIds(limit = 30, offset = 0, types = ['user']) {
+      return this.database.getCol(
+        `select uid from users 
+          where type = any(:types)
+          order by created_at desc
+          limit :limit offset :offset`,
+        { limit, offset, types },
       );
     }
   };

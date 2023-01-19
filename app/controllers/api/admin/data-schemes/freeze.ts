@@ -5,6 +5,13 @@ export const freezeUserInputSchema = {
   required: ['freezeUntil'],
 
   properties: {
-    freezeUntil: { type: 'string', format: 'date-time' },
+    freezeUntil: {
+      oneOf: [
+        { const: 'Infinity' },
+        { type: 'string', format: 'date-time' },
+        { type: 'string', format: 'date' },
+        { type: 'string', pattern: 'P\\w+', description: 'Duration' },
+      ],
+    },
   },
 };

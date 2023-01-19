@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.7.0] - Not Released
 ### Added
+- New Admin API methods:
+  - `GET /api/admin/users` method returns all users sorted by registration date.
+  - `GET /api/admin/users/:username/info` method returns information about the
+    specific user.
+  - `POST /users/:username/suspend` and `POST /users/:username/unsuspend`
+    methods suspended/unsuspended given user.
 - The server administrator can disallow registration without invites. The
   ability to create new invites can be limited or disabled for the given user.
   One can see who invited the user (this is public information).
@@ -45,6 +51,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     'undisable_bans';
   - There are two new events in user notifications: 'bans_in_group_disabled' and
     'bans_in_group_enabled'.
+
+### Changed
+- The GONE_SUSPENDED user status now doesn't allow user to activate her account
+  back.
+- The `POST /api/admin/users/:username/freeze` methods now accepts 'freezeUntil'
+  parameter in the following formats:
+  - ISO Datetime
+  - ISO Date
+  - ISO Duration ("P...")
+  - The "Infinity" string (means forever freeze)
+- The admin user serializer now returns 'freezeUntil' and 'goneStatus' fields.
 
 ## [2.6.0] - 2023-01-18
 ### Added

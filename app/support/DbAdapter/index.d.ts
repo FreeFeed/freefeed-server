@@ -1,6 +1,6 @@
 import { Knex } from 'knex';
 
-import { IPAddr, Nullable, UUID } from '../types';
+import { IPAddr, ISO8601DateTimeString, ISO8601DurationString, Nullable, UUID } from '../types';
 import { AppTokenV1, Attachment, Comment, Group, Post, Timeline, User, Job } from '../../models';
 import {
   AppTokenCreateParams,
@@ -144,6 +144,7 @@ export class DbAdapter {
   ): Promise<
     Map<UUID, typeof User.ACCEPT_DIRECTS_FROM_ALL | typeof User.ACCEPT_DIRECTS_FROM_FRIENDS>
   >;
+  getAllUsersIds(limit?: number, offset?: number, types?: ('user' | 'group')[]): Promise<UUID[]>;
 
   getUsersIdsByIntIds(intIds: number[]): Promise<{ id: number; uid: UUID }[]>;
   getPostsIdsByIntIds(intIds: number[]): Promise<{ id: number; uid: UUID }[]>;
@@ -154,8 +155,12 @@ export class DbAdapter {
   setUserSysPrefs<T>(userId: UUID, key: string, value: T): Promise<void>;
 
   // Freeze
-  freezeUser(userId: UUID, freezeTime: number | string): Promise<void>;
+  freezeUser(
+    userId: UUID,
+    freezeTime: ISO8601DateTimeString | ISO8601DurationString | 'Infinity',
+  ): Promise<void>;
   userFrozenUntil(userId: UUID): Promise<Date | null>;
+  usersFrozenUntil(userIds: UUID[]): Promise<(Date | null)[]>;
   isUserFrozen(userId: UUID): Promise<boolean>;
   cleanFrozenUsers(): Promise<void>;
   getFrozenUsers(

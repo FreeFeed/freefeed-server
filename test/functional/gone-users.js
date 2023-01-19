@@ -359,12 +359,25 @@ describe('Gone users', () => {
   });
 
   describe(`Session`, () => {
-    it(`should not allow Luna to start session`, async () => {
+    it(`should not allow Luna to start session but allow to resume account`, async () => {
       const resp = await performJSONRequest('POST', `/v1/session`, {
         username: luna.username,
         password: luna.password,
       });
-      expect(resp, 'to satisfy', { __httpCode: 401 });
+      expect(resp, 'to satisfy', { __httpCode: 401, resumeToken: expect.it('to be a string') });
+    });
+
+    describe(`Luna is in GONE_SUSPENDED status`, () => {
+      beforeEach(() => setGoneStatus(luna, GONE_SUSPENDED));
+
+      it(`should not allow Luna to start session nor to resume account`, async () => {
+        const resp = await performJSONRequest('POST', `/v1/session`, {
+          username: luna.username,
+          password: luna.password,
+        });
+        expect(resp, 'to satisfy', { __httpCode: 401 });
+        expect(resp, 'not to have property', 'resumeToken');
+      });
     });
   });
 

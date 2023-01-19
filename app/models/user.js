@@ -198,7 +198,7 @@ export function addModel(dbAdapter) {
      * User.isResumable is true if user is gone but can be resumed
      */
     get isResumable() {
-      return [GONE_COOLDOWN, GONE_SUSPENDED].includes(this.goneStatus);
+      return [GONE_COOLDOWN].includes(this.goneStatus);
     }
 
     static stopList(skipExtraList) {
@@ -561,6 +561,14 @@ export function addModel(dbAdapter) {
       // Some managed groups may change their isRestricted status so send update
       // for all of them (just to be safe)
       await Promise.all(managedGroupIds.map((id) => pubSub.globalUserUpdate(id)));
+    }
+
+    get goneStatusName() {
+      if (this.goneStatus === null) {
+        return 'ACTIVE';
+      }
+
+      return GONE_NAMES[this.goneStatus] ?? `STATUS_${this.goneStatus}`;
     }
 
     async getPastUsernames() {
