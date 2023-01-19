@@ -219,7 +219,7 @@ type GeneralErrorResponse = {
   error: string | { message: string };
 };
 
-async function fetchJSON<R>(url: string, params?: RequestInit) {
+async function fetchJSON<R extends object>(url: string, params?: RequestInit) {
   const response = await fetch(url, params);
   let respBody: R | GeneralErrorResponse = {
     error: response.ok ? 'Unknown error' : `HTTP error ${response.status}`,
