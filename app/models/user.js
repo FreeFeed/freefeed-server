@@ -76,6 +76,8 @@ export function addModel(dbAdapter) {
       this.isPrivate = params.isPrivate;
       this.isProtected = this.isPrivate === '1' ? '1' : params.isProtected;
 
+      this.invitationId = params.invitationId || null;
+
       if (parseInt(params.createdAt, 10)) {
         this.createdAt = params.createdAt;
       }
@@ -196,7 +198,7 @@ export function addModel(dbAdapter) {
      * User.isResumable is true if user is gone but can be resumed
      */
     get isResumable() {
-      return [GONE_COOLDOWN, GONE_SUSPENDED].includes(this.goneStatus);
+      return [GONE_COOLDOWN].includes(this.goneStatus);
     }
 
     static stopList(skipExtraList) {
@@ -398,6 +400,7 @@ export function addModel(dbAdapter) {
         hashedPassword: this.hashedPassword,
         frontendPreferences: JSON.stringify({}),
         preferences: this.preferences,
+        invitationId: this.invitationId,
       };
 
       const newAcc = await dbAdapter.createUser(payload);
@@ -558,6 +561,14 @@ export function addModel(dbAdapter) {
       // Some managed groups may change their isRestricted status so send update
       // for all of them (just to be safe)
       await Promise.all(managedGroupIds.map((id) => pubSub.globalUserUpdate(id)));
+    }
+
+    get goneStatusName() {
+      if (this.goneStatus === null) {
+        return 'ACTIVE';
+      }
+
+      return GONE_NAMES[this.goneStatus] ?? `STATUS_${this.goneStatus}`;
     }
 
     async getPastUsernames() {
@@ -1335,6 +1346,33 @@ export function addModel(dbAdapter) {
 
     frozenUntil() {
       return dbAdapter.userFrozenUntil(this.id);
+    }
+
+    async getInvitation() {
+      if (!this.invitationId) {
+        return null;
+      }
+
+      return await dbAdapter.getInvitationById(this.invitationId);
+    }
+
+    createInvitation(params) {
+      return dbAdapter.createInvitation(
+        this.intId,
+        params.message,
+        params.lang,
+        params.singleUse,
+        params.users,
+        params.groups,
+      );
+    }
+
+    isInvitesDisabled() {
+      return dbAdapter.isInvitesDisabledForUser(this.id);
+    }
+
+    setInvitesDisabled(isDisabled) {
+      return dbAdapter.setInvitesDisabledForUser(this.id, isDisabled);
     }
   };
 }

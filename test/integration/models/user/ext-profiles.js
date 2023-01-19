@@ -2,8 +2,8 @@
 /* global $pg_database */
 import expect from 'unexpected';
 
-import cleanDB from '../../dbCleaner';
-import { User } from '../../../app/models';
+import cleanDB from '../../../dbCleaner';
+import { User } from '../../../../app/models';
 
 describe('External authentication profiles', () => {
   let luna, mars;

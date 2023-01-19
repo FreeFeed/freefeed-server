@@ -182,11 +182,10 @@ export function addModel(dbAdapter) {
         return List.empty();
       }
 
-      const [whoCanSeePost, whoBansMe] = await Promise.all([
-        this.getPost().then((p) => p.usersCanSee()),
-        dbAdapter.getUserIdsWhoBannedUser(this.userId),
-      ]);
-      return List.difference(whoCanSeePost, whoBansMe);
+      return await dbAdapter.getUsersWhoCanSeeComment({
+        postId: this.postId,
+        authorId: this.userId,
+      });
     }
 
     canBeDestroyed() {

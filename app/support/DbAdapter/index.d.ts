@@ -1,6 +1,6 @@
 import { Knex } from 'knex';
 
-import { IPAddr, Nullable, UUID } from '../types';
+import { IPAddr, ISO8601DateTimeString, ISO8601DurationString, Nullable, UUID } from '../types';
 import { AppTokenV1, Attachment, Comment, Group, Post, Timeline, User, Job } from '../../models';
 import {
   AppTokenCreateParams,
@@ -12,6 +12,9 @@ import {
 import { SessionTokenV1 } from '../../models/auth-tokens';
 import { T_EVENT_TYPE } from '../EventTypes';
 import { AdminAction, AdminRole } from '../../models/admins';
+import { InvitationCreationCriterion } from '../types/invitations';
+import { RefusalReason } from '../../models/invitations';
+import { List } from '../open-lists';
 
 type QueryBindings = readonly Knex.RawBinding[] | Knex.ValueDict | Knex.RawBinding;
 
@@ -66,6 +69,18 @@ type AttachmentsSanitizeTask = {
 type AttachmentsStats = {
   total: number;
   sanitized: number;
+};
+
+export type InvitationRecord = {
+  id: number;
+  secure_id: UUID;
+  author: number;
+  message: string;
+  lang: 'ru' | 'en';
+  single_use: boolean;
+  recommendations: { users: string[]; groups: string[] };
+  registrations_count: number;
+  created_at: Date;
 };
 
 export class DbAdapter {
@@ -129,14 +144,23 @@ export class DbAdapter {
   ): Promise<
     Map<UUID, typeof User.ACCEPT_DIRECTS_FROM_ALL | typeof User.ACCEPT_DIRECTS_FROM_FRIENDS>
   >;
+  getAllUsersIds(limit?: number, offset?: number, types?: ('user' | 'group')[]): Promise<UUID[]>;
 
   getUsersIdsByIntIds(intIds: number[]): Promise<{ id: number; uid: UUID }[]>;
   getPostsIdsByIntIds(intIds: number[]): Promise<{ id: number; uid: UUID }[]>;
   getCommentsIdsByIntIds(intIds: number[]): Promise<{ id: number; uid: UUID }[]>;
 
+  // System preferences
+  getUserSysPrefs<T>(userId: UUID, key: string, defaultValue: T): Promise<T>;
+  setUserSysPrefs<T>(userId: UUID, key: string, value: T): Promise<void>;
+
   // Freeze
-  freezeUser(userId: UUID, freezeTime: number | string): Promise<void>;
+  freezeUser(
+    userId: UUID,
+    freezeTime: ISO8601DateTimeString | ISO8601DurationString | 'Infinity',
+  ): Promise<void>;
   userFrozenUntil(userId: UUID): Promise<Date | null>;
+  usersFrozenUntil(userIds: UUID[]): Promise<(Date | null)[]>;
   isUserFrozen(userId: UUID): Promise<boolean>;
   cleanFrozenUsers(): Promise<void>;
   getFrozenUsers(
@@ -146,6 +170,8 @@ export class DbAdapter {
 
   // Bans
   getUserBansIds(id: UUID): Promise<UUID[]>;
+  getGroupsWithDisabledBans(userId: UUID, groupIds?: UUID[]): Promise<UUID[]>;
+  disableBansInGroup(userId: UUID, groupId: UUID, doDisable: boolean): Promise<boolean>;
 
   // Posts
   getPostById(id: UUID): Promise<Post | null>;
@@ -182,6 +208,14 @@ export class DbAdapter {
   getAllUserNamedFeed(userId: UUID, feedName: string): Promise<Timeline[]>;
   getUserNamedFeed(userId: UUID, feedName: string): Promise<Nullable<Timeline>>;
   getTimelinesByIntIds(intIds: number[]): Promise<Timeline[]>;
+
+  // Visibility
+  postsVisibilitySQL(
+    viewerId?: UUID,
+    options?: { postsTable: string; postAuthorsTable: string },
+  ): Promise<string>;
+  isPostVisibleForViewer(postId: UUID, viewerId?: UUID): Promise<boolean>;
+  getUsersWhoCanSeePost(postProps: { authorId: UUID; destFeeds: number[] }): Promise<List<UUID>>;
 
   // App tokens
   createAppToken(token: AppTokenCreateParams): Promise<AppTokenV1>;
@@ -305,4 +339,23 @@ export class DbAdapter {
       details: object;
     }[]
   >;
+
+  // Invitations
+  getInvitation(secureId: UUID): Promise<InvitationRecord | null>;
+  getInvitationById(id: number): Promise<InvitationRecord | null>;
+  createInvitation(
+    authorIntId: number,
+    message: string,
+    lang: 'ru' | 'en',
+    singleUse: boolean,
+    userNames: string[],
+    groupNames: string[],
+  ): Promise<[UUID]>;
+  useInvitation(secureId: UUID): Promise<void>;
+  canUserCreateInvitation(
+    userId: UUID,
+    criteria: InvitationCreationCriterion[],
+  ): Promise<RefusalReason | null>;
+  setInvitesDisabledForUser(userId: UUID, isDisabled: boolean): Promise<void>;
+  isInvitesDisabledForUser(userId: UUID): Promise<boolean>;
 }

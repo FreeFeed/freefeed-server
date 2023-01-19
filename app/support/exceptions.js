@@ -17,7 +17,10 @@ export function reportError(ctx) {
       Raven.captureException(err, { req: ctx.request });
     }
 
-    if ('internalQuery' in err || err.message.includes('when compiling RAW query')) {
+    if (
+      ('internalQuery' in err || err.message.includes('when compiling RAW query')) &&
+      process.env.NODE_ENV !== 'test'
+    ) {
       // looks like postgres err
       err = { message: 'Database-related internal error' }; // do not expose DB internals
     }

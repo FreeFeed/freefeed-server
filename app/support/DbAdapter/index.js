@@ -15,6 +15,7 @@ import likesTrait from './likes';
 import commentsTrait from './comments';
 import feedsTrait from './feeds';
 import postsTrait from './posts';
+import visibilityTrait from './visibility';
 import timelinesPostsTrait from './timelines-posts';
 import subscriptionsTrait from './subscriptions';
 import localBumpsTrait from './local-bumps';
@@ -103,6 +104,7 @@ export const DbAdapter = _.flow([
   commentsTrait,
   feedsTrait,
   postsTrait,
+  visibilityTrait,
   timelinesPostsTrait,
   subscriptionsTrait,
   localBumpsTrait,

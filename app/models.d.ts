@@ -1,9 +1,9 @@
 import { Knex } from 'knex';
 
-import { DbAdapter } from './support/DbAdapter';
+import { DbAdapter, type InvitationRecord } from './support/DbAdapter';
 import PubSubAdapter from './pubsub';
 import { GONE_NAMES } from './models/user';
-import { Nullable, UUID } from './support/types';
+import { ISO8601DateTimeString, ISO8601DurationString, Nullable, UUID } from './support/types';
 import { SessionTokenV1Store } from './models/auth-tokens';
 import { List } from './support/open-lists';
 
@@ -36,7 +36,10 @@ export class User {
   profilePictureLargeUrl: string;
   readonly isActive: boolean;
   type: 'user';
-  setGoneStatus(status: keyof typeof GONE_NAMES): Promise<void>;
+  invitationId: number | null;
+  goneStatus: keyof typeof GONE_NAMES | null;
+  goneStatusName: string;
+  setGoneStatus(status: keyof typeof GONE_NAMES | null): Promise<void>;
   unban(usernames: string): Promise<1>;
   unsubscribeFrom(targetUser: User): Promise<boolean>;
   getHomeFeeds(): Promise<Timeline[]>;
@@ -73,9 +76,20 @@ export class User {
   getMyDiscussionsTimelineIntId(): Promise<number | null>;
   getSavesTimelineIntId(): Promise<number | null>;
 
-  freeze(freezeTime: number | string): Promise<void>;
+  freeze(freezeTime: ISO8601DateTimeString | ISO8601DurationString | 'Infinity'): Promise<void>;
   isFrozen(): Promise<boolean>;
   frozenUntil(): Promise<Date | null>;
+
+  getInvitation(): Promise<InvitationRecord | null>;
+  createInvitation(params: {
+    message: string;
+    lang: 'ru' | 'en';
+    singleUse: boolean;
+    users: string[];
+    groups: string[];
+  }): Promise<UUID>;
+  isInvitesDisabled(): Promise<boolean>;
+  setInvitesDisabled(isDisabled: boolean): Promise<void>;
 }
 
 export class Group {
@@ -91,7 +105,7 @@ export class Group {
   isUser(): false;
   getAdministrators(): Promise<User[]>;
   getActiveAdministrators(): Promise<User[]>;
-  addAdministrator(adminId: UUID): Promise<void>;
+  addAdministrator(adminId: UUID, initiatorId?: UUID): Promise<void>;
   getPostsTimeline(): Promise<Timeline | null>;
   getPostsTimelineId(): Promise<UUID | null>;
 

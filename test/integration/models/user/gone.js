@@ -7,22 +7,22 @@ import { DateTime } from 'luxon';
 import { simpleParser } from 'mailparser';
 import config from 'config';
 
-import cleanDB from '../../dbCleaner';
-import { User, dbAdapter } from '../../../app/models';
+import cleanDB from '../../../dbCleaner';
+import { User, dbAdapter } from '../../../../app/models';
 import {
   GONE_SUSPENDED,
   GONE_COOLDOWN,
   GONE_DELETION,
   GONE_DELETED,
-} from '../../../app/models/user';
+} from '../../../../app/models/user';
 import {
   USER_COOLDOWN_START,
   USER_COOLDOWN_REMINDER,
   USER_DELETION_START,
   USER_DELETE_DATA,
-} from '../../../app/jobs/user-gone';
-import { initJobProcessing } from '../../../app/jobs';
-import { addMailListener } from '../../../lib/mailer';
+} from '../../../../app/jobs/user-gone';
+import { initJobProcessing } from '../../../../app/jobs';
+import { addMailListener } from '../../../../lib/mailer';
 
 const expect = unexpected.clone();
 expect.use(unexpectedDate);

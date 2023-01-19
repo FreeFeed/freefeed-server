@@ -5,6 +5,64 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.7.0] - Not Released
+### Added
+- New Admin API methods:
+  - `GET /api/admin/users` method returns all users sorted by registration date.
+  - `GET /api/admin/users/:username/info` method returns information about the
+    specific user.
+  - `POST /users/:username/suspend` and `POST /users/:username/unsuspend`
+    methods suspended/unsuspended given user.
+- The server administrator can disallow registration without invites. The
+  ability to create new invites can be limited or disabled for the given user.
+  One can see who invited the user (this is public information).
+  - The _config.invitations_ section was added with two fields:
+    _requiredForSignUp_ (boolean, false by default) and _canCreateIf_ (array of
+    conditions, empty by default).
+  - If _config.invitations.requiredForSignUp_ is true, then:
+    - Registration without invites is not allowed;
+    - Multi-use invites are not not allowed.
+  - API changes:
+    - `GET /v2/server-info` method returns new _registrationRequiresInvite_ and
+      _multiUseInvitesEnabled_ boolean fields.
+    - `GET /v2/users/:userName` method returns new _invitedBy_ field. The value
+      is either _null_ or the name of the user who invited it.
+    - New method `GET /v2/invitations/info` returns invitations creation
+      parameters for the current user: _canCreateNew_ (boolean), _singleUseOnly_
+      (boolean), _reasonNotCreate_ (null or object).
+  - The server administrator can disable invites via the 'usermod' script for
+    the given user.
+- Users can now disable bans in certain groups. One can disable bans in any
+  group, no need to be an admin or even a member of the group.
+
+  If user disabled bans in some group then:
+  - He can see posts, comments, likes and comment likes in this group from users
+    he banned.
+  - If he is the administrator of this group, he can see posts in this group
+    from users who have banned him.
+
+  There is a new file, _doc/visibility-rules.md_, with description of this
+  algorithm.
+
+  API changes:
+  - New methods `POST /groups/:groupName/disableBans` and `POST
+    /groups/:groupName/enableBans`;
+  - 'youCan' field of serialized group can have value 'disable_bans' or
+    'undisable_bans';
+  - There are two new events in user notifications: 'bans_in_group_disabled' and
+    'bans_in_group_enabled'.
+
+### Changed
+- The GONE_SUSPENDED user status now doesn't allow user to activate her account
+  back.
+- The `POST /api/admin/users/:username/freeze` methods now accepts 'freezeUntil'
+  parameter in the following formats:
+  - ISO Datetime
+  - ISO Date
+  - ISO Duration ("P...")
+  - The "Infinity" string (means forever freeze)
+- The admin user serializer now returns 'freezeUntil' and 'goneStatus' fields.
+
 ## [2.6.0] - 2023-01-18
 ### Added
 - Server now can handle multiple API versions simultaneously as described in

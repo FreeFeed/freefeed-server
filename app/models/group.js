@@ -166,8 +166,24 @@ export function addModel(dbAdapter) {
       return await owner.subscribeTo(this, { noEvents: true });
     }
 
-    addAdministrator(feedId) {
-      return dbAdapter.addAdministratorToGroup(this.id, feedId);
+    async disableBansFor(userId, initiatorId = userId) {
+      const ok = await dbAdapter.disableBansInGroup(userId, this.id, true);
+
+      if (ok) {
+        await EventService.onBansInGroupDisabled(this, userId, initiatorId);
+      }
+    }
+
+    async enableBansFor(userId, initiatorId = userId) {
+      const ok = await dbAdapter.disableBansInGroup(userId, this.id, false);
+
+      if (ok) {
+        await EventService.onBansInGroupEnabled(this, userId, initiatorId);
+      }
+    }
+
+    async addAdministrator(adminId) {
+      await dbAdapter.addAdministratorToGroup(this.id, adminId);
     }
 
     async removeAdministrator(feedId) {

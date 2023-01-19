@@ -44,6 +44,16 @@ export function sqlNotIn(field, list) {
   return sqlIn(field, List.inverse(list));
 }
 
+export function sqlNot(statement) {
+  if (statement === 'true') {
+    return 'false';
+  } else if (statement === 'false') {
+    return 'true';
+  }
+
+  return `not ${statement}`;
+}
+
 export function sqlIntarrayIn(field, list) {
   list = List.from(list);
 

@@ -1,14 +1,32 @@
 import _ from 'lodash';
+import compose from 'koa-compose';
 
 import { dbAdapter } from '../../../models';
-import { NotFoundException, ValidationException } from '../../../support/exceptions';
+import {
+  ForbiddenException,
+  TooManyRequestsException,
+  NotFoundException,
+  ValidationException,
+} from '../../../support/exceptions';
 import { serializeUsersByIds } from '../../../serializers/v2/user';
+import { authRequired } from '../../middlewares';
+import { TOO_OFTEN, TOO_SOON } from '../../../models/invitations';
+
+/**
+ * @typedef {import('../../../support/types').Ctx} Ctx
+ */
 
 export default class InvitationsController {
   static async getInvitation(ctx) {
     const invitation = await dbAdapter.getInvitation(ctx.params.secureId);
 
     if (!invitation) {
+      throw new NotFoundException(`Can't find invitation '${ctx.params.secureId}'`);
+    }
+
+    const invAuthor = await dbAdapter.getUserByIntId(invitation.author);
+
+    if (await invAuthor.isInvitesDisabled()) {
       throw new NotFoundException(`Can't find invitation '${ctx.params.secureId}'`);
     }
 
@@ -27,27 +45,72 @@ export default class InvitationsController {
     };
   }
 
-  static async createInvitation(ctx) {
-    if (!ctx.state.user) {
-      ctx.status = 403;
-      ctx.body = { err: 'Unauthorized' };
-      return;
-    }
+  static invitationsInfo = compose([
+    authRequired(),
+    /** @param {Ctx} ctx */
+    async (ctx) => {
+      const {
+        state: { user },
+        config,
+      } = ctx;
 
-    await validateInvitation(ctx.request);
+      const reason = await dbAdapter.canUserCreateInvitation(
+        user.id,
+        config.invitations.canCreateIf,
+      );
 
-    const invitationId = await dbAdapter.createInvitation(
-      ctx.state.user.intId,
-      ctx.request.body.message,
-      ctx.request.body.lang,
-      ctx.request.body.singleUse,
-      ctx.request.body.users,
-      ctx.request.body.groups,
-    );
+      ctx.body = {
+        canCreateNew: reason === null,
+        singleUseOnly: config.invitations.requiredForSignUp,
+        reasonNotCreate: reason ? { code: reason, message: '' } : null,
+      };
 
-    ctx.params.secureId = invitationId;
-    await InvitationsController.getInvitation(ctx);
-  }
+      if (reason !== null) {
+        switch (reason) {
+          case TOO_OFTEN:
+            ctx.body.reasonNotCreate.message =
+              'You create invitations too often. Please try again later.';
+            break;
+          case TOO_SOON:
+            ctx.body.reasonNotCreate.message =
+              'You cannot create invitations because your account was created recently or is not active enough.';
+            break;
+          default:
+            ctx.body.reasonNotCreate.message =
+              'The ability to create invitations is disabled for you.';
+        }
+      }
+    },
+  ]);
+
+  static createInvitation = compose([
+    authRequired(),
+    /** @param {Ctx} ctx */
+    async (ctx) => {
+      const { user } = ctx.state;
+
+      await InvitationsController.invitationsInfo(ctx);
+
+      if (!ctx.body.canCreateNew) {
+        const { code, message } = ctx.body.reasonNotCreate;
+
+        if (code === TOO_OFTEN) {
+          throw new TooManyRequestsException(message);
+        } else {
+          throw new ForbiddenException(message);
+        }
+      }
+
+      await validateInvitation(ctx.request.body);
+
+      if (ctx.body.singleUseOnly && !ctx.request.body.singleUse) {
+        throw new ValidationException('Only single-use invitations are allowed.');
+      }
+
+      ctx.params.secureId = await user.createInvitation(ctx.request.body);
+      await InvitationsController.getInvitation(ctx);
+    },
+  ]);
 }
 
 async function serializeInvitationUsers(userNames, groupNames, authorIntId) {
@@ -69,12 +132,12 @@ async function serializeInvitationUsers(userNames, groupNames, authorIntId) {
   };
 }
 
-async function validateInvitation(request) {
-  const users = await dbAdapter.getFeedOwnersByUsernames(request.body.users || []);
-  const groups = await dbAdapter.getFeedOwnersByUsernames(request.body.groups || []);
+async function validateInvitation(data) {
+  const users = await dbAdapter.getFeedOwnersByUsernames(data.users || []);
+  const groups = await dbAdapter.getFeedOwnersByUsernames(data.groups || []);
 
   const wrongUsers = _.difference(
-    request.body.users,
+    data.users,
     users.filter((u) => u.type === 'user').map((u) => u.username),
   );
 
@@ -83,7 +146,7 @@ async function validateInvitation(request) {
   }
 
   const wrongGroups = _.difference(
-    request.body.groups,
+    data.groups,
     groups.filter((u) => u.type === 'group').map((u) => u.username),
   );
 
@@ -91,15 +154,15 @@ async function validateInvitation(request) {
     throw new ValidationException(`Groups not found: ${wrongGroups}`);
   }
 
-  if (!request.body.message || !request.body.message.length) {
+  if (!data.message || !data.message.length) {
     throw new ValidationException('Invitation message must not be empty');
   }
 
-  if (!request.body.lang || !request.body.lang.length) {
+  if (!data.lang || !data.lang.length) {
     throw new ValidationException('Invitation lang must not be empty');
   }
 
-  if (!request.body.hasOwnProperty('singleUse') || !_.isBoolean(request.body.singleUse)) {
+  if (!data.hasOwnProperty('singleUse') || !_.isBoolean(data.singleUse)) {
     throw new ValidationException('Invitation singleUse must not be empty');
   }
 }

@@ -1,3 +1,8 @@
+// We cannot use regular 'import' in the ambient module
+type ISO8601DurationString = import('../app/support/types').ISO8601DurationString;
+type InvitationCreationCriterion =
+  import('../app/support/types/invitations').InvitationCreationCriterion;
+
 /**
  * Override config to match our configuration shape. This file is to be complete
  * as the code is translated to TypeScript.
@@ -136,6 +141,11 @@ declare module 'config' {
     };
 
     ianaTimeZone: string;
+
+    invitations: {
+      requiredForSignUp: boolean;
+      canCreateIf: InvitationCreationCriterion[];
+    };
   };
 
   const c: Config;
