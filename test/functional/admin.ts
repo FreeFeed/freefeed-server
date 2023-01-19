@@ -267,6 +267,10 @@ describe('Admin API', () => {
         authHeaders(mars),
       );
       await expect(response, 'to satisfy', { __httpCode: 422 });
+      await expect(await getUserInfo(venus, mars), 'to satisfy', {
+        __httpCode: 200,
+        user: { frozenUntil: null },
+      });
     });
 
     it(`should not freeze user with 'freezeUntil' in the past`, async () => {
@@ -286,7 +290,19 @@ describe('Admin API', () => {
         { freezeUntil: 'P1D' },
         authHeaders(mars),
       );
+      const now = await dbAdapter.now();
+
       await expect(response, 'to satisfy', { __httpCode: 200 });
+      await expect(await getUserInfo(venus, mars), 'to satisfy', {
+        __httpCode: 200,
+        user: {
+          frozenUntil: expect.it(
+            'with date semantics',
+            'to be close to',
+            DateTime.fromJSDate(now).plus({ days: 1 }).toJSDate(),
+          ),
+        },
+      });
     });
 
     it(`should have record about it in journal`, async () => {

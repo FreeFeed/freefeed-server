@@ -601,16 +601,31 @@ const usersTrait = (superClass) =>
      * @returns {Promise<string|null>}
      */
     async userFrozenUntil(userId) {
-      const exp = await this.database.getOne(
-        `select expires_at from frozen_users where user_id = :userId and expires_at > now()`,
-        { userId },
+      return (await this.usersFrozenUntil([userId]))[0];
+    }
+
+    /**
+     * @param {UUID[]} userId
+     * @returns {Promise<(string|null)[]>}
+     */
+    async usersFrozenUntil(userIds) {
+      const exps = await this.database.getCol(
+        `select f.expires_at 
+          from
+            unnest(:userIds::uuid[]) with ordinality as src (uid, ord)
+            left join frozen_users f on f.user_id = src.uid and f.expires_at > now()
+          order by src.ord
+          `,
+        { userIds },
       );
 
-      if (!exp || exp instanceof Date) {
-        return exp ?? null;
-      }
+      return exps.map((exp) => {
+        if (!exp || exp instanceof Date) {
+          return exp ?? null;
+        }
 
-      return MAX_DATE;
+        return MAX_DATE;
+      });
     }
 
     async cleanFrozenUsers() {

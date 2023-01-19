@@ -160,6 +160,7 @@ export class DbAdapter {
     freezeTime: ISO8601DateTimeString | ISO8601DurationString | 'Infinity',
   ): Promise<void>;
   userFrozenUntil(userId: UUID): Promise<Date | null>;
+  usersFrozenUntil(userIds: UUID[]): Promise<(Date | null)[]>;
   isUserFrozen(userId: UUID): Promise<boolean>;
   cleanFrozenUsers(): Promise<void>;
   getFrozenUsers(
