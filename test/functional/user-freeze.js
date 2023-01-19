@@ -42,7 +42,7 @@ describe('User freeze', () => {
       );
 
       // Freeze!
-      await freeze(luna.user.id, 10);
+      await freeze(luna.user.id, 'PT10S');
     });
 
     it(`should not allow Luna to sign in by login and password`, async () => {

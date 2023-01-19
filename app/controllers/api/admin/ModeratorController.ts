@@ -1,5 +1,5 @@
 import compose from 'koa-compose';
-import { DateTime } from 'luxon';
+import { DateTime, Duration } from 'luxon';
 
 import { User, dbAdapter } from '../../../models';
 import { Ctx } from '../../../support/types';
@@ -52,21 +52,31 @@ export const freezeUser = compose([
     }
 
     const { freezeUntil } = ctx.request.body as { freezeUntil: string };
-    const freezeTime = DateTime.fromISO(freezeUntil, { zone: ctx.config.ianaTimeZone });
 
-    if (!freezeTime.isValid) {
-      throw new ValidationException(`Invalid ISO datetime in 'freezeUntil'`);
-    }
+    if (freezeUntil === 'Infinity') {
+      // ok
+    } else if (freezeUntil.startsWith('P')) {
+      // Duration
+      if (!Duration.fromISO(freezeUntil).isValid) {
+        throw new ValidationException(`Invalid duration string in 'freezeUntil'`);
+      }
+    } else {
+      // Time as ISO time string
+      const d = DateTime.fromISO(freezeUntil, { zone: ctx.config.ianaTimeZone });
 
-    if (freezeTime.diffNow().valueOf() < 0) {
-      throw new ValidationException(`'freezeUntil' should be in the future`);
+      if (!d.isValid) {
+        throw new ValidationException(`Invalid datetime string in 'freezeUntil'`);
+      }
+
+      if (d.diffNow().valueOf() < 60 * 1000) {
+        throw new ValidationException(`'freezeUntil' should be in the future`);
+      }
     }
 
     await dbAdapter.doInTransaction(async () => {
-      await targetUser.freeze(freezeTime.toISO());
-      await dbAdapter.createAdminAction(ACT_FREEZE_USER, user, targetUser, {
-        freezeUntil: freezeTime.toISO(),
-      });
+      await targetUser.freeze(freezeUntil);
+      const until = await targetUser.frozenUntil();
+      await dbAdapter.createAdminAction(ACT_FREEZE_USER, user, targetUser, { freezeUntil: until });
     });
 
     ctx.body = {};
@@ -83,7 +93,7 @@ export const unfreezeUser = compose([
     }
 
     await dbAdapter.doInTransaction(async () => {
-      await targetUser.freeze(0);
+      await targetUser.freeze('P0D');
       await dbAdapter.createAdminAction(ACT_UNFREEZE_USER, user, targetUser);
     });
 

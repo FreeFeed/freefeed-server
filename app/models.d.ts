@@ -3,7 +3,7 @@ import { Knex } from 'knex';
 import { DbAdapter, type InvitationRecord } from './support/DbAdapter';
 import PubSubAdapter from './pubsub';
 import { GONE_NAMES } from './models/user';
-import { Nullable, UUID } from './support/types';
+import { ISO8601DateTimeString, ISO8601DurationString, Nullable, UUID } from './support/types';
 import { SessionTokenV1Store } from './models/auth-tokens';
 import { List } from './support/open-lists';
 
@@ -74,7 +74,7 @@ export class User {
   getMyDiscussionsTimelineIntId(): Promise<number | null>;
   getSavesTimelineIntId(): Promise<number | null>;
 
-  freeze(freezeTime: number | string): Promise<void>;
+  freeze(freezeTime: ISO8601DateTimeString | ISO8601DurationString | 'Infinity'): Promise<void>;
   isFrozen(): Promise<boolean>;
   frozenUntil(): Promise<Date | null>;
 

@@ -278,11 +278,10 @@ describe('Admin API', () => {
     });
 
     it(`should freeze Venus with 'freezeUntil' in the future`, async () => {
-      const now = await dbAdapter.now();
       const response = await performJSONRequest(
         'POST',
         `/api/admin/users/${venus.username}/freeze`,
-        { freezeUntil: DateTime.fromJSDate(now).plus({ days: 1 }).toISO() },
+        { freezeUntil: 'P1D' },
         authHeaders(mars),
       );
       await expect(response, 'to satisfy', { __httpCode: 200 });
