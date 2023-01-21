@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import util from 'util';
 
+import monitorDog from 'monitor-dog';
 import _ from 'lodash';
 import compose from 'koa-compose';
 import jwt from 'jsonwebtoken';
@@ -810,6 +811,7 @@ async function validateInvitationAndSelectUsers(invitation, invitationId) {
 
 async function useInvitation(newUser, invitation, cancel_subscription = false) {
   await dbAdapter.useInvitation(invitation.secure_id);
+  monitorDog.increment('invitation.use-requests', 1);
   await EventService.onInvitationUsed(invitation.author, newUser.intId);
 
   if (cancel_subscription) {

@@ -9,7 +9,7 @@ import {
   ValidationException,
 } from '../../../support/exceptions';
 import { serializeUsersByIds } from '../../../serializers/v2/user';
-import { authRequired } from '../../middlewares';
+import { authRequired, monitored } from '../../middlewares';
 import { TOO_OFTEN, TOO_SOON } from '../../../models/invitations';
 
 /**
@@ -85,6 +85,7 @@ export default class InvitationsController {
 
   static createInvitation = compose([
     authRequired(),
+    monitored('invitation.create'),
     /** @param {Ctx} ctx */
     async (ctx) => {
       const { user } = ctx.state;
