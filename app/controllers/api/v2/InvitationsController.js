@@ -26,7 +26,7 @@ export default class InvitationsController {
 
     const invAuthor = await dbAdapter.getUserByIntId(invitation.author);
 
-    if (await invAuthor.isInvitesDisabled()) {
+    if (!invAuthor.isActive || (await invAuthor.isInvitesDisabled())) {
       throw new NotFoundException(`Can't find invitation '${ctx.params.secureId}'`);
     }
 

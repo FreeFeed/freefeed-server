@@ -760,6 +760,12 @@ async function validateInvitationAndSelectUsers(invitation, invitationId) {
     throw new NotFoundException(`Invitation "${invitationId}" not found`);
   }
 
+  const invAuthor = await dbAdapter.getUserByIntId(invitation.author);
+
+  if (!invAuthor.isActive) {
+    throw new NotFoundException(`Invitation "${invitationId}" not found`);
+  }
+
   if (invitation.registrations_count > 0 && invitation.single_use) {
     throw new ValidationException(`Somebody has already used invitation "${invitationId}"`);
   }

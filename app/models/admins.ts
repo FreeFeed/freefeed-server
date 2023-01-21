@@ -8,6 +8,7 @@ export const ACT_FREEZE_USER = 'freeze_user';
 export const ACT_UNFREEZE_USER = 'unfreeze_user';
 export const ACT_SUSPEND_USER = 'suspend_user';
 export const ACT_UNSUSPEND_USER = 'unsuspend_user';
+
 export type AdminAction =
   | typeof ACT_GIVE_MODERATOR_RIGHTS
   | typeof ACT_REMOVE_MODERATOR_RIGHTS
