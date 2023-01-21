@@ -46,7 +46,7 @@ export const deleteAllUserData = combineTasks(
   deleteAppTokens,
   deleteExtAuthProfiles,
   deleteArchives,
-  deleteInvitations,
+  anonymizeInvitations,
   deleteLocalBumps,
   deleteSentEmailsLog,
   resetUserStatistics,
@@ -301,9 +301,17 @@ export async function deleteArchives(userId: UUID) {
   await dbAdapter.database.raw(`delete from hidden_likes where user_id = ?`, userId);
 }
 
-export async function deleteInvitations(userId: UUID) {
+export async function anonymizeInvitations(userId: UUID) {
   const user = await dbAdapter.getUserById(userId);
-  user && (await dbAdapter.database.raw(`delete from invitations where author = ?`, user.intId));
+  user &&
+    (await dbAdapter.database.raw(
+      `update invitations set
+          message='',
+          lang='en',
+          recommendations='{}'
+       where author = ?`,
+      user.intId,
+    ));
 }
 
 export async function deleteLocalBumps(userId: UUID) {
