@@ -18,6 +18,8 @@ export function performJSONRequest(
   header?: Record<string, string>,
 ): Promise<{ __httpCode: number }>;
 
-export function authHeaders(userCtx: UserCtx | null): { Authorization?: `Bearer ${string}` };
+export function authHeaders(userCtx: Pick<UserCtx, 'authToken'> | null): {
+  Authorization?: `Bearer ${string}`;
+};
 
 export function cmpBy<T>(key: keyof T): (a: T, b: T) => number;
