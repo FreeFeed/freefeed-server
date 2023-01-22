@@ -25,8 +25,8 @@ export async function rateLimiterMiddleware(ctx: Context, next: Next) {
 
   let clientId, rateLimiterConfig;
 
-  if (ctx.state.authToken?.userId) {
-    clientId = ctx.state.authToken.userId;
+  if (ctx.state.authJWTPayload?.userId) {
+    clientId = ctx.state.authJWTPayload.userId;
     rateLimiterConfig = ctx.config.rateLimit.authenticated;
   } else {
     clientId = ctx.ip;

@@ -61,9 +61,8 @@ export function createRouter() {
 
   // [at least optionally] authenticated routes
   publicRouter.use(withJWT);
-  publicRouter.use(withAuthToken);
-
   publicRouter.use(rateLimiterMiddleware);
+  publicRouter.use(withAuthToken);
 
   SessionRoute(publicRouter);
 
@@ -98,6 +97,7 @@ export function createRouter() {
   {
     const adminRouter = new Router();
     adminRouter.use(withJWT);
+    adminRouter.use(rateLimiterMiddleware);
     adminRouter.use(withAuthToken);
     adminRouter.use(authRequired());
     AdminCommonRoute(adminRouter);
