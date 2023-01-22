@@ -11,6 +11,7 @@ import { User, dbAdapter, sessionTokenV1Store } from '../../../app/models';
 import { withAuthToken } from '../../../app/controllers/middlewares/with-auth-token';
 import { ACTIVE, CLOSED } from '../../../app/models/auth-tokens/SessionTokenV1';
 import { fallbackIP, fallbackUserAgent } from '../../../app/models/common';
+import { verifyJWTSync } from '../../../app/support/verifyJWTSync';
 
 const expect = unexpected.clone();
 expect.use(unexpectedDate);
@@ -23,46 +24,6 @@ describe('withAuthToken middleware', () => {
   before(async () => {
     luna = new User({ username: 'luna', password: 'pw' });
     await luna.create();
-  });
-
-  describe('Token sources', () => {
-    let authToken;
-    before(async () => (authToken = (await sessionTokenV1Store.create(luna.id)).tokenString()));
-
-    const ctxBase = { query: {}, request: { body: {} }, headers: {}, state: {}, ip: '127.0.0.127' };
-
-    it('should accept token in ctx.query.authToken', async () => {
-      const ctx = { ...ctxBase, query: { authToken } };
-      await withAuthToken(ctx, () => null);
-      expect(ctx.state, 'to satisfy', { user: { id: luna.id } });
-    });
-
-    it('should accept token in ctx.request.body.authToken', async () => {
-      const ctx = { ...ctxBase, request: { body: { authToken } } };
-      await withAuthToken(ctx, () => null);
-      expect(ctx.state, 'to satisfy', { user: { id: luna.id } });
-    });
-
-    it(`should accept token in 'x-authentication-token' header`, async () => {
-      const ctx = { ...ctxBase, headers: { 'x-authentication-token': authToken } };
-      await withAuthToken(ctx, () => null);
-      expect(ctx.state, 'to satisfy', { user: { id: luna.id } });
-    });
-
-    it(`should accept token in 'authorization' header`, async () => {
-      const ctx = { ...ctxBase, headers: { authorization: `Bearer ${authToken}` } };
-      await withAuthToken(ctx, () => null);
-      expect(ctx.state, 'to satisfy', { user: { id: luna.id } });
-    });
-
-    it(`should not accept invalid in 'authorization' header`, async () => {
-      const ctx = { ...ctxBase, headers: { authorization: `BeaRER ${authToken}` } };
-      await expect(
-        withAuthToken(ctx, () => null),
-        'to be rejected with',
-        { status: 401 },
-      );
-    });
   });
 
   describe('AppTokenV1', () => {
@@ -79,7 +40,10 @@ describe('withAuthToken middleware', () => {
         ...(tokenString ? { authorization: `Bearer ${tokenString}` } : {}),
       },
       request: { body: {} },
-      state: { matchedRoute: '/v1/posts' },
+      state: {
+        matchedRoute: '/v1/posts',
+        ...(tokenString ? { authJWTPayload: verifyJWTSync(tokenString) } : {}),
+      },
     });
 
     before(async () => {
@@ -234,7 +198,9 @@ describe('withAuthToken middleware', () => {
         'user-agent': 'Lynx browser, Linux',
         ...(tokenString ? { authorization: `Bearer ${tokenString}` } : {}),
       },
-      state: {},
+      state: {
+        ...(tokenString ? { authJWTPayload: verifyJWTSync(tokenString) } : {}),
+      },
     });
 
     describe('Last* fields', () => {

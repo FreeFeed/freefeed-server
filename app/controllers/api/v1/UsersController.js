@@ -4,7 +4,6 @@ import util from 'util';
 import monitorDog from 'monitor-dog';
 import _ from 'lodash';
 import compose from 'koa-compose';
-import jwt from 'jsonwebtoken';
 
 import {
   dbAdapter,
@@ -22,6 +21,7 @@ import {
   BadRequestException,
   TooManyRequestsException,
 } from '../../../support/exceptions';
+import { verifyJWTSync } from '../../../support/verifyJWTSync';
 import { EventService } from '../../../support/EventService';
 import recaptchaVerify from '../../../../lib/recaptcha';
 import { serializeUsersByIds } from '../../../serializers/v2/user';
@@ -389,7 +389,7 @@ export default class UsersController {
     monitored('users.resume-me'),
     /** @param {Ctx} ctx */
     async (ctx) => {
-      const token = await jwt.verifyAsync(ctx.request.body.resumeToken, ctx.config.secret);
+      const token = verifyJWTSync(ctx.request.body.resumeToken, ctx.config.secret);
 
       if (token.type !== 'resume-account') {
         throw new ForbiddenException('Unknown token type');

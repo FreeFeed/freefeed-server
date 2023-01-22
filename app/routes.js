@@ -30,6 +30,7 @@ import ExtAuthRoute from './routes/api/v2/ExtAuth';
 import AdminCommonRoute from './routes/api/admin/CommonRoute';
 import AdminAdminRoute from './routes/api/admin/AdminRoute';
 import AdminModeratorRoute from './routes/api/admin/ModeratorRoute';
+import { withJWT } from './controllers/middlewares/with-jwt';
 import { withAuthToken } from './controllers/middlewares/with-auth-token';
 import { apiNotFoundMiddleware } from './setup/initializers/api-not-found';
 import { authRequired } from './controllers/middlewares';
@@ -59,6 +60,7 @@ export function createRouter() {
   });
 
   // [at least optionally] authenticated routes
+  publicRouter.use(withJWT);
   publicRouter.use(withAuthToken);
 
   publicRouter.use(rateLimiterMiddleware);
@@ -95,6 +97,7 @@ export function createRouter() {
 
   {
     const adminRouter = new Router();
+    adminRouter.use(withJWT);
     adminRouter.use(withAuthToken);
     adminRouter.use(authRequired());
     AdminCommonRoute(adminRouter);
