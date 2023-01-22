@@ -412,15 +412,8 @@ describe('Admin API', () => {
 
   describe('Users list and user info', () => {
     it(`should return list of all users ordered by createdAt`, async () => {
-      const sortedUsers = [luna, mars, venus].sort((a, b) => {
-        const tsDiff = parseInt(b.user.createdAt) - parseInt(a.user.createdAt);
-
-        if (tsDiff != 0) {
-          return tsDiff;
-        }
-
-        return b.user.intId - a.user.intId;
-      });
+      // Use the fact that intId is assigned sequentially
+      const sortedUsers = [luna, mars, venus].sort((a, b) => b.user.intId - a.user.intId);
       const response = await performJSONRequest('GET', `/api/admin/users`, null, authHeaders(mars));
       await expect(response, 'to satisfy', {
         __httpCode: 200,
