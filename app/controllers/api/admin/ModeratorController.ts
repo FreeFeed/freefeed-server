@@ -6,6 +6,8 @@ import { Ctx } from '../../../support/types';
 import { inputSchemaRequired, targetUserRequired } from '../../middlewares';
 import { ForbiddenException, ValidationException } from '../../../support/exceptions';
 import {
+  ACT_DISABLE_INVITES_FOR_USER,
+  ACT_ENABLE_INVITES_FOR_USER,
   ACT_FREEZE_USER,
   ACT_SUSPEND_USER,
   ACT_UNFREEZE_USER,
@@ -142,6 +144,37 @@ export const suspendUser = (doSuspend: boolean) =>
         await targetUser.setGoneStatus(doSuspend ? GONE_SUSPENDED : null);
         await dbAdapter.createAdminAction(
           doSuspend ? ACT_SUSPEND_USER : ACT_UNSUSPEND_USER,
+          user,
+          targetUser,
+        );
+      });
+
+      ctx.body = {};
+    },
+  ]);
+
+export const disableInvitesForUser = (doDisable: boolean) =>
+  compose([
+    targetUserRequired(),
+    async (ctx: Ctx<{ user: User; targetUser: User }>) => {
+      const { user, targetUser } = ctx.state;
+
+      if (!targetUser.isUser()) {
+        throw new ForbiddenException('Only user can issue invites');
+      }
+
+      const isDisabled = await targetUser.isInvitesDisabled();
+
+      if (isDisabled === doDisable) {
+        throw new ValidationException(
+          `User already has invitations ${doDisable ? 'disabled' : 'enabled'}`,
+        );
+      }
+
+      await dbAdapter.doInTransaction(async () => {
+        await targetUser.setInvitesDisabled(doDisable);
+        await dbAdapter.createAdminAction(
+          doDisable ? ACT_DISABLE_INVITES_FOR_USER : ACT_ENABLE_INVITES_FOR_USER,
           user,
           targetUser,
         );

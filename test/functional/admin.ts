@@ -6,6 +6,8 @@ import { DateTime } from 'luxon';
 import { dbAdapter } from '../../app/models';
 import cleanDB from '../dbCleaner';
 import {
+  ACT_DISABLE_INVITES_FOR_USER,
+  ACT_ENABLE_INVITES_FOR_USER,
   ACT_FREEZE_USER,
   ACT_GIVE_MODERATOR_RIGHTS,
   ACT_REMOVE_MODERATOR_RIGHTS,
@@ -512,6 +514,84 @@ describe('Admin API', () => {
         authHeaders(mars),
       );
       await expect(response, 'to satisfy', { __httpCode: 422, err: /not in SUSPENDED status/ });
+    });
+  });
+
+  describe('Disable/enable invites for user', () => {
+    it(`should disable invites for Venus`, async () => {
+      const response = await performJSONRequest(
+        'POST',
+        `/api/admin/users/${venus.username}/disable-invites`,
+        null,
+        authHeaders(mars),
+      );
+      await expect(response, 'to satisfy', { __httpCode: 200 });
+      await expect(await venus.user.isInvitesDisabled(), 'to be true');
+    });
+
+    it(`should have record about it in journal`, async () => {
+      const response = await performJSONRequest(
+        'GET',
+        `/api/admin/journal?limit=1`,
+        null,
+        authHeaders(luna),
+      );
+
+      await expect(response, 'to satisfy', {
+        __httpCode: 200,
+        actions: [
+          {
+            action_name: ACT_DISABLE_INVITES_FOR_USER,
+            admin_username: mars.username,
+            target_username: venus.username,
+            details: {},
+          },
+        ],
+        isLastPage: false,
+      });
+    });
+
+    it(`should enable invites for Venus`, async () => {
+      const response = await performJSONRequest(
+        'POST',
+        `/api/admin/users/${venus.username}/enable-invites`,
+        null,
+        authHeaders(mars),
+      );
+      await expect(response, 'to satisfy', { __httpCode: 200 });
+      await expect(await venus.user.isInvitesDisabled(), 'to be false');
+    });
+
+    it(`should have record about it in journal`, async () => {
+      const response = await performJSONRequest(
+        'GET',
+        `/api/admin/journal?limit=1`,
+        null,
+        authHeaders(luna),
+      );
+
+      await expect(response, 'to satisfy', {
+        __httpCode: 200,
+        actions: [
+          {
+            action_name: ACT_ENABLE_INVITES_FOR_USER,
+            admin_username: mars.username,
+            target_username: venus.username,
+            details: {},
+          },
+        ],
+        isLastPage: false,
+      });
+    });
+
+    it(`should not enable invites for Venus twice`, async () => {
+      const response = await performJSONRequest(
+        'POST',
+        `/api/admin/users/${venus.username}/enable-invites`,
+        null,
+        authHeaders(mars),
+      );
+      await expect(response, 'to satisfy', { __httpCode: 422 });
     });
   });
 });
