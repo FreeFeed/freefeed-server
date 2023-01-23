@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - New Datadog counters for invitations:'invitation.create-time',
   'invitation.create-requests', and 'invitation.use-requests'.
+- Allow moderator to disable/enable invitations for specific user. Methods are:
+  - `POST /users/:username/disable-invites`
+  - `POST /users/:username/enable-invites`
 
 ### Changed
 - Invitations from inactive (i.e. in some 'gone' status) users stop working.
