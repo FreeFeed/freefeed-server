@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [2.8.0] - Not released
+### Added
+- New Datadog counters for invitations:'invitation.create-time',
+  'invitation.create-requests', and 'invitation.use-requests'.
+
+### Changed
+- Invitations from inactive (i.e. in some 'gone' status) users stop working.
+
+### Fixed
+- Invitations are no longer deleted when their author's data is deleted. These
+  invitations are instead anonymized. This is important for keeping a connection
+  with invited users.
 
 ## [2.7.0] - 2023-01-19
 ### Added

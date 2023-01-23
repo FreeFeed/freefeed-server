@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import util from 'util';
 
+import monitorDog from 'monitor-dog';
 import _ from 'lodash';
 import compose from 'koa-compose';
 import jwt from 'jsonwebtoken';
@@ -760,6 +761,12 @@ async function validateInvitationAndSelectUsers(invitation, invitationId) {
     throw new NotFoundException(`Invitation "${invitationId}" not found`);
   }
 
+  const invAuthor = await dbAdapter.getUserByIntId(invitation.author);
+
+  if (!invAuthor.isActive) {
+    throw new NotFoundException(`Invitation "${invitationId}" not found`);
+  }
+
   if (invitation.registrations_count > 0 && invitation.single_use) {
     throw new ValidationException(`Somebody has already used invitation "${invitationId}"`);
   }
@@ -804,6 +811,7 @@ async function validateInvitationAndSelectUsers(invitation, invitationId) {
 
 async function useInvitation(newUser, invitation, cancel_subscription = false) {
   await dbAdapter.useInvitation(invitation.secure_id);
+  monitorDog.increment('invitation.use-requests', 1);
   await EventService.onInvitationUsed(invitation.author, newUser.intId);
 
   if (cancel_subscription) {

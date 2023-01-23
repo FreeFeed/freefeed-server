@@ -9,7 +9,7 @@ import {
   ValidationException,
 } from '../../../support/exceptions';
 import { serializeUsersByIds } from '../../../serializers/v2/user';
-import { authRequired } from '../../middlewares';
+import { authRequired, monitored } from '../../middlewares';
 import { TOO_OFTEN, TOO_SOON } from '../../../models/invitations';
 
 /**
@@ -26,7 +26,7 @@ export default class InvitationsController {
 
     const invAuthor = await dbAdapter.getUserByIntId(invitation.author);
 
-    if (await invAuthor.isInvitesDisabled()) {
+    if (!invAuthor.isActive || (await invAuthor.isInvitesDisabled())) {
       throw new NotFoundException(`Can't find invitation '${ctx.params.secureId}'`);
     }
 
@@ -85,6 +85,7 @@ export default class InvitationsController {
 
   static createInvitation = compose([
     authRequired(),
+    monitored('invitation.create'),
     /** @param {Ctx} ctx */
     async (ctx) => {
       const { user } = ctx.state;
