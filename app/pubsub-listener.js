@@ -25,6 +25,7 @@ import config from 'config';
 import { dbAdapter, Comment } from './models';
 import { eventNames } from './support/PubSubAdapter';
 import { List } from './support/open-lists';
+import { withJWT } from './controllers/middlewares/with-jwt';
 import { withAuthToken } from './controllers/middlewares/with-auth-token';
 import {
   HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY,
@@ -958,6 +959,7 @@ async function getAuthUserId(jwtToken, socket) {
     state: { matchedRoute: '*' },
   };
 
+  await withJWT(ctx, () => null);
   await withAuthToken(ctx, () => null);
 
   return ctx.state.authToken.userId;
