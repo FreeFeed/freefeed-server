@@ -2,7 +2,7 @@ import { Context, Next } from 'koa';
 
 import { NotAuthorizedException } from '../../support/exceptions';
 import { authDebugError } from '../../models/auth-tokens';
-import { verifyJWTSync, type JWTPayload } from '../../support/verifyJWTSync';
+import { verifyJWTAsync, type JWTPayload } from '../../support/verifyJWTAsync';
 
 export async function withJWT(ctx: Context, next: Next) {
   let jwtToken;
@@ -29,7 +29,7 @@ export async function withJWT(ctx: Context, next: Next) {
   let payload: JWTPayload;
 
   try {
-    payload = verifyJWTSync(jwtToken);
+    payload = await verifyJWTAsync(jwtToken);
   } catch (e: unknown) {
     authDebugError(`invalid JWT`, { error: e });
     throw new NotAuthorizedException(`invalid auth token: bad JWT`);

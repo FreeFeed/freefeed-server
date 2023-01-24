@@ -21,7 +21,7 @@ import {
   BadRequestException,
   TooManyRequestsException,
 } from '../../../support/exceptions';
-import { verifyJWTSync } from '../../../support/verifyJWTSync';
+import { verifyJWTAsync } from '../../../support/verifyJWTAsync';
 import { EventService } from '../../../support/EventService';
 import recaptchaVerify from '../../../../lib/recaptcha';
 import { serializeUsersByIds } from '../../../serializers/v2/user';
@@ -389,7 +389,7 @@ export default class UsersController {
     monitored('users.resume-me'),
     /** @param {Ctx} ctx */
     async (ctx) => {
-      const token = verifyJWTSync(ctx.request.body.resumeToken, ctx.config.secret);
+      const token = await verifyJWTAsync(ctx.request.body.resumeToken, ctx.config.secret);
 
       if (token.type !== 'resume-account') {
         throw new ForbiddenException('Unknown token type');

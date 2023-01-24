@@ -22,7 +22,7 @@ import {
 } from '../../../app/jobs/periodic/auth-tokens';
 import { ACTIVE, CLOSED } from '../../../app/models/auth-tokens/SessionTokenV1';
 import { delay } from '../../../app/support/timers';
-import { verifyJWTSync } from '../../../app/support/verifyJWTSync';
+import { verifyJWTAsync } from '../../../app/support/verifyJWTAsync';
 
 const expect = unexpected.clone();
 expect.use(unexpectedDate);
@@ -104,9 +104,9 @@ describe('Auth Tokens', () => {
         expect(token.userId, 'to be', luna.id);
       });
 
-      it('should make a valid JWT', () => {
+      it('should make a valid JWT', async () => {
         const jToken = token.tokenString();
-        const decoded = verifyJWTSync(jToken, config.secret);
+        const decoded = await verifyJWTAsync(jToken, config.secret);
         expect(decoded, 'to satisfy', {
           type: AppTokenV1.TYPE,
           userId: luna.id,
