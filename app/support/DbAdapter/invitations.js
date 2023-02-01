@@ -121,6 +121,24 @@ const invitationsTrait = (superClass) =>
     async setInvitesDisabledForUser(userId, isDisabled) {
       await this.setUserSysPrefs(userId, 'invitesDisabled', isDisabled);
     }
+
+    async getInvitedByAssoc(userIds) {
+      const rows = await this.database.getAll(
+        `select u.uid, iu.username from
+          users u
+          join invitations inv on inv.id = u.invitation_id
+          join users iu on inv.author = iu.id
+          where u.uid = any(:userIds)`,
+        { userIds },
+      );
+      const result = {};
+
+      for (const { uid, username } of rows) {
+        result[uid] = username;
+      }
+
+      return result;
+    }
   };
 
 export default invitationsTrait;

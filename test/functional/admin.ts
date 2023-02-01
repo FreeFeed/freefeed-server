@@ -24,6 +24,7 @@ import {
   performJSONRequest,
   authHeaders,
   cmpBy,
+  createUserAsync,
 } from './functional_test_helper';
 
 const expect = unexpected.clone();
@@ -37,7 +38,17 @@ describe('Admin API', () => {
   let venus: UserCtx;
 
   before(async () => {
-    [luna, mars, venus] = await createTestUsers(['luna', 'mars', 'venus']);
+    [luna, mars] = await createTestUsers(['luna', 'mars']);
+    // Venus is created by Luna's invite
+    const invitationCode = await luna.user.createInvitation({
+      message: 'hi',
+      lang: 'en',
+      singleUse: true,
+      groups: [],
+      users: [],
+    });
+    const invitation = await dbAdapter.getInvitation(invitationCode);
+    venus = await createUserAsync('venus', 'pw', { invitationId: invitation?.id });
     await Promise.all([
       dbAdapter.setUserAdminRole(luna.user.id, ROLE_ADMIN, true, {
         YES_I_WANT_TO_SET_ADMIN_FOR_TEST_ONLY: true,
@@ -419,7 +430,12 @@ describe('Admin API', () => {
       const response = await performJSONRequest('GET', `/api/admin/users`, null, authHeaders(mars));
       await expect(response, 'to satisfy', {
         __httpCode: 200,
-        users: sortedUsers.map((c) => ({ id: c.user.id })),
+        users: sortedUsers.map((c) => ({
+          id: c.user.id,
+          username: c.username,
+          createdAt: c.user.createdAt,
+          invitedBy: c.username === 'venus' ? 'luna' : null,
+        })),
         isLastPage: true,
       });
     });
