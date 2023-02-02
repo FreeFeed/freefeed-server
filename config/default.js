@@ -422,7 +422,7 @@ config.rateLimit = {
   enabled: false,
   allowlist: ['::ffff:127.0.0.1'], // ip addresses or user ids
   anonymous: {
-    duration: 60 * 1000, // milliseconds
+    duration: 'PT1M', // ISO 8601 duration
     maxRequests: 10,
     methodOverrides: {
       // optional
@@ -430,13 +430,14 @@ config.rateLimit = {
     },
   },
   authenticated: {
-    duration: 60 * 1000, // milliseconds
+    duration: 'PT1M', // ISO 8601 duration
     maxRequests: 30,
     methodOverrides: {
       GET: { maxRequests: 200 },
       POST: { maxRequests: 60 },
     },
   },
+  maskingKeyRotationInterval: 'P7D', // ISO 8601 duration
 };
 
 config.invitations = {
