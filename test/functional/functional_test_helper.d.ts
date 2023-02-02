@@ -10,6 +10,11 @@ export type UserCtx = {
 
 export function createTestUser(username?: string): Promise<UserCtx>;
 export function createTestUsers(usernames: string[]): Promise<UserCtx[]>;
+export function createUserAsync(
+  username: string,
+  password?: string,
+  attributes?: object,
+): Promise<UserCtx>;
 
 export function performJSONRequest(
   method: string,

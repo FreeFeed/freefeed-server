@@ -358,4 +358,5 @@ export class DbAdapter {
   ): Promise<RefusalReason | null>;
   setInvitesDisabledForUser(userId: UUID, isDisabled: boolean): Promise<void>;
   isInvitesDisabledForUser(userId: UUID): Promise<boolean>;
+  getInvitedByAssoc(userIds: UUID[]): Promise<Record<UUID, string>>;
 }
