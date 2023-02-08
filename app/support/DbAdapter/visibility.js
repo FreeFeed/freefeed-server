@@ -121,16 +121,27 @@ const visibilityTrait = (superClass) =>
     }
 
     async isCommentBannedForViewer(commentId, viewerId = null) {
+      const m = await this.areCommentsBannedForViewerAssoc([commentId], viewerId);
+      return m[commentId] ?? false;
+    }
+
+    async areCommentsBannedForViewerAssoc(commentIds, viewerId = null) {
       const notBannedSQLFabric = await this.notBannedActionsSQLFabric(viewerId);
-      return await this.database.getOne(
-        `select exists(
-            select 1 from 
-              comments c
-              join posts p on p.uid = c.post_id
-              where c.uid = :commentId and ${sqlNot(notBannedSQLFabric('c'))}
-          )`,
-        { commentId },
+      const rows = await this.database.getAll(
+        `select c.uid, ${sqlNot(notBannedSQLFabric('c'))} as banned from 
+            comments c
+            join posts p on p.uid = c.post_id
+            where c.uid = any(:commentIds)
+          `,
+        { commentIds },
       );
+      const result = {};
+
+      for (const row of rows) {
+        result[row.uid] = row.banned;
+      }
+
+      return result;
     }
 
     /**

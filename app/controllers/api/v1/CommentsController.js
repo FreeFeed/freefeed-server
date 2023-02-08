@@ -1,5 +1,6 @@
 import compose from 'koa-compose';
 import monitor from 'monitor-dog';
+import { difference, uniq } from 'lodash';
 
 import { dbAdapter, Comment, AppTokenV1 } from '../../../models';
 import {
@@ -7,7 +8,11 @@ import {
   NotFoundException,
   BadRequestException,
 } from '../../../support/exceptions';
-import { serializeComment, serializeCommentFull } from '../../../serializers/v2/comment';
+import {
+  serializeComment,
+  serializeCommentFull,
+  serializeCommentsFull,
+} from '../../../serializers/v2/comment';
 import {
   authRequired,
   inputSchemaRequired,
@@ -16,6 +21,7 @@ import {
 } from '../../middlewares';
 
 import { commentCreateInputSchema, commentUpdateInputSchema } from './data-schemes';
+import { getCommentsByIdsInputSchema } from './data-schemes/comments';
 
 export const create = compose([
   authRequired(),
@@ -157,6 +163,36 @@ export async function getById(ctx) {
 
   ctx.body = await serializeCommentFull(comment, user?.id);
 }
+
+const maxCommentsByIds = 100;
+
+export const getByIds = compose([
+  inputSchemaRequired(getCommentsByIdsInputSchema),
+  monitored('comments.by-ids'),
+  async (ctx) => {
+    const { user: viewer } = ctx.state;
+    const { commentIds } = ctx.request.body;
+
+    const hasMore = commentIds.length > maxCommentsByIds;
+
+    if (hasMore) {
+      commentIds.length = maxCommentsByIds;
+    }
+
+    const allComments = await dbAdapter.getCommentsByIds(commentIds);
+    const postIds = uniq(allComments.map((c) => c.postId));
+
+    const visiblePostIds = await dbAdapter.selectPostsVisibleByUser(postIds, viewer?.id);
+    const visibleComments = allComments.filter((c) => visiblePostIds.includes(c.postId));
+    const commentsNotFound = difference(
+      commentIds,
+      visibleComments.map((c) => c.id),
+    );
+
+    ctx.body = await serializeCommentsFull(visibleComments, viewer?.id);
+    ctx.body.commentsNotFound = commentsNotFound;
+  },
+]);
 
 export async function getBySeqNumber(ctx) {
   const { postId, seqNumber } = ctx.params;

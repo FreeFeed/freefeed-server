@@ -44,3 +44,21 @@ export const commentUpdateInputSchema = {
     },
   },
 };
+
+export const getCommentsByIdsInputSchema = {
+  $schema: 'http://json-schema.org/schema#',
+
+  definitions,
+
+  type: 'object',
+  required: ['commentIds'],
+
+  properties: {
+    commentIds: {
+      type: 'array',
+      items: { $ref: '#/definitions/uuid' },
+      uniqueItems: true,
+      default: [],
+    },
+  },
+};

@@ -192,6 +192,10 @@ export class DbAdapter {
 
   // Comment likes
   deleteCommentLike(commentUUID: UUID, likerUUID: UUID): Promise<boolean>;
+  getLikesInfoForComments(
+    commentsUUIDs: UUID[],
+    viewerUUID?: UUID,
+  ): Promise<{ uid: UUID; c_likes: string; has_own_like: boolean }[]>;
 
   // Attachments
   getAttachmentById(id: UUID): Promise<Attachment | null>;
@@ -216,6 +220,11 @@ export class DbAdapter {
   ): Promise<string>;
   isPostVisibleForViewer(postId: UUID, viewerId?: UUID): Promise<boolean>;
   getUsersWhoCanSeePost(postProps: { authorId: UUID; destFeeds: number[] }): Promise<List<UUID>>;
+  isCommentBannedForViewer(commentId: UUID, viewerId?: UUID): Promise<boolean>;
+  areCommentsBannedForViewerAssoc(
+    commentIds: UUID[],
+    viewerId?: UUID,
+  ): Promise<{ [id: UUID]: boolean }>;
 
   // App tokens
   createAppToken(token: AppTokenCreateParams): Promise<AppTokenV1>;

@@ -11,7 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   'invitation.create-requests', and 'invitation.use-requests'.
 - Allow moderator to disable/enable invitations for specific user. Methods are:
   - `POST /users/:username/disable-invites`
-  - `POST /users/:username/enable-invites`
+  - `POST /users/:username/enable-invites` 
+- New method `POST /v2/comments/byIds` for batch retrieval of comments. The
+  request body has form `{ "commentsId": [...] }`.
 
 ### Changed
 - Invitations from inactive (i.e. in some 'gone' status) users stop working.
