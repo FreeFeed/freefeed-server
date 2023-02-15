@@ -178,7 +178,8 @@ describe('Group Moderation', () => {
           expect(marsEvents, 'to satisfy', [
             {
               event_type: EVENT_TYPES.COMMENT_MODERATED,
-              created_user_id: null,
+              // Luna is a post author, so we expect her here
+              created_user_id: luna.user.id,
               post_id: post.id,
             },
           ]);
@@ -194,6 +195,7 @@ describe('Group Moderation', () => {
           expect(marsEvents, 'to satisfy', [
             {
               event_type: EVENT_TYPES.COMMENT_MODERATED,
+              // Jupiter is not a post author, so we shouldn't see him here
               created_user_id: null,
               post_id: post.id,
               group_id: expect.it('to be one of', [gods.group.id, celestials.group.id]),

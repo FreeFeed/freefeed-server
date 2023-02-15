@@ -1,7 +1,7 @@
 import { dbAdapter } from '../../models';
 import { Nullable, UUID } from '../../support/types';
 import type { EventRecord } from '../../support/DbAdapter';
-import { HIDDEN_CREATOR_EVENT_TYPES } from '../../support/EventTypes';
+import { EVENT_TYPES, HIDDEN_CREATOR_EVENT_TYPES } from '../../support/EventTypes';
 
 import { serializeUsersByIds } from './user';
 
@@ -13,6 +13,14 @@ export async function serializeEvents(events: EventRecord[], viewerId: Nullable<
   for (const event of events) {
     if (
       HIDDEN_CREATOR_EVENT_TYPES.includes(event.event_type) &&
+      event.user_id === event.target_user_id
+    ) {
+      event.created_by_user_id = null;
+    }
+
+    if (
+      event.event_type === EVENT_TYPES.COMMENT_MODERATED &&
+      event.created_by_user_id !== event.post_author_id &&
       event.user_id === event.target_user_id
     ) {
       event.created_by_user_id = null;
