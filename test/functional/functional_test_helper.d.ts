@@ -10,6 +10,11 @@ export type UserCtx = {
 
 export function createTestUser(username?: string): Promise<UserCtx>;
 export function createTestUsers(usernames: string[]): Promise<UserCtx[]>;
+export function createUserAsync(
+  username: string,
+  password?: string,
+  attributes?: object,
+): Promise<UserCtx>;
 
 export function performJSONRequest(
   method: string,
@@ -18,6 +23,8 @@ export function performJSONRequest(
   header?: Record<string, string>,
 ): Promise<{ __httpCode: number }>;
 
-export function authHeaders(userCtx: UserCtx | null): { Authorization?: `Bearer ${string}` };
+export function authHeaders(userCtx: Pick<UserCtx, 'authToken'> | null): {
+  Authorization?: `Bearer ${string}`;
+};
 
 export function cmpBy<T>(key: keyof T): (a: T, b: T) => number;

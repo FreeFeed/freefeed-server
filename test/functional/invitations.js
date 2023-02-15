@@ -6,8 +6,9 @@ import unexpected from 'unexpected';
 import cleanDB from '../dbCleaner';
 import { getSingleton } from '../../app/app';
 import { DummyPublisher } from '../../app/pubsub';
-import { PubSub } from '../../app/models';
+import { PubSub, dbAdapter } from '../../app/models';
 import { DENIED } from '../../app/models/invitations';
+import { GONE_SUSPENDED } from '../../app/models/user';
 
 import {
   banUser,
@@ -379,6 +380,30 @@ describe('Invitations', () => {
             expect(invitationRes, 'to be an invitation response');
           });
         });
+
+        describe('when invitation author is not active', () => {
+          const invitation = {
+            message: 'Welcome to Freefeed!',
+            lang: 'en',
+            singleUse: false,
+            users: ['luna', 'mars'],
+            groups: [],
+          };
+          let invitationSecureId;
+          beforeEach(async () => {
+            const res = await createInvitation(luna, invitation);
+            const responseJson = await res.json();
+            invitationSecureId = responseJson.invitation.secure_id;
+
+            const lunaUser = await dbAdapter.getUserById(luna.user.id);
+            await lunaUser.setGoneStatus(GONE_SUSPENDED);
+          });
+
+          it('should return 404', async () => {
+            const res = await getInvitation(invitationSecureId, null);
+            expect(res, 'to be an API error', 404, `Can't find invitation '${invitationSecureId}'`);
+          });
+        });
       });
     });
   });
@@ -475,6 +500,24 @@ describe('Invitations', () => {
               expect(events.Notifications, 'to have an item satisfying', {
                 event_type: 'invitation_used',
               });
+            });
+          });
+
+          describe(`Luna is inactive`, () => {
+            beforeEach(async () => {
+              const lunaUser = await dbAdapter.getUserById(luna.user.id);
+              await lunaUser.setGoneStatus(GONE_SUSPENDED);
+            });
+
+            it('should return 404', async () => {
+              const user1 = {
+                username: 'pluto',
+                password: 'pw',
+                invitation: invitationSecureId,
+              };
+
+              const response1 = await createUserAsyncPost(user1);
+              expect(response1.status, 'to be', 404);
             });
           });
         });

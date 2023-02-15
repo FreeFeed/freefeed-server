@@ -8,7 +8,7 @@ import { rateLimiterMiddleware } from '../../../app/support/rateLimiter';
 
 const MAX_ANONYMOUS_REQUESTS = 5;
 const MAX_AUTHENTICATED_REQUESTS = 7;
-const DURATION = 5 * 1000;
+const DURATION = 'PT5S';
 
 const baseContext = {
   ip: '127.0.0.1',

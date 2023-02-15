@@ -20,7 +20,7 @@ import {
   deleteAppTokens,
   deleteExtAuthProfiles,
   deleteArchives,
-  deleteInvitations,
+  anonymizeInvitations,
   deleteAllUserData,
   deleteAttachments,
 } from '../../../app/support/user-deletion';
@@ -288,7 +288,7 @@ describe('User data deletion', () => {
     expect(await dbAdapter.getUserArchiveParams(luna.id), 'to be null');
   });
 
-  it(`should delete invitations`, async () => {
+  it(`should anonymize invitations`, async () => {
     await luna.createInvitation({
       message: 'Welcome to Freefeed!',
       lang: 'en',
@@ -296,12 +296,34 @@ describe('User data deletion', () => {
       users: ['luna', 'mars', 'jupiter'],
       groups: [],
     });
+    await luna.createInvitation({
+      message: 'Welcome to Freefeed again!',
+      lang: 'ru',
+      singleUse: false,
+      users: ['luna', 'jupiter'],
+      groups: ['selenites'],
+    });
 
-    expect(await dbAdapter.database.getOne(`select count(*)::int from invitations`), 'to be', 1);
+    expect(await dbAdapter.database.getOne(`select count(*)::int from invitations`), 'to be', 2);
 
-    await deleteInvitations(luna.id);
+    await anonymizeInvitations(luna.id);
 
-    expect(await dbAdapter.database.getOne(`select count(*)::int from invitations`), 'to be', 0);
+    const rows = await dbAdapter.database.getAll(`select * from invitations order by created_at`);
+
+    expect(rows, 'to satisfy', [
+      {
+        message: '',
+        lang: 'en',
+        single_use: true,
+        recommendations: {},
+      },
+      {
+        message: '',
+        lang: 'en',
+        single_use: false,
+        recommendations: {},
+      },
+    ]);
   });
 
   it(`should delete attachments`, async () => {

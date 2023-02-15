@@ -11,6 +11,7 @@ import { User, dbAdapter, sessionTokenV1Store } from '../../../app/models';
 import { withAuthToken } from '../../../app/controllers/middlewares/with-auth-token';
 import { ACTIVE, CLOSED } from '../../../app/models/auth-tokens/SessionTokenV1';
 import { fallbackIP, fallbackUserAgent } from '../../../app/models/common';
+import { verifyJWTAsync } from '../../../app/support/verifyJWTAsync';
 
 const expect = unexpected.clone();
 expect.use(unexpectedDate);
@@ -25,50 +26,10 @@ describe('withAuthToken middleware', () => {
     await luna.create();
   });
 
-  describe('Token sources', () => {
-    let authToken;
-    before(async () => (authToken = (await sessionTokenV1Store.create(luna.id)).tokenString()));
-
-    const ctxBase = { query: {}, request: { body: {} }, headers: {}, state: {}, ip: '127.0.0.127' };
-
-    it('should accept token in ctx.query.authToken', async () => {
-      const ctx = { ...ctxBase, query: { authToken } };
-      await withAuthToken(ctx, () => null);
-      expect(ctx.state, 'to satisfy', { user: { id: luna.id } });
-    });
-
-    it('should accept token in ctx.request.body.authToken', async () => {
-      const ctx = { ...ctxBase, request: { body: { authToken } } };
-      await withAuthToken(ctx, () => null);
-      expect(ctx.state, 'to satisfy', { user: { id: luna.id } });
-    });
-
-    it(`should accept token in 'x-authentication-token' header`, async () => {
-      const ctx = { ...ctxBase, headers: { 'x-authentication-token': authToken } };
-      await withAuthToken(ctx, () => null);
-      expect(ctx.state, 'to satisfy', { user: { id: luna.id } });
-    });
-
-    it(`should accept token in 'authorization' header`, async () => {
-      const ctx = { ...ctxBase, headers: { authorization: `Bearer ${authToken}` } };
-      await withAuthToken(ctx, () => null);
-      expect(ctx.state, 'to satisfy', { user: { id: luna.id } });
-    });
-
-    it(`should not accept invalid in 'authorization' header`, async () => {
-      const ctx = { ...ctxBase, headers: { authorization: `BeaRER ${authToken}` } };
-      await expect(
-        withAuthToken(ctx, () => null),
-        'to be rejected with',
-        { status: 401 },
-      );
-    });
-  });
-
   describe('AppTokenV1', () => {
     let token;
 
-    const context = (tokenString = null) => ({
+    const context = async (tokenString = null) => ({
       ip: '127.0.0.127',
       method: 'POST',
       url: '/v1/posts',
@@ -79,7 +40,10 @@ describe('withAuthToken middleware', () => {
         ...(tokenString ? { authorization: `Bearer ${tokenString}` } : {}),
       },
       request: { body: {} },
-      state: { matchedRoute: '/v1/posts' },
+      state: {
+        matchedRoute: '/v1/posts',
+        ...(tokenString ? { authJWTPayload: await verifyJWTAsync(tokenString) } : {}),
+      },
     });
 
     before(async () => {
@@ -105,7 +69,7 @@ describe('withAuthToken middleware', () => {
         },
       });
 
-      const ctx = context(t1.tokenString());
+      const ctx = await context(t1.tokenString());
       await withAuthToken(ctx, () => null);
 
       const [t2, now] = await Promise.all([dbAdapter.getAppTokenById(t1.id), dbAdapter.now()]);
@@ -125,7 +89,7 @@ describe('withAuthToken middleware', () => {
     });
 
     it('should write log entry after POST request', async () => {
-      const ctx = context(token.tokenString());
+      const ctx = await context(token.tokenString());
       ctx.state.appTokenLogPayload = { postId: 'post1' };
       await withAuthToken(ctx, () => null);
 
@@ -147,7 +111,7 @@ describe('withAuthToken middleware', () => {
     });
 
     it('should not give access from invalid IP address', async () => {
-      const ctx = context(token.tokenString());
+      const ctx = await context(token.tokenString());
       ctx.ip = '127.0.1.1';
 
       await expect(
@@ -161,7 +125,7 @@ describe('withAuthToken middleware', () => {
       const tokenString = token.tokenString();
       await token.reissue();
 
-      const ctx = context(tokenString);
+      const ctx = await context(tokenString);
       await expect(
         withAuthToken(ctx, () => null),
         'to be rejected with',
@@ -177,7 +141,7 @@ describe('withAuthToken middleware', () => {
       });
       const tokenString = t.tokenString();
 
-      const ctx = context(tokenString);
+      const ctx = await context(tokenString);
       await expect(
         withAuthToken(ctx, () => null),
         'to be rejected with',
@@ -186,7 +150,7 @@ describe('withAuthToken middleware', () => {
     });
 
     it('should not give access from invalid origin', async () => {
-      const ctx = context(token.tokenString());
+      const ctx = await context(token.tokenString());
       ctx.headers['origin'] = 'https://evil.com';
 
       await expect(
@@ -197,7 +161,7 @@ describe('withAuthToken middleware', () => {
     });
 
     it('should not give access to the invalid route', async () => {
-      const ctx = context(token.tokenString());
+      const ctx = await context(token.tokenString());
       ctx.method = 'GET';
       ctx.state.matchedRoute = '/v1/invalid';
 
@@ -209,7 +173,7 @@ describe('withAuthToken middleware', () => {
     });
 
     it('should give access with correct context', async () => {
-      const ctx = context(token.tokenString());
+      const ctx = await context(token.tokenString());
       await expect(
         withAuthToken(ctx, () => null),
         'to be fulfilled',
@@ -217,7 +181,7 @@ describe('withAuthToken middleware', () => {
     });
 
     it('should give access to always allowed route', async () => {
-      const ctx = context(token.tokenString());
+      const ctx = await context(token.tokenString());
       ctx.method = 'GET';
       ctx.state.matchedRoute = '/v1/users/me';
       await expect(
@@ -228,13 +192,15 @@ describe('withAuthToken middleware', () => {
   });
 
   describe('SessionTokenV1', () => {
-    const context = (tokenString = null) => ({
+    const context = async (tokenString = null) => ({
       ip: '127.0.0.127',
       headers: {
         'user-agent': 'Lynx browser, Linux',
         ...(tokenString ? { authorization: `Bearer ${tokenString}` } : {}),
       },
-      state: {},
+      state: {
+        ...(tokenString ? { authJWTPayload: await verifyJWTAsync(tokenString) } : {}),
+      },
     });
 
     describe('Last* fields', () => {
@@ -251,7 +217,7 @@ describe('withAuthToken middleware', () => {
           lastUserAgent: fallbackUserAgent,
         });
 
-        const ctx = context(session.tokenString());
+        const ctx = await context(session.tokenString());
         const handler = spy();
         await withAuthToken(ctx, handler);
 
@@ -279,7 +245,7 @@ describe('withAuthToken middleware', () => {
         const tokenString = session.tokenString();
         await session.reissue();
 
-        const ctx = context(tokenString);
+        const ctx = await context(tokenString);
         const handler = spy();
 
         await expect(withAuthToken(ctx, handler), 'to be fulfilled');
@@ -291,7 +257,7 @@ describe('withAuthToken middleware', () => {
         await session.reissue();
         await session.reissue();
 
-        const ctx = context(tokenString);
+        const ctx = await context(tokenString);
         const handler = spy();
 
         await expect(withAuthToken(ctx, handler), 'to be rejected');
@@ -300,7 +266,7 @@ describe('withAuthToken middleware', () => {
 
       it('should not allow inactive token', async () => {
         await session.setStatus(CLOSED);
-        const ctx = context(session.tokenString());
+        const ctx = await context(session.tokenString());
         const handler = spy();
 
         await expect(withAuthToken(ctx, handler), 'to be rejected');
@@ -328,7 +294,7 @@ describe('withAuthToken middleware', () => {
 
         await dbAdapter.updateAuthSession(session.id, { updatedAt });
         await expect(
-          withAuthToken(context(tokenString), () => null),
+          withAuthToken(await context(tokenString), () => null),
           'to be fulfilled',
         );
 
@@ -343,7 +309,7 @@ describe('withAuthToken middleware', () => {
 
         await dbAdapter.updateAuthSession(session.id, { updatedAt });
         await expect(
-          withAuthToken(context(tokenString), () => null),
+          withAuthToken(await context(tokenString), () => null),
           'to be rejected',
         );
       });

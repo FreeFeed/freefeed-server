@@ -481,7 +481,7 @@ export function createUserAsyncPost(user) {
 }
 
 export async function createUserAsync(username, password = 'pw', { email, ...attributes } = {}) {
-  const user = new User({ username, password, email });
+  const user = new User({ username, password, email, ...attributes });
   await user.create();
   const session = await sessionTokenV1Store.create(user.id);
   return {

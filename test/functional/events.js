@@ -43,6 +43,7 @@ import {
   createAndReturnPost,
   performJSONRequest,
   authHeaders,
+  createTestUsers,
 } from '../functional/functional_test_helper';
 
 import * as schema from './schemaV2-helper';
@@ -355,6 +356,31 @@ describe('EventService', () => {
       await unsubscribeFromAsync(mars, dubhe);
       await expectSubscriptionEvents(lunaUserModel, []);
       await expectSubscriptionEvents(marsUserModel, []);
+    });
+  });
+
+  describe('comment moderation', () => {
+    let luna, mars, lunasPost, marsesComment;
+    beforeEach(async () => {
+      [luna, mars] = await createTestUsers(['luna', 'mars']);
+      lunasPost = await createAndReturnPost(luna, 'Post');
+      const resp = await createCommentAsync(mars, lunasPost.id, 'Comment');
+      ({ comments: marsesComment } = await resp.json());
+    });
+
+    it(`should create comment_moderated event for Mars when Luna removes Mars'es comment`, async () => {
+      await removeCommentAsync(luna, marsesComment.id);
+      const resp = await performJSONRequest('GET', '/v2/notifications', null, authHeaders(mars));
+      expect(resp.Notifications, 'to satisfy', [
+        {
+          event_type: 'comment_moderated',
+          recipient_user_id: mars.user.id,
+          created_user_id: luna.user.id,
+          affected_user_id: mars.user.id,
+          post_id: lunasPost.id,
+          post_author_id: luna.user.id,
+        },
+      ]);
     });
   });
 

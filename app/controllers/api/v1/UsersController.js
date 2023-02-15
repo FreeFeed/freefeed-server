@@ -1,9 +1,9 @@
 import crypto from 'crypto';
 import util from 'util';
 
+import monitorDog from 'monitor-dog';
 import _ from 'lodash';
 import compose from 'koa-compose';
-import jwt from 'jsonwebtoken';
 
 import {
   dbAdapter,
@@ -21,6 +21,7 @@ import {
   BadRequestException,
   TooManyRequestsException,
 } from '../../../support/exceptions';
+import { verifyJWTAsync } from '../../../support/verifyJWTAsync';
 import { EventService } from '../../../support/EventService';
 import recaptchaVerify from '../../../../lib/recaptcha';
 import { serializeUsersByIds } from '../../../serializers/v2/user';
@@ -388,7 +389,7 @@ export default class UsersController {
     monitored('users.resume-me'),
     /** @param {Ctx} ctx */
     async (ctx) => {
-      const token = await jwt.verifyAsync(ctx.request.body.resumeToken, ctx.config.secret);
+      const token = await verifyJWTAsync(ctx.request.body.resumeToken, ctx.config.secret);
 
       if (token.type !== 'resume-account') {
         throw new ForbiddenException('Unknown token type');
@@ -760,6 +761,12 @@ async function validateInvitationAndSelectUsers(invitation, invitationId) {
     throw new NotFoundException(`Invitation "${invitationId}" not found`);
   }
 
+  const invAuthor = await dbAdapter.getUserByIntId(invitation.author);
+
+  if (!invAuthor.isActive) {
+    throw new NotFoundException(`Invitation "${invitationId}" not found`);
+  }
+
   if (invitation.registrations_count > 0 && invitation.single_use) {
     throw new ValidationException(`Somebody has already used invitation "${invitationId}"`);
   }
@@ -804,6 +811,7 @@ async function validateInvitationAndSelectUsers(invitation, invitationId) {
 
 async function useInvitation(newUser, invitation, cancel_subscription = false) {
   await dbAdapter.useInvitation(invitation.secure_id);
+  monitorDog.increment('invitation.use-requests', 1);
   await EventService.onInvitationUsed(invitation.author, newUser.intId);
 
   if (cancel_subscription) {

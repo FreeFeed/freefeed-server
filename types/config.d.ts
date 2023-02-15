@@ -129,15 +129,22 @@ declare module 'config' {
       enabled: boolean;
       allowlist: string[];
       anonymous: {
-        duration: number;
+        duration: ISO8601DurationString;
         maxRequests: number;
-        methodOverrides?: Record<string, { duration?: number; maxRequests?: number }>;
+        methodOverrides?: Record<
+          string,
+          { duration?: ISO8601DurationString; maxRequests?: number }
+        >;
       };
       authenticated: {
-        duration: number;
+        duration: ISO8601DurationString;
         maxRequests: number;
-        methodOverrides?: Record<string, { duration?: number; maxRequests?: number }>;
+        methodOverrides?: Record<
+          string,
+          { duration?: ISO8601DurationString; maxRequests?: number }
+        >;
       };
+      maskingKeyRotationInterval: ISO8601DurationString;
     };
 
     ianaTimeZone: string;

@@ -16,28 +16,45 @@ export async function serializeComment(comment, viewerId) {
 }
 
 export async function serializeCommentFull(comment, viewerId) {
-  const comments = {
-    ...pick(comment, ['id', 'body', 'createdAt', 'updatedAt', 'seqNumber', 'postId', 'hideType']),
-    createdBy: comment.userId,
-  };
-  const isBanned = await dbAdapter.isCommentBannedForViewer(comment.id, viewerId);
+  const res = await serializeCommentsFull([comment], viewerId);
+  [res.comments] = res.comments;
+  return res;
+}
 
-  let users = [];
+export async function serializeCommentsFull(comments, viewerId) {
+  const commentIds = comments.map((c) => c.id);
+  const [bansMap, likesInfo] = await Promise.all([
+    dbAdapter.areCommentsBannedForViewerAssoc(commentIds, viewerId),
+    dbAdapter.getLikesInfoForComments(commentIds, viewerId),
+  ]);
+  const userIds = new Set();
 
-  if (isBanned) {
-    comments.likes = 0;
-    comments.hasOwnLike = false;
+  const sComments = comments.map((comment) => {
+    const ser = {
+      ...pick(comment, ['id', 'body', 'createdAt', 'updatedAt', 'seqNumber', 'postId', 'hideType']),
+      createdBy: comment.userId,
+    };
 
-    comments.hideType = Comment.HIDDEN_BANNED;
-    comments.body = Comment.hiddenBody(Comment.HIDDEN_BANNED);
-    comments.createdBy = null;
-  } else {
-    const [commentLikesData = { c_likes: 0, has_own_like: false }] =
-      await dbAdapter.getLikesInfoForComments([comment.id], viewerId);
-    comments.likes = parseInt(commentLikesData.c_likes);
-    comments.hasOwnLike = commentLikesData.has_own_like;
-    users = await serializeUsersByIds([comment.userId], viewerId);
-  }
+    if (bansMap[comment.id]) {
+      ser.likes = 0;
+      ser.hasOwnLike = false;
 
-  return { comments, users, admins: users };
+      ser.hideType = Comment.HIDDEN_BANNED;
+      ser.body = Comment.hiddenBody(Comment.HIDDEN_BANNED);
+      ser.createdBy = null;
+    } else {
+      const commentLikesData = likesInfo.find((it) => it.uid === comment.id) ?? {
+        c_likes: '0',
+        has_own_like: false,
+      };
+      ser.likes = parseInt(commentLikesData.c_likes);
+      ser.hasOwnLike = commentLikesData.has_own_like;
+      userIds.add(comment.userId);
+    }
+
+    return ser;
+  });
+
+  const users = await serializeUsersByIds([...userIds], viewerId);
+  return { comments: sComments, users, admins: users };
 }

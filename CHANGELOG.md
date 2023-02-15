@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.0] - Not released
+### Added
+- New Datadog counters for invitations:'invitation.create-time',
+  'invitation.create-requests', and 'invitation.use-requests'.
+- Allow moderator to disable/enable invitations for specific user. Methods are:
+  - `POST /users/:username/disable-invites`
+  - `POST /users/:username/enable-invites` 
+- New method `POST /v2/comments/byIds` for batch retrieval of comments. The
+  request body has form `{ "commentsId": [...] }`.
+
+### Changed
+- Invitations from inactive (i.e. in some 'gone' status) users stop working.
+- The serialized view of COMMENT_MODERATED event now contains non-null
+  'created_user_id' field when the event initiator is a post author. This event
+  can be fired by group moderator or by the post author. In the first case we
+  should hide the initiator, in the second case we should not.
+
+### Fixed
+- Invitations are no longer deleted when their author's data is deleted. These
+  invitations are instead anonymized. This is important for keeping a connection
+  with invited users.
+
 ## [2.7.0] - 2023-01-19
 ### Added
 - New Admin API methods:
