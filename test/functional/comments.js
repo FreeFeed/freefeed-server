@@ -10,6 +10,7 @@ import { Comment, PubSub } from '../../app/models';
 
 import * as funcTestHelper from './functional_test_helper';
 import { getCommentResponse } from './schemaV2-helper';
+import { banUser } from './functional_test_helper';
 
 describe('CommentsController', () => {
   let app;
@@ -562,6 +563,83 @@ describe('CommentsController', () => {
               createdBy: null,
             },
           });
+        });
+      });
+    });
+  });
+
+  describe('Comments by ids', () => {
+    const nComments = 10;
+    let luna, mars, venus, comments;
+    beforeEach(async () => {
+      luna = await funcTestHelper.createUserAsync('luna', 'password');
+      mars = await funcTestHelper.createUserAsync('mars', 'password');
+      venus = await funcTestHelper.createUserAsync('venus', 'password');
+      const post = await funcTestHelper.createAndReturnPost(venus, 'Post body');
+
+      comments = [];
+
+      for (let n = 0; n < nComments; n++) {
+        comments.push(
+          // eslint-disable-next-line prettier/prettier
+          (
+            // eslint-disable-next-line no-await-in-loop
+            await funcTestHelper.performJSONRequest(
+              'POST',
+              `/v2/comments`,
+              { comment: { body: 'Comment', postId: post.id } },
+              funcTestHelper.authHeaders(n % 2 == 0 ? luna : mars),
+            )
+          ).comments,
+        );
+      }
+
+      comments.reverse();
+    });
+
+    it('should return several comments by ids', async () => {
+      const commentIds = comments.slice(0, 3).map((c) => c.id);
+      const resp = await funcTestHelper.performJSONRequest('POST', '/v2/comments/byIds', {
+        commentIds,
+      });
+      expect(resp, 'to satisfy', {
+        comments: commentIds.map((id) => ({ id })),
+      });
+    });
+
+    it('should return only existing comments by ids', async () => {
+      const commentIds = comments.map((p) => p.id);
+      commentIds.push('00000000-0000-4000-8000-000000000001');
+      commentIds.push('00000000-0000-4000-8000-000000000002');
+      commentIds.push('00000000-0000-4000-8000-000000000003');
+      const resp = await funcTestHelper.performJSONRequest('POST', '/v2/comments/byIds', {
+        commentIds,
+      });
+      expect(resp, 'to satisfy', {
+        comments: commentIds.slice(0, -3).map((id) => ({ id })),
+        commentsNotFound: [
+          '00000000-0000-4000-8000-000000000001',
+          '00000000-0000-4000-8000-000000000002',
+          '00000000-0000-4000-8000-000000000003',
+        ],
+      });
+    });
+
+    describe('Luna bans Mars', () => {
+      beforeEach(() => banUser(luna, mars));
+
+      it(`should return Marses comments as hidden for Luna`, async () => {
+        const commentIds = comments.map((p) => p.id);
+        const resp = await funcTestHelper.performJSONRequest(
+          'POST',
+          '/v2/comments/byIds',
+          {
+            commentIds,
+          },
+          funcTestHelper.authHeaders(luna),
+        );
+        expect(resp, 'to satisfy', {
+          comments: commentIds.map((id, i) => ({ id, hideType: i % 2 === 1 ? 0 : 2 })),
         });
       });
     });
