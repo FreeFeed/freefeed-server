@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Invitations from inactive (i.e. in some 'gone' status) users stop working.
+- The serialized view of COMMENT_MODERATED event now contains non-null
+  'created_user_id' field when the event initiator is a post author. This event
+  can be fired by group moderator or by the post author. In the first case we
+  should hide the initiator, in the second case we should not.
 
 ### Fixed
 - Invitations are no longer deleted when their author's data is deleted. These
