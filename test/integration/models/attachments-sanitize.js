@@ -143,9 +143,10 @@ describe('sanitizeOriginal model method', () => {
       type: 's3',
       accessKeyId: 'S3RVER',
       secretAccessKey: 'S3RVER',
+      region: 'us-east-1',
       bucket: 'bucket-name',
       endpoint: 'http://localhost:4569',
-      s3ConfigOptions: { s3ForcePathStyle: true },
+      s3ConfigOptions: { forcePathStyle: true },
     };
     before(async () => {
       s3instance = new S3rver({

@@ -1,12 +1,8 @@
 import { ReadStream } from 'fs';
 
-type Promisable = {
-  promise(): Promise<void>;
-};
-
 type S3Shape = {
-  upload(params: S3UploadParams): Promisable;
-  deleteObject(params: S3DeleteParams): Promisable;
+  putObject(params: S3UploadParams): Promise<void>;
+  deleteObject(params: S3DeleteParams): Promise<void>;
 };
 
 type S3UploadParams = {
@@ -28,31 +24,23 @@ export function fakeS3({
   onDelete: (params: S3DeleteParams) => void;
 }): S3Shape {
   return {
-    upload(params: S3UploadParams) {
-      return {
-        promise() {
-          return new Promise((resolve) => {
-            const chunks = [] as Buffer[];
-            params.Body.on('data', function (chunk) {
-              chunks.push(chunk as Buffer);
-            });
+    putObject(params: S3UploadParams) {
+      return new Promise((resolve) => {
+        const chunks = [] as Buffer[];
+        params.Body.on('data', function (chunk) {
+          chunks.push(chunk as Buffer);
+        });
 
-            params.Body.on('end', function () {
-              const Body = Buffer.concat(chunks);
-              onUpload({ ...params, Body });
-              resolve();
-            });
-          });
-        },
-      };
+        params.Body.on('end', function () {
+          const Body = Buffer.concat(chunks);
+          onUpload({ ...params, Body });
+          resolve();
+        });
+      });
     },
     deleteObject(params: S3DeleteParams) {
-      return {
-        promise() {
-          onDelete(params);
-          return Promise.resolve();
-        },
-      };
+      onDelete(params);
+      return Promise.resolve();
     },
   };
 }
