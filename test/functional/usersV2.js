@@ -586,6 +586,31 @@ describe('UsersControllerV2', () => {
       expect(resp, 'to satisfy', { subscribers: [{ id: mars.user.id, isGone: true }] });
     });
   });
+
+  describe('statistics', () => {
+    let luna, mars;
+    beforeEach(async () => {
+      [luna, mars] = await createTestUsers(['luna', 'mars']);
+      await mutualSubscriptions([luna, mars]);
+    });
+
+    it(`should return Luna's stats`, async () => {
+      const resp = await performJSONRequest('GET', `/v2/users/${luna.username}/statistics`);
+      expect(resp, 'to satisfy', {
+        users: {
+          id: luna.user.id,
+          statistics: {
+            posts: '0',
+            likes: '0',
+            comments: '0',
+            subscribers: '1',
+            subscriptions: '1',
+          },
+        },
+        statistics: { subscribers: 1, subscriptions: 1, posts: 0, comments: 0, likes: 0 },
+      });
+    });
+  });
 });
 
 async function setGoneStatus(userCtx, status) {

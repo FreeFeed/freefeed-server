@@ -96,6 +96,14 @@ export class User {
   }): Promise<UUID>;
   isInvitesDisabled(): Promise<boolean>;
   setInvitesDisabled(isDisabled: boolean): Promise<void>;
+
+  getStatistics(viewerId?: UUID): Promise<{
+    posts: number;
+    likes: number;
+    comments: number;
+    subscribers: number;
+    subscriptions: number;
+  }>;
 }
 
 export class Group {

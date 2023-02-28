@@ -6,7 +6,12 @@ import { validate as validateEmail } from 'email-validator';
 
 import { dbAdapter, PubSub as pubSub } from '../../../models';
 import { serializeSelfUser, serializeUsersByIds } from '../../../serializers/v2/user';
-import { monitored, authRequired, inputSchemaRequired } from '../../middlewares';
+import {
+  monitored,
+  authRequired,
+  inputSchemaRequired,
+  targetUserRequired,
+} from '../../middlewares';
 import { ValidationException, TooManyRequestsException } from '../../../support/exceptions';
 import Mailer from '../../../../lib/mailer';
 import { isBlockedEmailDomain } from '../../../support/email-norm';
@@ -202,6 +207,19 @@ export default class UsersController {
       }
 
       ctx.body = {};
+    },
+  ]);
+
+  static statistics = compose([
+    targetUserRequired(),
+    async (ctx) => {
+      const { user, targetUser } = ctx.state;
+      const statistics = await targetUser.getStatistics(user?.id ?? null);
+      const users = await serializeUsersByIds([targetUser.id], user?.id ?? null);
+      ctx.body = {
+        users: users[0],
+        statistics,
+      };
     },
   ]);
 }

@@ -108,6 +108,7 @@ export const appTokensScopes = [
     title: "Read users' information",
     routes: [
       'GET /vN/users/:username',
+      'GET /vN/users/:username/statistics',
       'GET /vN/users/:username/subscribers',
       'GET /vN/users/:username/subscriptions',
     ],
