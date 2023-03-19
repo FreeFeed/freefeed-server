@@ -4,6 +4,10 @@ on:
       - stable
     tags:
       - '**'
+  workflow_dispatch:
+    inputs:
+      ref:
+        required: false
 
 name: Build and push docker image
 
@@ -14,6 +18,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+      with:
+        ref: ${{ github.event.inputs.ref }} # when input is not given, the event tag is used
     - uses: docker/login-action@v2
       with:
         registry: ghcr.io
