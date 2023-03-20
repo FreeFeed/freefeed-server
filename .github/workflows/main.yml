@@ -4,6 +4,16 @@ on:
       - stable
     tags:
       - '**'
+  workflow_dispatch:
+    inputs:
+      ref:
+        required: true
+      push:
+        requried: false
+        default: true
+      deploy:
+        required: false
+        default: true
 
 name: Build and push docker image
 
@@ -13,42 +23,57 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout
-      uses: actions/checkout@v1
-
-    - name: Build and push docker image
-      uses: docker/build-push-action@v1
+    - uses: actions/checkout@v3
       with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
-        repository: freefeed/freefeed-server
-        tag_with_ref: true
+        ref: ${{ github.event.inputs.ref }} # when input is not given, the event tag is used
+    - uses: docker/login-action@v2
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ github.token }}
+    - uses: docker/setup-buildx-action@v2
+    - uses: docker/setup-qemu-action@v2
+    - uses: docker/metadata-action@v4
+      id: meta
+      with:
+        images: ghcr.io/freefeed/freefeed-server
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=match,pattern=freefeed_release_(.*),group=1
+    - uses: docker/build-push-action@v4
+      with:
+        push: ${{ github.event.inputs.push }}
+        platforms: linux/amd64,linux/arm64
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
 
   deploy:
     needs: build
     name: Trigger deploy
     runs-on: ubuntu-latest
+    if: github.event.inputs.deploy == 'true'
 
     steps:
     - name: Deploy stable
       if: github.ref == 'refs/heads/stable'
-      uses: satak/webrequest-action@v1.2.3
+      uses: satak/webrequest-action@v1.2.4
       with:
         url: "https://webhook.freefeed.net/${{ secrets.WEBHOOK_SECRET }}/server/stable?version=stable"
         method: GET
 
     - name: Get release version
       if: startsWith(github.ref, 'refs/tags/freefeed_release')
-      shell: bash
-      run: echo "::set-output name=tag::${GITHUB_REF#refs/tags/}"
       id: version
+      shell: bash
+      run: echo "version=${GITHUB_REF#refs/tags/freefeed_release_}" >> $GITHUB_OUTPUT
       env:
         GITHUB_REF: ${{ github.ref }}
 
     - name: Deploy release
       if: startsWith(github.ref, 'refs/tags/freefeed_release')
-      uses: satak/webrequest-action@v1.2.3
+      uses: satak/webrequest-action@v1.2.4
       with:
-        url: "https://webhook.freefeed.net/${{ secrets.WEBHOOK_SECRET }}/server/release?version=${{ steps.version.outputs.tag }}"
+        url: "https://webhook.freefeed.net/${{ secrets.WEBHOOK_SECRET }}/server/release?version=${{ steps.version.outputs.version }}"
         method: GET
 
