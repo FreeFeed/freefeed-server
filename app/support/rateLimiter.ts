@@ -22,9 +22,14 @@ const rateLimiter = new RateLimiter({
   db: redis,
 });
 
-const MASKING_KEY = 'masking-key';
-const maskingKeyRotationIntervalSeconds =
-  Duration.fromISO(config.rateLimit.maskingKeyRotationInterval).toMillis() * 1000;
+const durationToSeconds = (duration: string): number => {
+  return Duration.fromISO(duration).toMillis() / 1000;
+};
+
+const MASKING_KEY = 'maskingkey';
+const maskingKeyRotationIntervalSeconds = durationToSeconds(
+  config.rateLimit.maskingKeyRotationInterval,
+);
 
 const changeMaskingKey = async () => {
   const newMaskingKey = crypto.randomBytes(64).toString('hex');
