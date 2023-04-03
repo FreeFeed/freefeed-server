@@ -22,9 +22,17 @@ const rateLimiter = new RateLimiter({
   db: redis,
 });
 
-const MASKING_KEY = 'masking-key';
-const maskingKeyRotationIntervalSeconds =
-  Duration.fromISO(config.rateLimit.maskingKeyRotationInterval).toMillis() * 1000;
+const durationToSeconds = (duration: string): number => {
+  return Duration.fromISO(duration).toMillis() / 1000;
+};
+
+const USER_BLOCKED_KEY_PREFIX = 'blocked-';
+const BLOCK_COUNTER_KEY_PREFIX = 'blockcounter-';
+
+const MASKING_KEY = 'maskingkey';
+const maskingKeyRotationIntervalSeconds = durationToSeconds(
+  config.rateLimit.maskingKeyRotationInterval,
+);
 
 const changeMaskingKey = async () => {
   const newMaskingKey = crypto.randomBytes(64).toString('hex');
@@ -34,6 +42,33 @@ const changeMaskingKey = async () => {
 
 const maskClientId = (clientId: string, key: string): string => {
   return crypto.createHmac('sha1', key).update(clientId).digest('hex');
+};
+
+const isClientBlocked = async (clientId: string): Promise<boolean> => {
+  return Boolean(await redis.get(`${USER_BLOCKED_KEY_PREFIX}${clientId}`));
+};
+
+const setClientBlocked = async (
+  clientId: string,
+  baseDuration: string,
+  durationMultiplier: number,
+) => {
+  const durationSeconds = durationToSeconds(baseDuration) * durationMultiplier;
+  return await redis.set(`${USER_BLOCKED_KEY_PREFIX}${clientId}`, 'true', 'EX', durationSeconds);
+};
+
+const getClientBlockedDuration = async (clientId: string) => {
+  return await redis.ttl(`${USER_BLOCKED_KEY_PREFIX}${clientId}`);
+};
+
+const getRepeatBlocksCount = async (clientId: string): Promise<number> => {
+  const count = await redis.get(`${BLOCK_COUNTER_KEY_PREFIX}${clientId}`);
+  return count ? parseInt(count, 10) : 0;
+};
+
+const setRepeatBlocksCount = async (clientId: string, count: number, duration: string) => {
+  const durationSeconds = durationToSeconds(duration);
+  return await redis.set(`${BLOCK_COUNTER_KEY_PREFIX}${clientId}`, count, 'EX', durationSeconds);
 };
 
 export async function rateLimiterMiddleware(ctx: Context, next: Next) {
@@ -69,10 +104,16 @@ export async function rateLimiterMiddleware(ctx: Context, next: Next) {
   if (ctx.config.rateLimit.enabled) {
     if (ctx.config.rateLimit.allowlist.includes(realClientId)) {
       debug(`${requestId}: Client allowlisted, request allowed`);
+    } else if (await isClientBlocked(realClientId)) {
+      monitor.increment('requests-rate-limited', 1, requestTags);
+      const blockTTL = await getClientBlockedDuration(realClientId);
+      debug(`${requestId}: Client is already blocked, ${blockTTL} sec remaining, request denied`);
+
+      throw new TooManyRequestsException('Slow down');
     } else {
-      const methodOverride = rateLimiterConfig.methodOverrides?.[requestMethod];
-      const duration = methodOverride?.duration || rateLimiterConfig.duration;
-      const maxRequests = methodOverride?.maxRequests || rateLimiterConfig.maxRequests;
+      const methodConfig = rateLimiterConfig.methodOverrides?.[requestMethod];
+      const duration = methodConfig?.duration || rateLimiterConfig.duration;
+      const maxRequests = methodConfig?.maxRequests || rateLimiterConfig.maxRequests;
 
       const limit = await rateLimiter.get({
         id: realClientId,
@@ -84,7 +125,22 @@ export async function rateLimiterMiddleware(ctx: Context, next: Next) {
 
       if (!limit.remaining) {
         monitor.increment('requests-rate-limited', 1, requestTags);
-        debug(`${requestId}: Client blocked until ${limit.reset}, request denied`);
+        const previousBlocksCount = await getRepeatBlocksCount(realClientId);
+        setClientBlocked(
+          realClientId,
+          ctx.config.rateLimit.blockDuration,
+          previousBlocksCount * ctx.config.rateLimit.repeatBlockMultiplier || 1,
+        );
+        setRepeatBlocksCount(
+          realClientId,
+          previousBlocksCount + 1,
+          ctx.config.rateLimit.repeatBlockCounterDuration,
+        );
+
+        debug(
+          `${requestId}: Client blocked (previous blocks: ${previousBlocksCount}), request denied`,
+        );
+
         throw new TooManyRequestsException('Slow down');
       } else {
         debug(`${requestId}: Request allowed`);

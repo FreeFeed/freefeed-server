@@ -27,6 +27,9 @@ const baseContext = {
         duration: DURATION,
         maxRequests: MAX_AUTHENTICATED_REQUESTS,
       },
+      blockDuration: 'PT1M',
+      repeatBlockCounterDuration: 'PT10M',
+      repeatBlockMultiplier: 2,
     },
   },
   request: {
