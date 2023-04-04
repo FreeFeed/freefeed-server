@@ -1125,6 +1125,12 @@ export function addModel(dbAdapter) {
         return false;
       }
 
+      const banIds = await dbAdapter.getUsersBansOrWasBannedBy(this.id);
+
+      if (banIds.includes(postingUser.id)) {
+        return false;
+      }
+
       if (this.preferences.acceptDirectsFrom === User.ACCEPT_DIRECTS_FROM_FRIENDS) {
         const friendIds = await this.getFriendIds();
 
@@ -1132,11 +1138,7 @@ export function addModel(dbAdapter) {
           return true;
         }
       } else if (this.preferences.acceptDirectsFrom === User.ACCEPT_DIRECTS_FROM_ALL) {
-        const banIds = await this.getBanIds();
-
-        if (!banIds.includes(postingUser.id)) {
-          return true;
-        }
+        return true;
       }
 
       return false;

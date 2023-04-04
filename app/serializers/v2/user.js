@@ -182,7 +182,8 @@ export async function serializeUsersByIds(userIds, viewerId = null, withAdmins =
       obj.youCan.push(viewerBans.includes(id) ? 'unban' : 'ban');
 
       // Directs
-      if (!obj.isGone && !theyBans.includes(viewerId) && !viewerBans.includes(id)) {
+      // See User.acceptsDirectsFrom method for logic
+      if (!obj.isGone && !theyBans.includes(id) && !viewerBans.includes(id)) {
         const mode = directModes.get(id);
 
         if (
