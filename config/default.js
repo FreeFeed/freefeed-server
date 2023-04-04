@@ -114,6 +114,7 @@ config.media = {
     accessKeyId: 'ACCESS-KEY-ID',
     secretAccessKey: 'SECRET-ACCESS-KEY',
     bucket: 'bucket-name',
+    region: 'eu-west-1',
     // endpoint:        'nyc3.digitaloceanspaces.com',
     s3ConfigOptions: {},
   },
