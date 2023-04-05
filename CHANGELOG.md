@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.9.0] - Not released
 ### Fixed
+- The 'acceptDirectsFrom' modes for old users, with default server properties,
+  are correctly extracted now.
 - Synchronized directs allowance logic between User model method and user
   serializer. Added new tests.
 

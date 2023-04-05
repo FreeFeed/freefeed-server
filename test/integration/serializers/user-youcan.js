@@ -92,6 +92,8 @@ describe(`'youCan' and 'theyDid' fields`, () => {
       'mars subscribed to luna': [true, false],
       'mars opened for directs': [true, false],
       'mars bans luna': [true, false],
+      // Emulate the old user with empty 'preferences' object
+      'mars without prefs.': [true, false],
     };
 
     let variants = [{}];
@@ -113,8 +115,10 @@ describe(`'youCan' and 'theyDid' fields`, () => {
         .join(' and ');
 
       it(`should test directs allowance from Luna to Mars where ${title}`, async () => {
-        if (variant['luna subscribed to mars']) {
-          await luna.subscribeTo(mars);
+        if (variant['mars without prefs.']) {
+          await dbAdapter.database.raw(`update users set preferences = '{}' where uid = ?`, [
+            mars.id,
+          ]);
         }
 
         if (variant['mars subscribed to luna']) {

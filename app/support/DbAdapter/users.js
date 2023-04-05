@@ -544,8 +544,10 @@ const usersTrait = (superClass) =>
         { userIds },
       );
 
+      const defaultMode = config.userPreferences.defaults.acceptDirectsFrom;
+
       for (const { uid, mode } of rows) {
-        map.set(uid, mode);
+        map.set(uid, mode ?? defaultMode);
       }
 
       return map;
