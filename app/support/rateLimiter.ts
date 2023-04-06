@@ -48,12 +48,7 @@ const isClientBlocked = async (clientId: string): Promise<boolean> => {
   return Boolean(await redis.get(`${USER_BLOCKED_KEY_PREFIX}${clientId}`));
 };
 
-const setClientBlocked = async (
-  clientId: string,
-  baseDuration: string,
-  durationMultiplier: number,
-) => {
-  const durationSeconds = durationToSeconds(baseDuration) * durationMultiplier;
+const setClientBlocked = async (clientId: string, durationSeconds: number) => {
   return await redis.set(`${USER_BLOCKED_KEY_PREFIX}${clientId}`, 'true', 'EX', durationSeconds);
 };
 
@@ -66,8 +61,7 @@ const getRepeatBlocksCount = async (clientId: string): Promise<number> => {
   return count ? parseInt(count, 10) : 0;
 };
 
-const setRepeatBlocksCount = async (clientId: string, count: number, duration: string) => {
-  const durationSeconds = durationToSeconds(duration);
+const setRepeatBlocksCount = async (clientId: string, count: number, durationSeconds: number) => {
   return await redis.set(`${BLOCK_COUNTER_KEY_PREFIX}${clientId}`, count, 'EX', durationSeconds);
 };
 
@@ -75,8 +69,9 @@ export async function rateLimiterMiddleware(ctx: Context, next: Next) {
   const authTokenType = ctx.state.authJWTPayload?.type || 'anonymous';
   const requestId = ctx.state.id;
   const requestMethod = ctx.request.method;
+  const rateLimitConfig = ctx.config.rateLimit;
 
-  let realClientId, maskedClientId, rateLimiterConfig;
+  let realClientId, maskedClientId, rateLimiterConfigByAuthType;
 
   let maskingKey = await redis.get(MASKING_KEY);
 
@@ -87,11 +82,11 @@ export async function rateLimiterMiddleware(ctx: Context, next: Next) {
   if (ctx.state.authJWTPayload?.userId) {
     realClientId = ctx.state.authJWTPayload.userId;
     maskedClientId = `u-${maskClientId(realClientId, maskingKey)}`;
-    rateLimiterConfig = ctx.config.rateLimit.authenticated;
+    rateLimiterConfigByAuthType = rateLimitConfig.authenticated;
   } else {
     realClientId = ctx.ip;
     maskedClientId = `a-${maskClientId(realClientId, maskingKey)}`;
-    rateLimiterConfig = ctx.config.rateLimit.anonymous;
+    rateLimiterConfigByAuthType = rateLimitConfig.anonymous;
   }
 
   const requestTags = { method: requestMethod, auth: authTokenType, clientId: maskedClientId };
@@ -101,9 +96,10 @@ export async function rateLimiterMiddleware(ctx: Context, next: Next) {
     `${requestId}: ${requestMethod} ${ctx.request.originalUrl} request from ${realClientId} (${authTokenType})`,
   );
 
-  if (ctx.config.rateLimit.enabled) {
-    if (ctx.config.rateLimit.allowlist.includes(realClientId)) {
+  if (rateLimitConfig.enabled) {
+    if (rateLimitConfig.allowlist.includes(realClientId)) {
       debug(`${requestId}: Client allowlisted, request allowed`);
+      // do nothing
     } else if (await isClientBlocked(realClientId)) {
       monitor.increment('requests-rate-limited', 1, requestTags);
       const blockTTL = await getClientBlockedDuration(realClientId);
@@ -111,9 +107,10 @@ export async function rateLimiterMiddleware(ctx: Context, next: Next) {
 
       throw new TooManyRequestsException('Slow down');
     } else {
-      const methodConfig = rateLimiterConfig.methodOverrides?.[requestMethod];
-      const duration = methodConfig?.duration || rateLimiterConfig.duration;
-      const maxRequests = methodConfig?.maxRequests || rateLimiterConfig.maxRequests;
+      const methodConfigOverride = rateLimiterConfigByAuthType.methodOverrides?.[requestMethod];
+      const duration = methodConfigOverride?.duration || rateLimiterConfigByAuthType.duration;
+      const maxRequests =
+        methodConfigOverride?.maxRequests || rateLimiterConfigByAuthType.maxRequests;
 
       const limit = await rateLimiter.get({
         id: realClientId,
@@ -125,20 +122,34 @@ export async function rateLimiterMiddleware(ctx: Context, next: Next) {
 
       if (!limit.remaining) {
         monitor.increment('requests-rate-limited', 1, requestTags);
+
+        // When a client breaches the threshold for the first time, we block them for
+        // rateLimitConfig.blockDuration (1 minute by default) and set a "previous blocks counter" to "1" which
+        // lives for rateLimitConfig.blockDuration + rateLimitConfig.repeatBlockCounterDuration (1 + 10
+        // = 11 minutes by default). If the same client breaches the threshold again during
+        // these 11 minutes, we block them for a longer time (using rateLimitConfig.repeatBlockMultiplier,
+        // 2 x 1 = 2 minutes by default), increment the counter and set it for longer as well (2 x 1 + 10 = 12
+        // minutes). With each subsequent breach the counter and the multiplier increment, so the block time grows
+        // longer and longer (1, 2, 4, 6, 8 minutes...) and we remember about it for longer and longer (11, 12, 14,
+        // 16, 18 minutes...). If a client behaves well during these 11/12/14... minutes then the counter expires
+        // and all past breaches get forgotten and forgiven
+
+        const baseBlockDuration = durationToSeconds(rateLimitConfig.blockDuration);
         const previousBlocksCount = await getRepeatBlocksCount(realClientId);
-        setClientBlocked(
-          realClientId,
-          ctx.config.rateLimit.blockDuration,
-          previousBlocksCount * ctx.config.rateLimit.repeatBlockMultiplier || 1,
+        const blockDurationMultiplier =
+          previousBlocksCount * rateLimitConfig.repeatBlockMultiplier || 1;
+        const blockDurationSeconds = baseBlockDuration * blockDurationMultiplier;
+
+        setClientBlocked(realClientId, blockDurationSeconds);
+
+        const baseRepeatBlockCounterDuration = durationToSeconds(
+          rateLimitConfig.repeatBlockCounterDuration,
         );
-        setRepeatBlocksCount(
-          realClientId,
-          previousBlocksCount + 1,
-          ctx.config.rateLimit.repeatBlockCounterDuration,
-        );
+        const repeatBlockCounterDuration = baseRepeatBlockCounterDuration + blockDurationSeconds;
+        setRepeatBlocksCount(realClientId, previousBlocksCount + 1, repeatBlockCounterDuration);
 
         debug(
-          `${requestId}: Client blocked (previous blocks: ${previousBlocksCount}), request denied`,
+          `${requestId}: Client blocked for ${blockDurationSeconds} sec (previous blocks: ${previousBlocksCount}), request denied`,
         );
 
         throw new TooManyRequestsException('Slow down');
