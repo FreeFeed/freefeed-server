@@ -22,7 +22,7 @@ const rateLimiter = new RateLimiter({
   db: redis,
 });
 
-const durationToSeconds = (duration: string): number => {
+export const durationToSeconds = (duration: string): number => {
   return Duration.fromISO(duration).toMillis() / 1000;
 };
 
@@ -107,14 +107,12 @@ export async function rateLimiterMiddleware(ctx: Context, next: Next) {
 
       throw new TooManyRequestsException('Slow down');
     } else {
-      const methodConfigOverride = rateLimiterConfigByAuthType.methodOverrides?.[requestMethod];
-      const duration = methodConfigOverride?.duration || rateLimiterConfigByAuthType.duration;
-      const maxRequests =
-        methodConfigOverride?.maxRequests || rateLimiterConfigByAuthType.maxRequests;
+      const { duration, maxRequests } = rateLimiterConfigByAuthType;
+      const maxRequestsForMethod = maxRequests[requestMethod] || maxRequests.all;
 
       const limit = await rateLimiter.get({
         id: realClientId,
-        max: maxRequests,
+        max: maxRequestsForMethod,
         duration: Duration.fromISO(duration).toMillis(),
       });
 
