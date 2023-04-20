@@ -26,6 +26,7 @@ import eventsTrait from './events';
 import commentLikesTrait from './comment-likes';
 import allGroupsTrait from './all-groups';
 import summaryTrait from './summary';
+import calendarTrait from './calendar';
 import invitationsTrait from './invitations';
 import appTokensTrait from './app-tokens';
 import externalAuthTrait from './external-auth';
@@ -115,6 +116,7 @@ export const DbAdapter = _.flow([
   commentLikesTrait,
   allGroupsTrait,
   summaryTrait,
+  calendarTrait,
   invitationsTrait,
   appTokensTrait,
   externalAuthTrait,
