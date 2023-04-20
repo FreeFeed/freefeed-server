@@ -1,18 +1,22 @@
-import aws from 'aws-sdk';
-
-aws.config.setPromisesDependency(Promise);
+import { S3 } from '@aws-sdk/client-s3';
 
 export function getS3(storageConfig) {
   const s3Config = {
-    accessKeyId: storageConfig.accessKeyId || null,
-    secretAccessKey: storageConfig.secretAccessKey || null,
+    credentials: {
+      accessKeyId: storageConfig.accessKeyId || null,
+      secretAccessKey: storageConfig.secretAccessKey || null,
+    },
     ...storageConfig.s3ConfigOptions,
   };
 
-  if ('endpoint' in storageConfig) {
-    // useful for usage with DigitalOcean Spaces or other S3-compatible services
-    s3Config.endpoint = new aws.Endpoint(storageConfig.endpoint);
+  if ('region' in storageConfig) {
+    s3Config.region = storageConfig.region;
   }
 
-  return new aws.S3(s3Config);
+  if ('endpoint' in storageConfig) {
+    // useful for usage with DigitalOcean Spaces or other S3-compatible services
+    s3Config.endpoint = storageConfig.endpoint;
+  }
+
+  return new S3(s3Config);
 }

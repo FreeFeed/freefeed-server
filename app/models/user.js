@@ -1037,16 +1037,14 @@ export function addModel(dbAdapter) {
     // Upload profile picture to the S3 bucket
     async uploadToS3(sourceFile, destFile, subConfig) {
       const s3 = getS3(subConfig.storage);
-      await s3
-        .upload({
-          ACL: 'public-read',
-          Bucket: subConfig.storage.bucket,
-          Key: subConfig.path + destFile,
-          Body: createReadStream(sourceFile),
-          ContentType: 'image/jpeg',
-          ContentDisposition: 'inline',
-        })
-        .promise();
+      await s3.putObject({
+        ACL: 'public-read',
+        Bucket: subConfig.storage.bucket,
+        Key: subConfig.path + destFile,
+        Body: createReadStream(sourceFile),
+        ContentType: 'image/jpeg',
+        ContentDisposition: 'inline',
+      });
     }
 
     getProfilePicturePath(uuid, size) {
@@ -1127,6 +1125,12 @@ export function addModel(dbAdapter) {
         return false;
       }
 
+      const banIds = await dbAdapter.getUsersBansOrWasBannedBy(this.id);
+
+      if (banIds.includes(postingUser.id)) {
+        return false;
+      }
+
       if (this.preferences.acceptDirectsFrom === User.ACCEPT_DIRECTS_FROM_FRIENDS) {
         const friendIds = await this.getFriendIds();
 
@@ -1134,11 +1138,7 @@ export function addModel(dbAdapter) {
           return true;
         }
       } else if (this.preferences.acceptDirectsFrom === User.ACCEPT_DIRECTS_FROM_ALL) {
-        const banIds = await this.getBanIds();
-
-        if (!banIds.includes(postingUser.id)) {
-          return true;
-        }
+        return true;
       }
 
       return false;

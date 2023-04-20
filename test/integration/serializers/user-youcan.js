@@ -3,7 +3,7 @@
 
 import expect from 'unexpected';
 
-import { User } from '../../../app/models';
+import { User, dbAdapter } from '../../../app/models';
 import { serializeUsersByIds } from '../../../app/serializers/v2/user';
 import cleanDB from '../../dbCleaner';
 
@@ -85,6 +85,65 @@ describe(`'youCan' and 'theyDid' fields`, () => {
       it(`should serialize Luna for Mars with 'request_subscription' did-command`, () =>
         testCommands(luna, mars, ['ban', 'subscribe'], ['request_subscription']));
     });
+  });
+
+  describe(`"dm" action matrix`, () => {
+    const testMatrix = {
+      'mars subscribed to luna': [true, false],
+      'mars opened for directs': [true, false],
+      'mars bans luna': [true, false],
+      // Emulate the old user with empty 'preferences' object
+      'mars without prefs.': [true, false],
+    };
+
+    let variants = [{}];
+
+    for (const [key, vals] of Object.entries(testMatrix)) {
+      variants = vals.flatMap((val) => variants.map((vs) => ({ ...vs, [key]: val })));
+      vals.map((val) => ({ [key]: val }));
+    }
+
+    for (const variant of variants) {
+      const title = Object.keys(variant)
+        .map((key) => {
+          if (variant[key]) {
+            return key;
+          }
+
+          return `NOT (${key})`;
+        })
+        .join(' and ');
+
+      it(`should test directs allowance from Luna to Mars where ${title}`, async () => {
+        if (variant['mars without prefs.']) {
+          await dbAdapter.database.raw(`update users set preferences = '{}' where uid = ?`, [
+            mars.id,
+          ]);
+        }
+
+        if (variant['mars subscribed to luna']) {
+          await mars.subscribeTo(luna);
+        }
+
+        if (variant['mars opened for directs']) {
+          await mars.update({ preferences: { acceptDirectsFrom: User.ACCEPT_DIRECTS_FROM_ALL } });
+        }
+
+        if (variant['mars bans luna']) {
+          await mars.ban(luna.username);
+        }
+
+        luna = await dbAdapter.getUserById(luna.id);
+        mars = await dbAdapter.getUserById(mars.id);
+
+        const shouldAllow = await mars.acceptsDirectsFrom(luna);
+
+        const ser = await serializeUsersByIds([mars.id], luna.id);
+        expect(ser, 'to satisfy', [
+          { youCan: expect.it(`${shouldAllow ? '' : 'not '}to contain`, 'dm') },
+        ]);
+      });
+    }
   });
 });
 

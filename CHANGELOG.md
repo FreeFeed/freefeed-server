@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.9.0] - Not released
+### Changed
+- Simplified rate limiter config and made block duration configurable
+
+### Fixed
+- The 'acceptDirectsFrom' modes for old users, with default server properties,
+  are correctly extracted now.
+- Synchronized directs allowance logic between User model method and user
+  serializer. Added new tests.
+
 ## [2.8.0] - 2023-02-15
 ### Added
 - New Datadog counters for invitations:'invitation.create-time',

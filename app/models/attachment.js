@@ -478,16 +478,14 @@ export function addModel(dbAdapter) {
         ? parsePath(this.fileName).name + parsePath(destPath).ext // original extension for whitelisted types, but might be 'jpg' for webp
         : this.fileName; // original extension for non-whitelisted types
 
-      await this.s3
-        .upload({
-          ACL: 'public-read',
-          Bucket: this.s3bucket,
-          Key: destPath,
-          Body: createReadStream(sourceFile),
-          ContentType: mimeType,
-          ContentDisposition: this.getContentDisposition(dispositionName),
-        })
-        .promise();
+      await this.s3.putObject({
+        ACL: 'public-read',
+        Bucket: this.s3bucket,
+        Key: destPath,
+        Body: createReadStream(sourceFile),
+        ContentType: mimeType,
+        ContentDisposition: this.getContentDisposition(dispositionName),
+      });
     }
 
     // Get cross-browser Content-Disposition header for attachment
@@ -526,12 +524,10 @@ export function addModel(dbAdapter) {
         await Promise.all(
           keys.map(async (Key) => {
             try {
-              await this.s3
-                .deleteObject({
-                  Key,
-                  Bucket: this.s3bucket,
-                })
-                .promise();
+              await this.s3.deleteObject({
+                Key,
+                Bucket: this.s3bucket,
+              });
             } catch (err) {
               // It is ok if file isn't found
               if (err.code !== 'NotFound') {
@@ -567,12 +563,10 @@ export function addModel(dbAdapter) {
       const localFile = join(os.tmpdir(), `${this.id}.orig`);
 
       if (this.s3) {
-        const { Body } = await this.s3
-          .getObject({
-            Key: config.attachments.path + this.getFilename(),
-            Bucket: this.s3bucket,
-          })
-          .promise();
+        const { Body } = await this.s3.getObject({
+          Key: config.attachments.path + this.getFilename(),
+          Bucket: this.s3bucket,
+        });
 
         if (!Body) {
           throw new Error('No body in S3 response');

@@ -114,6 +114,7 @@ config.media = {
     accessKeyId: 'ACCESS-KEY-ID',
     secretAccessKey: 'SECRET-ACCESS-KEY',
     bucket: 'bucket-name',
+    region: 'eu-west-1',
     // endpoint:        'nyc3.digitaloceanspaces.com',
     s3ConfigOptions: {},
   },
@@ -423,21 +424,23 @@ config.rateLimit = {
   allowlist: ['::ffff:127.0.0.1'], // ip addresses or user ids
   anonymous: {
     duration: 'PT1M', // ISO 8601 duration
-    maxRequests: 10,
-    methodOverrides: {
-      // optional
-      GET: { maxRequests: 100 },
+    maxRequests: {
+      all: 10, // all methods
+      GET: 100, // optional
     },
   },
   authenticated: {
     duration: 'PT1M', // ISO 8601 duration
-    maxRequests: 30,
-    methodOverrides: {
-      GET: { maxRequests: 200 },
-      POST: { maxRequests: 60 },
+    maxRequests: {
+      all: 30,
+      GET: 200,
+      POST: 60,
     },
   },
   maskingKeyRotationInterval: 'P7D', // ISO 8601 duration
+  blockDuration: 'PT1M', // duration of a block if threshold is breached
+  repeatBlockCounterDuration: 'PT10M', // how long to remember about a breach
+  repeatBlockMultiplier: 2, // block duration multiplier for repeated breaches
 };
 
 config.invitations = {
