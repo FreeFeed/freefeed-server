@@ -10,7 +10,7 @@ import {
 } from 'social-text-tokenizer';
 // The CJS version of social-text-tokenizer has not .d.ts yet, so expecting error
 // @ts-expect-error
-import byRegexp, { makeToken } from 'social-text-tokenizer/build/cjs/lib/byRegexp';
+import byRegexp, { makeToken } from 'social-text-tokenizer/cjs/lib/byRegexp';
 
 import { uuidRe } from './backlinks';
 
