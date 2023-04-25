@@ -1,9 +1,6 @@
 const calendarTrait = (superClass) =>
   class extends superClass {
-    async getMyCalendarYearDays(currentUserId, year, tz) {
-      const beginningOfTheYear = `${year}-01-01`;
-      const endOfTheYear = `${year}-12-31`;
-
+    async getMyCalendarRangeDaysWithPosts(currentUserId, fromDate, toDate, tz) {
       const postsRestrictionsSQL = await this.postsVisibilitySQL(currentUserId);
 
       const sql = `
@@ -17,24 +14,26 @@ const calendarTrait = (superClass) =>
 
         WHERE
           p.user_id = :currentUserId AND
-          p.created_at >= :beginningOfTheYear AND
-          p.created_at <= :endOfTheYear AND
+          p.created_at >= :fromDate AND
+          p.created_at <= :toDate AND
           ${postsRestrictionsSQL}
         GROUP BY date
         ORDER BY date
       `;
 
-      const { rows } = await this.database.raw(sql, {
+      console.log('sql', sql, {
         tz,
         currentUserId,
-        beginningOfTheYear,
-        endOfTheYear,
+        fromDate,
+        toDate,
       });
+
+      const { rows } = await this.database.raw(sql, { tz, currentUserId, fromDate, toDate });
 
       return rows.map(({ date, posts }) => ({ date, posts: parseInt(posts, 10) }));
     }
 
-    async getMyCalendarPostsIds(currentUserId, date, tz, offset = 0, limit = 30) {
+    async getMyCalendarDatePosts(currentUserId, date, tz, offset = 0, limit = 30) {
       const postsRestrictionsSQL = await this.postsVisibilitySQL(currentUserId);
 
       const sql = `
@@ -54,6 +53,7 @@ const calendarTrait = (superClass) =>
         OFFSET
           :offset
       `;
+      console.log('sql', sql, { tz, currentUserId, date, limit, offset });
 
       const { rows } = await this.database.raw(sql, { tz, currentUserId, date, limit, offset });
 
