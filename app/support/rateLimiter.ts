@@ -109,9 +109,10 @@ export async function rateLimiterMiddleware(ctx: Context, next: Next) {
     } else {
       const { duration, maxRequests } = rateLimiterConfigByAuthType;
       const maxRequestsForMethod = maxRequests[requestMethod] || maxRequests.all;
+      const clientIdWithMethod = `${realClientId}${requestMethod}`;
 
       const limit = await rateLimiter.get({
-        id: realClientId,
+        id: clientIdWithMethod,
         max: maxRequestsForMethod,
         duration: Duration.fromISO(duration).toMillis(),
       });

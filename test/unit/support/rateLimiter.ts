@@ -8,6 +8,7 @@ import { rateLimiterMiddleware, durationToSeconds } from '../../../app/support/r
 
 const MAX_ANONYMOUS_REQUESTS = 3;
 const MAX_AUTHENTICATED_REQUESTS = 5;
+const MAX_AUTHENTICATED_POST_REQUESTS = MAX_AUTHENTICATED_REQUESTS - 1;
 const DURATION = 'PT5S';
 const BLOCK_DURATION = 'PT5S';
 const BLOCK_MULTIPLIER = 2;
@@ -31,6 +32,7 @@ const baseContext = {
         duration: DURATION,
         maxRequests: {
           all: MAX_AUTHENTICATED_REQUESTS,
+          POST: MAX_AUTHENTICATED_POST_REQUESTS,
         },
       },
       blockDuration: BLOCK_DURATION,
@@ -89,6 +91,36 @@ describe('Rate limiter', () => {
     }
 
     return expect(Promise.all(requests), 'to be rejected with', 'Slow down');
+  });
+
+  it('should keep separate counts per client per method', () => {
+    const config = { rateLimit: { enabled: true } };
+    const state = { authJWTPayload: { type: 'sess.v1', userId: uuidv4() } };
+
+    const ctxGet = merge({}, baseContext, {
+      config,
+      state,
+      request: { method: 'GET' },
+    });
+    const ctxPost = merge({}, baseContext, {
+      config,
+      state,
+      request: { method: 'POST' },
+    });
+
+    const requests = [];
+
+    // safe number of GET requests
+    for (let i = 0; i < MAX_ANONYMOUS_REQUESTS; i++) {
+      requests.push(rateLimiterMiddleware(ctxGet, next));
+    }
+
+    // safe number of POST requests
+    for (let i = 0; i < MAX_AUTHENTICATED_POST_REQUESTS; i++) {
+      requests.push(rateLimiterMiddleware(ctxPost, next));
+    }
+
+    return expect(Promise.all(requests), 'to be fulfilled');
   });
 
   it('should block for a configurable amount of time', async () => {
