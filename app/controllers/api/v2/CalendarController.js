@@ -65,9 +65,14 @@ export const getMyCalendarDatePosts = compose([
       date,
       tz,
       offset,
-      limit,
+      limit + 1,
     );
-    const isLastPage = foundPostsIds.length < limit;
+
+    const isLastPage = foundPostsIds.length <= limit;
+
+    if (!isLastPage) {
+      foundPostsIds.length = limit;
+    }
 
     ctx.body = await serializeFeed(foundPostsIds, currentUserId, null, { isLastPage });
   },
