@@ -1,3 +1,4 @@
+import config from 'config';
 import compose from 'koa-compose';
 
 import { ValidationException, NotFoundException } from '../../../support/exceptions';
@@ -5,9 +6,7 @@ import { dbAdapter } from '../../../models';
 import { serializeFeed } from '../../../serializers/v2/post';
 import { monitored, authRequired, targetUserRequired } from '../../middlewares';
 
-const thisYear = new Date().getFullYear();
-const EARLIEST_YEAR = 2006;
-const SERVER_TIMEZONE = 'UTC';
+const EARLIEST_YEAR = 2000;
 
 const pad = (int) => String(int).padStart(2, '0');
 
@@ -45,7 +44,7 @@ export const getMyCalendarDatePosts = compose([
     const { year, month, day } = ctx.params;
     const offset = parseInt(ctx.request.query.offset, 10) || 0;
     const limit = 30;
-    const tz = ctx.request.query.tz || SERVER_TIMEZONE;
+    const tz = ctx.request.query.tz || config.ianaTimeZone;
 
     if (currentUserId !== targetUser.id) {
       throw new NotFoundException();
@@ -82,7 +81,7 @@ export const getMyCalendarMonthDays = compose([
     const { targetUser, user } = ctx.state;
     const currentUserId = user.id;
     const { year, month } = ctx.params;
-    const tz = ctx.request.query.tz || SERVER_TIMEZONE;
+    const tz = ctx.request.query.tz || config.ianaTimeZone;
 
     if (currentUserId !== targetUser.id) {
       throw new NotFoundException();
@@ -119,7 +118,7 @@ export const getMyCalendarYearDays = compose([
     const { targetUser, user } = ctx.state;
     const currentUserId = user.id;
     const { year } = ctx.params;
-    const tz = ctx.request.query.tz || SERVER_TIMEZONE;
+    const tz = ctx.request.query.tz || config.ianaTimeZone;
 
     if (currentUserId !== targetUser.id) {
       throw new NotFoundException();
