@@ -1,5 +1,11 @@
 const calendarTrait = (superClass) =>
   class extends superClass {
+    async checkTimezoneExists(tz) {
+      const sql = 'select exists (select 1 from pg_timezone_names where name = :tz)';
+      const exists = await this.database.getOne(sql, { tz });
+
+      return exists;
+    }
     async getMyCalendarRangeDaysWithPosts(currentUserId, fromDate, toDate, tz) {
       const postsRestrictionsSQL = await this.postsVisibilitySQL(currentUserId);
 

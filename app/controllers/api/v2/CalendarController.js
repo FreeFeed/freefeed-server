@@ -11,25 +11,10 @@ const SERVER_TIMEZONE = 'UTC';
 
 const pad = (int) => String(int).padStart(2, '0');
 
-// accepts zero-indexed month number (0=January), returns 0-th day of next month
-const daysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
+const isValidTimezoneName = async (tz) => {
+  const exists = await dbAdapter.checkTimezoneExists(tz);
 
-const isValidTimezoneName = (tz) => {
-  try {
-    if (!Intl || !Intl.DateTimeFormat().resolvedOptions().timeZone) {
-      return false;
-    }
-
-    if (typeof tz !== 'string') {
-      return false;
-    }
-
-    // throws an error if timezone is not valid
-    Intl.DateTimeFormat(undefined, { timeZone: tz });
-    return true;
-  } catch (error) {
-    return false;
-  }
+  return exists;
 };
 
 const validateInputs = (year, month, day, tz) => {
