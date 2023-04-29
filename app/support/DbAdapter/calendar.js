@@ -6,13 +6,14 @@ const calendarTrait = (superClass) =>
 
       return exists;
     }
+
     async getMyCalendarRangeDaysWithPosts(currentUserId, fromDate, toDate, tz) {
       const postsRestrictionsSQL = await this.postsVisibilitySQL(currentUserId);
 
       const sql = `
         SELECT
           TO_CHAR(p.created_at at time zone :tz, 'YYYY-MM-DD') as "date",
-          count(*) "posts"
+          count(*)::int as "posts"
         FROM
           posts p
         JOIN
@@ -20,23 +21,16 @@ const calendarTrait = (superClass) =>
 
         WHERE
           p.user_id = :currentUserId AND
-          p.created_at >= :fromDate AND
-          p.created_at <= :toDate AND
+          p.created_at at time zone :tz >= :fromDate AND
+          p.created_at at time zone :tz < :toDate AND
           ${postsRestrictionsSQL}
         GROUP BY date
         ORDER BY date
       `;
 
-      console.log('sql', sql, {
-        tz,
-        currentUserId,
-        fromDate,
-        toDate,
-      });
+      const rows = await this.database.getAll(sql, { tz, currentUserId, fromDate, toDate });
 
-      const { rows } = await this.database.raw(sql, { tz, currentUserId, fromDate, toDate });
-
-      return rows.map(({ date, posts }) => ({ date, posts: parseInt(posts, 10) }));
+      return rows;
     }
 
     async getMyCalendarDatePosts(currentUserId, date, tz, offset = 0, limit = 30) {
@@ -59,9 +53,8 @@ const calendarTrait = (superClass) =>
         OFFSET
           :offset
       `;
-      console.log('sql', sql, { tz, currentUserId, date, limit, offset });
 
-      const { rows } = await this.database.raw(sql, { tz, currentUserId, date, limit, offset });
+      const rows = await this.database.getAll(sql, { tz, currentUserId, date, limit, offset });
 
       return rows.map((r) => r.uid);
     }

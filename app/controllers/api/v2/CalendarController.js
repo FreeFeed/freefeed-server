@@ -16,8 +16,10 @@ const isValidTimezoneName = async (tz) => {
   return exists;
 };
 
-const validateInputs = (year, month, day, tz) => {
-  if (!year || year < EARLIEST_YEAR || year > thisYear) {
+const validateInputs = async ({ year, month, day, tz }) => {
+  const thisYear = new Date().getFullYear();
+
+  if (!year || year < EARLIEST_YEAR || year > thisYear + 1) {
     throw new ValidationException('Invalid year');
   }
 
@@ -29,7 +31,7 @@ const validateInputs = (year, month, day, tz) => {
     throw new ValidationException('Invalid day');
   }
 
-  if (!isValidTimezoneName(tz)) {
+  if (!(await isValidTimezoneName(tz))) {
     throw new ValidationException('Invalid timezone');
   }
 };
@@ -54,7 +56,7 @@ export const getMyCalendarDatePosts = compose([
     const monthAsInt = parseInt(month, 10);
     const dayAsInt = parseInt(day, 10);
 
-    validateInputs(yearAsInt, monthAsInt, dayAsInt, tz);
+    await validateInputs({ year: yearAsInt, month: monthAsInt, day: dayAsInt, tz });
 
     const mm = pad(monthAsInt);
     const dd = pad(dayAsInt);
@@ -95,11 +97,15 @@ export const getMyCalendarMonthDays = compose([
     const yearAsInt = parseInt(year, 10);
     const monthAsInt = parseInt(month, 10);
 
-    validateInputs(yearAsInt, monthAsInt, undefined, tz);
+    await validateInputs({ year: yearAsInt, month: monthAsInt, tz });
+
+    const nextYear = monthAsInt === 12 ? yearAsInt + 1 : yearAsInt;
+    const nextMonth = monthAsInt === 12 ? 1 : monthAsInt + 1;
 
     const mm = pad(monthAsInt);
+    const mmNext = pad(nextMonth);
     const fromDate = `${yearAsInt}-${mm}-01 00:00:00.000`;
-    const toDate = `${yearAsInt}-${mm}-${daysInMonth(yearAsInt, monthAsInt - 1)} 23:59:59.999`;
+    const toDate = `${nextYear}-${mmNext}-01 00:00:00.000`;
 
     const daysWithPosts = await dbAdapter.getMyCalendarRangeDaysWithPosts(
       currentUserId,
@@ -131,10 +137,10 @@ export const getMyCalendarYearDays = compose([
 
     const yearAsInt = parseInt(year, 10);
 
-    validateInputs(yearAsInt, undefined, undefined, tz);
+    await validateInputs({ year: yearAsInt, tz });
 
     const fromDate = `${yearAsInt}-01-01 00:00:00.000`;
-    const toDate = `${yearAsInt}-12-31} 23:59:59.999`;
+    const toDate = `${yearAsInt + 1}-01-01 00:00:00.000`;
 
     const daysWithPosts = await dbAdapter.getMyCalendarRangeDaysWithPosts(
       currentUserId,
