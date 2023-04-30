@@ -7,7 +7,7 @@ const calendarTrait = (superClass) =>
       return exists;
     }
 
-    async getMyCalendarRangeDaysWithPosts(currentUserId, fromDate, toDate, tz) {
+    async getMyCalendarRangeDaysWithPosts(currentUserId, fromDateWithTZ, toDateWithTZ, tz) {
       const postsRestrictionsSQL = await this.postsVisibilitySQL(currentUserId);
 
       const sql = `
@@ -21,19 +21,31 @@ const calendarTrait = (superClass) =>
 
         WHERE
           p.user_id = :currentUserId AND
-          p.created_at at time zone :tz >= :fromDate AND
-          p.created_at at time zone :tz < :toDate AND
+          p.created_at >= :fromDateWithTZ AND
+          p.created_at < :toDateWithTZ AND
           ${postsRestrictionsSQL}
         GROUP BY date
         ORDER BY date
       `;
 
-      const rows = await this.database.getAll(sql, { tz, currentUserId, fromDate, toDate });
+      const rows = await this.database.getAll(sql, {
+        tz,
+        currentUserId,
+        fromDateWithTZ,
+        toDateWithTZ,
+      });
 
       return rows;
     }
 
-    async getMyCalendarDatePosts(currentUserId, date, tz, offset = 0, limit = 30) {
+    async getMyCalendarDatePosts(
+      currentUserId,
+      dayStartDateWithTZ,
+      dayEndDateWithTZ,
+      tz,
+      offset = 0,
+      limit = 30,
+    ) {
       const postsRestrictionsSQL = await this.postsVisibilitySQL(currentUserId);
 
       const sql = `
@@ -44,7 +56,8 @@ const calendarTrait = (superClass) =>
           join users u on p.user_id = u.uid
         WHERE
           p.user_id = :currentUserId AND
-          DATE_TRUNC('day', p.created_at at time zone :tz) = :date AND
+          p.created_at >= :dayStartDateWithTZ AND
+          p.created_at <= :dayEndDateWithTZ AND
           ${postsRestrictionsSQL}
         ORDER BY
           p.created_at DESC
@@ -54,12 +67,19 @@ const calendarTrait = (superClass) =>
           :offset
       `;
 
-      const rows = await this.database.getAll(sql, { tz, currentUserId, date, limit, offset });
+      const rows = await this.database.getAll(sql, {
+        tz,
+        currentUserId,
+        dayStartDateWithTZ,
+        dayEndDateWithTZ,
+        limit,
+        offset,
+      });
 
       return rows.map((r) => r.uid);
     }
 
-    async getMyCalendarFirstDayWithPostsBeforeDate(currentUserId, beforeDate, tz) {
+    async getMyCalendarFirstDayWithPostsBeforeDate(currentUserId, beforeDateWithTZ, tz) {
       const postsRestrictionsSQL = await this.postsVisibilitySQL(currentUserId);
 
       const sql = `
@@ -72,18 +92,18 @@ const calendarTrait = (superClass) =>
 
         WHERE
           p.user_id = :currentUserId AND
-          p.created_at at time zone :tz < :beforeDate AND
+          p.created_at < :beforeDateWithTZ AND
           ${postsRestrictionsSQL}
         ORDER BY p.created_at DESC
         LIMIT 1
       `;
 
-      const previousDay = await this.database.getOne(sql, { tz, currentUserId, beforeDate });
+      const previousDay = await this.database.getOne(sql, { tz, currentUserId, beforeDateWithTZ });
 
       return previousDay;
     }
 
-    async getMyCalendarFirstDayWithPostsAfterDate(currentUserId, fromDate, tz) {
+    async getMyCalendarFirstDayWithPostsAfterDate(currentUserId, afterDateWithTZ, tz) {
       const postsRestrictionsSQL = await this.postsVisibilitySQL(currentUserId);
 
       const sql = `
@@ -96,13 +116,13 @@ const calendarTrait = (superClass) =>
 
         WHERE
           p.user_id = :currentUserId AND
-          p.created_at at time zone :tz > :fromDate AND
+          p.created_at > :afterDateWithTZ AND
           ${postsRestrictionsSQL}
         ORDER BY p.created_at ASC
         LIMIT 1
       `;
 
-      const nextDay = await this.database.getOne(sql, { tz, currentUserId, fromDate });
+      const nextDay = await this.database.getOne(sql, { tz, currentUserId, afterDateWithTZ });
 
       return nextDay;
     }

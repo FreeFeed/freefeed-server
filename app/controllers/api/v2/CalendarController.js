@@ -60,11 +60,13 @@ export const getMyCalendarDatePosts = compose([
 
     const mm = pad(monthAsInt);
     const dd = pad(dayAsInt);
-    const date = `${year}-${mm}-${dd}`;
+    const dayStart = `${year}-${mm}-${dd} 00:00:00.000 ${tz}`;
+    const dayEnd = `${year}-${mm}-${dd} 23:59:59.999 ${tz}`;
 
     const foundPostsIds = await dbAdapter.getMyCalendarDatePosts(
       currentUserId,
-      date,
+      dayStart,
+      dayEnd,
       tz,
       offset,
       limit + 1,
@@ -78,18 +80,15 @@ export const getMyCalendarDatePosts = compose([
 
     const feed = await serializeFeed(foundPostsIds, currentUserId, null, { isLastPage });
 
-    const fromDate = `${date} 00:00:00.000`;
-    const toDate = `${date} 23:59:59.999`;
-
     const previousDay = await dbAdapter.getMyCalendarFirstDayWithPostsBeforeDate(
       currentUserId,
-      fromDate,
+      dayStart,
       tz,
     );
 
     const nextDay = await dbAdapter.getMyCalendarFirstDayWithPostsAfterDate(
       currentUserId,
-      toDate,
+      dayEnd,
       tz,
     );
 
@@ -125,8 +124,8 @@ export const getMyCalendarMonthDays = compose([
 
     const mm = pad(monthAsInt);
     const mmNext = pad(nextMonth);
-    const fromDate = `${yearAsInt}-${mm}-01 00:00:00.000`;
-    const toDate = `${nextYear}-${mmNext}-01 00:00:00.000`;
+    const fromDate = `${yearAsInt}-${mm}-01 00:00:00.000 ${tz}`;
+    const toDate = `${nextYear}-${mmNext}-01 00:00:00.000 ${tz}`;
 
     const daysWithPosts = await dbAdapter.getMyCalendarRangeDaysWithPosts(
       currentUserId,
@@ -173,8 +172,8 @@ export const getMyCalendarYearDays = compose([
 
     await validateInputs({ year: yearAsInt, tz });
 
-    const fromDate = `${yearAsInt}-01-01 00:00:00.000`;
-    const toDate = `${yearAsInt + 1}-01-01 00:00:00.000`;
+    const fromDate = `${yearAsInt}-01-01 00:00:00.000 ${tz}`;
+    const toDate = `${yearAsInt + 1}-01-01 00:00:00.000 ${tz}`;
 
     const daysWithPosts = await dbAdapter.getMyCalendarRangeDaysWithPosts(
       currentUserId,
