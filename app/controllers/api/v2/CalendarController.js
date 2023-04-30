@@ -6,7 +6,7 @@ import { dbAdapter } from '../../../models';
 import { serializeFeed } from '../../../serializers/v2/post';
 import { monitored, authRequired, targetUserRequired } from '../../middlewares';
 
-const EARLIEST_YEAR = 2000;
+const CALENDAR_START_YEAR = 2000;
 
 const pad = (int) => String(int).padStart(2, '0');
 
@@ -19,7 +19,7 @@ const isValidTimezoneName = async (tz) => {
 const validateInputs = async ({ year, month, day, tz }) => {
   const thisYear = new Date().getFullYear();
 
-  if (!year || year < EARLIEST_YEAR || year > thisYear + 1) {
+  if (!year || year < CALENDAR_START_YEAR || year > thisYear + 1) {
     throw new ValidationException('Invalid year');
   }
 
@@ -76,7 +76,28 @@ export const getMyCalendarDatePosts = compose([
       foundPostsIds.length = limit;
     }
 
-    ctx.body = await serializeFeed(foundPostsIds, currentUserId, null, { isLastPage });
+    const feed = await serializeFeed(foundPostsIds, currentUserId, null, { isLastPage });
+
+    const fromDate = `${date} 00:00:00.000`;
+    const toDate = `${date} 23:59:59.999`;
+
+    const previousDay = await dbAdapter.getMyCalendarFirstDayWithPostsBeforeDate(
+      currentUserId,
+      fromDate,
+      tz,
+    );
+
+    const nextDay = await dbAdapter.getMyCalendarFirstDayWithPostsAfterDate(
+      currentUserId,
+      toDate,
+      tz,
+    );
+
+    ctx.body = {
+      ...feed,
+      nextDay,
+      previousDay,
+    };
   },
 ]);
 
@@ -114,8 +135,21 @@ export const getMyCalendarMonthDays = compose([
       tz,
     );
 
+    const previousDay = await dbAdapter.getMyCalendarFirstDayWithPostsBeforeDate(
+      currentUserId,
+      fromDate,
+      tz,
+    );
+
+    const nextDay = await dbAdapter.getMyCalendarFirstDayWithPostsAfterDate(
+      currentUserId,
+      toDate,
+      tz,
+    );
+
     ctx.body = {
-      year,
+      previousDay,
+      nextDay,
       days: daysWithPosts,
     };
   },
@@ -150,7 +184,6 @@ export const getMyCalendarYearDays = compose([
     );
 
     ctx.body = {
-      year,
       days: daysWithPosts,
     };
   },
