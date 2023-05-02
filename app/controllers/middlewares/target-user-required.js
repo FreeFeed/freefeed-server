@@ -2,7 +2,7 @@ import { NotFoundException, ServerErrorException } from '../../support/exception
 import { dbAdapter } from '../../models';
 
 /**
- * Checks existene of all users/groups mentioned in ctx.params
+ * Checks existence of all users/groups mentioned in ctx.params
  *
  * @param {Object} mapping - mapping between the ctx.params keys (that contains
  * user/group names) and the the resulting ctx.state keys (that contains the
