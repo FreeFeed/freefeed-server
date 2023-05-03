@@ -2329,10 +2329,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:~14.18.42":
-  version: 14.18.42
-  resolution: "@types/node@npm:14.18.42"
-  checksum: 1c92f04a482ab54a21342b3911fc6f0093f04d3314197bc0e2f20012e9efc929c44e2ea41990b9b3cde420d7859c9ed716733f3e65c0cd6c2910a55799465f6b
+"@types/node@npm:~16.18.25":
+  version: 16.18.25
+  resolution: "@types/node@npm:16.18.25"
+  checksum: 181760ad6b54fcc498dfeb249e98bbf0be51d7c35e92e760e1a82004fa42b86e8c33a8f8dd7743b5ef872bda0753d9e6a5b8e3f0aed63e9eb79b4e65760c1fbe
   languageName: node
   linkType: hard
 
@@ -5954,7 +5954,7 @@ __metadata:
     "@types/lodash": ~4.14.194
     "@types/mocha": ~10.0.1
     "@types/n3": ~1.10.4
-    "@types/node": ~14.18.42
+    "@types/node": ~16.18.25
     "@types/pg": ~8.6.6
     "@types/pg-format": ~1.0.2
     "@types/raven": ~2.5.4
