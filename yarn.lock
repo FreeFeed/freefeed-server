@@ -1984,6 +1984,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/co-body@npm:^6.1.0":
+  version: 6.1.0
+  resolution: "@types/co-body@npm:6.1.0"
+  dependencies:
+    "@types/node": "*"
+    "@types/qs": "*"
+  checksum: 95de9fe423b3f081e849a51905a8d3346b4e6147efd27b10aadf14c5a1b9f3f2c6e50f0175ac3734be5213b8f41f9a7dda651ee13db9f4d93810408e01ff0432
+  languageName: node
+  linkType: hard
+
 "@types/connect@npm:*":
   version: 3.4.35
   resolution: "@types/connect@npm:3.4.35"
@@ -2054,7 +2064,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/formidable@npm:^2.0.4":
+"@types/formidable@npm:^2.0.5":
   version: 2.0.5
   resolution: "@types/formidable@npm:2.0.5"
   dependencies:
@@ -2170,13 +2180,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/koa-passport@npm:~4.0.3":
-  version: 4.0.3
-  resolution: "@types/koa-passport@npm:4.0.3"
+"@types/koa-passport@npm:~6.0.0":
+  version: 6.0.0
+  resolution: "@types/koa-passport@npm:6.0.0"
   dependencies:
     "@types/koa": "*"
     "@types/passport": "*"
-  checksum: 7b2795530a523854770ab9194cae7975f1a3859589dc4017368950484d6e762d3b2b8c0f6b0ef0d6c9471cc9e8715f8a3ad2a8753cb3ea84d2576e9f63caae1e
+  checksum: d7f2379185200407fc5efe56d3e1fc9f281686cdef2fbdc7d7bf200a029cb034277437b1b7b741b7f8be7ec7cabe52f84fe05d7fd6ba944aa0a993a59302d2ee
   languageName: node
   linkType: hard
 
@@ -2208,7 +2218,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/koa@npm:*, @types/koa@npm:~2.13.6":
+"@types/koa@npm:*, @types/koa@npm:^2.13.5, @types/koa@npm:~2.13.6":
   version: 2.13.6
   resolution: "@types/koa@npm:2.13.6"
   dependencies:
@@ -3750,15 +3760,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"co-body@npm:^5.1.1":
-  version: 5.2.0
-  resolution: "co-body@npm:5.2.0"
+"co-body@npm:^6.1.0":
+  version: 6.1.0
+  resolution: "co-body@npm:6.1.0"
   dependencies:
     inflation: ^2.0.0
-    qs: ^6.4.0
-    raw-body: ^2.2.0
-    type-is: ^1.6.14
-  checksum: 48e1ffe00b8717b68154a939fa19f36d75aa66bba627f2977f28d11b732da56bdda445acda7053f7a85dfbac8a09a8aa257bceedaff7b6467cb25ab08ada9c8d
+    qs: ^6.5.2
+    raw-body: ^2.3.3
+    type-is: ^1.6.16
+  checksum: d0a78831a6651f2085fce16b0ecdc49f45fb5baf4f94148c2f499e7ec89d188205362548b9c500eae15a819360cfda208079e68a72c204cf66ca3ffa2fc0f57e
   languageName: node
   linkType: hard
 
@@ -5957,7 +5967,7 @@ __metadata:
     "@types/koa-conditional-get": ~2.0.0
     "@types/koa-etag": ~3.0.0
     "@types/koa-morgan": ~1.0.5
-    "@types/koa-passport": ~4.0.3
+    "@types/koa-passport": ~6.0.0
     "@types/koa-response-time": ~2.1.2
     "@types/koa-static": ~4.0.2
     "@types/koa__router": ~12.0.0
@@ -6014,13 +6024,13 @@ __metadata:
     juice: ~7.0.0
     knex: ~2.4.2
     koa: ~2.14.2
-    koa-body: ~5.0.0
+    koa-body: ~6.0.1
     koa-compose: ~4.1.0
     koa-conditional-get: ~3.0.0
     koa-etag: ~4.0.0
     koa-methodoverride: 2.0.0
     koa-morgan: 1.0.1
-    koa-passport: ~5.0.0
+    koa-passport: ~6.0.0
     koa-requestid: ~2.1.0
     koa-response-time: ~2.1.0
     koa-static: ~5.0.0
@@ -7843,14 +7853,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"koa-body@npm:~5.0.0":
-  version: 5.0.0
-  resolution: "koa-body@npm:5.0.0"
+"koa-body@npm:~6.0.1":
+  version: 6.0.1
+  resolution: "koa-body@npm:6.0.1"
   dependencies:
-    "@types/formidable": ^2.0.4
-    co-body: ^5.1.1
+    "@types/co-body": ^6.1.0
+    "@types/formidable": ^2.0.5
+    "@types/koa": ^2.13.5
+    co-body: ^6.1.0
     formidable: ^2.0.1
-  checksum: 2fed59a8b91ff107f276e398dbe78cf258f71e7c743946fe9197c0b6b5d3da9ea6516c68a3d13513c32669ccd43971c66d5e80ab0d2932ad1f9aaef627f8f868
+    zod: ^3.19.1
+  checksum: 515bcac2976a53cd0ba17cbd84d1f3c7f6cc5f9789a93cb6e9a7245b35b456380c0a538bc12dbfdc35fbc7be08b04525b33330bc407d09301903373b441b7e4a
   languageName: node
   linkType: hard
 
@@ -7918,12 +7931,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"koa-passport@npm:~5.0.0":
-  version: 5.0.0
-  resolution: "koa-passport@npm:5.0.0"
+"koa-passport@npm:~6.0.0":
+  version: 6.0.0
+  resolution: "koa-passport@npm:6.0.0"
   dependencies:
     passport: ^0.6.0
-  checksum: d0cc2df188851444e518462241543cb97833b2f0aaf3269ac07145a4a98e443c0186c63ba94a2fe2f23242a5c0a6bcc8b5eea115031b38c19318f6ff37afd24b
+  checksum: 06f84e5ce12b0f8da037895dcab440425fac1f9ace4342a528a53e89c0a1c15e709c451dc69246e5f7a2bdec9e47b323e2ee4e8b9521e1970af0f40851005c24
   languageName: node
   linkType: hard
 
@@ -10147,7 +10160,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"qs@npm:^6.11.0, qs@npm:^6.4.0":
+"qs@npm:^6.11.0, qs@npm:^6.5.2":
   version: 6.11.1
   resolution: "qs@npm:6.11.1"
   dependencies:
@@ -10225,7 +10238,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"raw-body@npm:^2.2.0":
+"raw-body@npm:^2.3.3":
   version: 2.5.2
   resolution: "raw-body@npm:2.5.2"
   dependencies:
@@ -11860,7 +11873,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"type-is@npm:^1.6.14, type-is@npm:^1.6.16":
+"type-is@npm:^1.6.16":
   version: 1.6.18
   resolution: "type-is@npm:1.6.18"
   dependencies:
@@ -12674,5 +12687,12 @@ __metadata:
   version: 0.1.0
   resolution: "yocto-queue@npm:0.1.0"
   checksum: f77b3d8d00310def622123df93d4ee654fc6a0096182af8bd60679ddcdfb3474c56c6c7190817c84a2785648cdee9d721c0154eb45698c62176c322fb46fc700
+  languageName: node
+  linkType: hard
+
+"zod@npm:^3.19.1":
+  version: 3.21.4
+  resolution: "zod@npm:3.21.4"
+  checksum: f185ba87342ff16f7a06686767c2b2a7af41110c7edf7c1974095d8db7a73792696bcb4a00853de0d2edeb34a5b2ea6a55871bc864227dace682a0a28de33e1f
   languageName: node
   linkType: hard
