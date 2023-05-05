@@ -98,6 +98,9 @@ export const appTokensScopes = [
       'GET /vN/posts/:postId/comments/:seqNumber',
       'POST /vN/posts/byIds',
       'POST /vN/comments/byIds',
+      'GET /vN/calendar/:username/:year',
+      'GET /vN/calendar/:username/:year/:month',
+      'GET /vN/calendar/:username/:year/:month/:day',
     ],
   },
   {

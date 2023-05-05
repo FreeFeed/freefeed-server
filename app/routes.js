@@ -15,6 +15,7 @@ import GroupsRouteV2 from './routes/api/v2/GroupsRoute';
 import RequestsRouteV2 from './routes/api/v2/RequestsRoute';
 import SearchRoute from './routes/api/v2/SearchRoute';
 import SummaryRoute from './routes/api/v2/SummaryRoute';
+import CalendarRoute from './routes/api/v2/CalendarRoute';
 import TimelinesRouteV2 from './routes/api/v2/TimelinesRoute';
 import UsersRouteV2 from './routes/api/v2/UsersRoute';
 import StatsRouteV2 from './routes/api/v2/Stats';
@@ -79,6 +80,7 @@ export function createRouter() {
   RequestsRouteV2(publicRouter);
   SearchRoute(publicRouter);
   SummaryRoute(publicRouter);
+  CalendarRoute(publicRouter);
   TimelinesRouteV2(publicRouter);
   PostsRouteV2(publicRouter);
   ArchivesRoute(publicRouter);
