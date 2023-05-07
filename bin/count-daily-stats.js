@@ -1,8 +1,12 @@
 #!node_modules/.bin/babel-node
 import moment from 'moment';
 import pgFormat from 'pg-format';
+import cld from 'cld';
 
-import { postgres } from '../app/models';
+import { dbAdapter, postgres } from '../app/models';
+
+const langDAUCode = 'ru';
+const langThreshold = 0.2;
 
 async function get_first_action_date(type) {
   let res;
@@ -35,6 +39,7 @@ async function get_next_metric_update_date(metric) {
     case 'posts':
     case 'posts_creates':
     case 'active_users':
+    case `active_users_${langDAUCode}`:
     case 'events':
       data_type = 'posts';
       break;
@@ -229,6 +234,31 @@ async function main() {
     const res = await postgres.raw(sql);
     return res.rows[0].count;
   });
+
+  await create_metric(`active_users_${langDAUCode}`, to_date, async (dt, next_date) => {
+    const activeUserIds = await dbAdapter.database.getCol(
+      ['posts', 'comments', 'likes']
+        .map(
+          (t) =>
+            `(select user_id from ${t} where created_at >= :day and created_at < :day + interval '1 day')`,
+        )
+        .join(' union '),
+      { day: dt.format(`YYYY-MM-DD`) },
+    );
+
+    let total = 0;
+
+    for (const userId in activeUserIds) {
+      // eslint-disable-next-line no-await-in-loop
+      const stat = await getUserLanguages(userId, next_date.format('YYYY-MM-DD'));
+
+      if (stat.get(langDAUCode) >= langThreshold) {
+        total++;
+      }
+    }
+
+    return total;
+  });
 }
 
 main()
@@ -240,3 +270,45 @@ main()
     process.stderr.write(e.message);
     process.exit(1);
   });
+
+async function getUserLanguages(userId, sqlDate, depth = 50) {
+  const texts = await dbAdapter.getCol(
+    ['posts', 'comments']
+      .map(
+        (t) =>
+          `(select body from ${t} where user_id = :userId and created_at < :sqlDate order by created_at desc limit :depth)`,
+      )
+      .join(' union '),
+    { userId, depth, sqlDate },
+  );
+
+  const stat = await Promise.all(
+    texts.map(async (text) => {
+      try {
+        const { reliable, textBytes, languages } = await cld.detect(text);
+        return reliable ? { textBytes, languages } : null;
+      } catch (e) {
+        // Failed to identify language
+      }
+
+      return null;
+    }),
+  );
+
+  let totalBytes = 0;
+  const langStat = new Map();
+
+  for (const { textBytes, languages } of stat.filter(Boolean)) {
+    totalBytes += textBytes;
+
+    for (const lang of languages) {
+      langStat.set(lang.code, (langStat.get(lang.code) ?? 0) + (textBytes * lang.percent) / 100);
+    }
+  }
+
+  for (const langCode of langStat.keys()) {
+    langStat.set(langCode, langStat.get(langCode) / totalBytes);
+  }
+
+  return langStat;
+}
