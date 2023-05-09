@@ -272,7 +272,7 @@ main()
   });
 
 async function getUserLanguages(userId, sqlDate, depth = 50) {
-  const texts = await dbAdapter.getCol(
+  const texts = await dbAdapter.database.getCol(
     ['posts', 'comments']
       .map(
         (t) =>
