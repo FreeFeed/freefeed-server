@@ -248,7 +248,7 @@ async function main() {
 
     let total = 0;
 
-    for (const userId in activeUserIds) {
+    for (const userId of activeUserIds) {
       // eslint-disable-next-line no-await-in-loop
       const stat = await getUserLanguages(userId, next_date.format('YYYY-MM-DD'));
 
