@@ -240,7 +240,7 @@ async function main() {
       ['posts', 'comments', 'likes']
         .map(
           (t) =>
-            `(select user_id from ${t} where created_at >= :day and created_at < :day + interval '1 day')`,
+            `(select user_id from ${t} where created_at >= :day and created_at < :day::timestamptz + interval '1 day')`,
         )
         .join(' union '),
       { day: dt.format(`YYYY-MM-DD`) },
