@@ -15,6 +15,7 @@ const statsTrait = (superClass) =>
         'users',
         'registrations',
         'active_users',
+        'active_users_ru',
         'likes',
         'likes_creates',
         'comment_likes',
