@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [2.11.0] - Not released
+### Added
+- The new API method `GET /v2/users/:username/statistics` returns actual,
+  dynamically calculated user/group statistics. The returned values depend on
+  the current viewer and only show the number of entities the current user has
+  access to.
+### Changed
+- The old 'statistics' user field is still returned, but it is no longer
+  updated. Clients should use the `GET /v2/users/:username/statistics` method.
 
 ## [2.10.0] - 2023-05-05
 ### Added
