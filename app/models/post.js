@@ -165,7 +165,6 @@ export function addModel(dbAdapter) {
       await Promise.all([
         ...rtUpdates,
         dbAdapter.setUpdatedAtInGroupsByIds(destFeeds.map((f) => f.userId)),
-        dbAdapter.statsPostCreated(this.userId),
         notifyBacklinkedNow(this, pubSub, getUpdatedUUIDs(this.body)),
       ]);
 
@@ -307,9 +306,6 @@ export function addModel(dbAdapter) {
         this.getComments(),
         this.getGroupsPostedTo(),
         notifyBacklinkedLater(this, pubSub, getUpdatedUUIDs(this.body)),
-        // Does't return anything
-        // It should be executed while post data is still in the DB
-        dbAdapter.statsPostDeleted(this.userId, this.id),
       ]);
 
       // remove all comments
@@ -749,10 +745,7 @@ export function addModel(dbAdapter) {
         return false;
       }
 
-      const [likesTimeline, ,] = await Promise.all([
-        user.getLikesTimeline(),
-        dbAdapter.statsLikeCreated(user.id),
-      ]);
+      const likesTimeline = await user.getLikesTimeline();
 
       // Local bumps
       // We bump post in the widest homefeed mode (HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY)
@@ -790,10 +783,9 @@ export function addModel(dbAdapter) {
         return false;
       }
 
-      const [realtimeRooms, timelineId, ,] = await Promise.all([
+      const [realtimeRooms, timelineId] = await Promise.all([
         getRoomsOfPost(this),
         user.getLikesTimelineIntId(),
-        dbAdapter.statsLikeDeleted(user.id),
       ]);
       await dbAdapter.withdrawPostFromFeeds([timelineId], this.id);
 

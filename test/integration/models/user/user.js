@@ -924,8 +924,8 @@ describe('User', () => {
         const stats = await Promise.all(users.map((u) => u.getStatistics()));
 
         for (let i = 0; i < nUsers; i++) {
-          expect(stats[i].subscriptions).to.equal(`${nUsers - 1}`);
-          expect(stats[i].subscribers).to.equal(`${nUsers - 1}`);
+          expect(stats[i].subscriptions).to.equal(nUsers - 1);
+          expect(stats[i].subscribers).to.equal(nUsers - 1);
         }
       });
     });
@@ -946,12 +946,12 @@ describe('User', () => {
 
       it('should have correct Luna statistic', async () => {
         const stats = await luna.getStatistics();
-        expect(stats).to.include({ subscriptions: '1' });
+        expect(stats).to.include({ subscriptions: 1 });
       });
 
       it('should have correct Mars statistic', async () => {
         const stats = await mars.getStatistics();
-        expect(stats).to.include({ subscribers: '1' });
+        expect(stats).to.include({ subscribers: 1 });
       });
 
       describe('Luna also subscribed to Venus', () => {
@@ -976,7 +976,7 @@ describe('User', () => {
 
         it('should have correct Luna statistic', async () => {
           const stats = await luna.getStatistics();
-          expect(stats).to.include({ subscriptions: '2' });
+          expect(stats).to.include({ subscriptions: 2 });
         });
       });
     });
@@ -1028,8 +1028,8 @@ describe('User', () => {
         const stats = await Promise.all(users.map((u) => u.getStatistics()));
 
         for (let i = 0; i < nUsers; i++) {
-          expect(stats[i].subscriptions).to.equal('0');
-          expect(stats[i].subscribers).to.equal('0');
+          expect(stats[i].subscriptions).to.equal(0);
+          expect(stats[i].subscribers).to.equal(0);
         }
       });
     });
