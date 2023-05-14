@@ -250,9 +250,9 @@ async function main() {
 
     for (const userId of activeUserIds) {
       // eslint-disable-next-line no-await-in-loop
-      const stat = await getUserLanguages(userId, next_date.format('YYYY-MM-DD'));
+      const { langStat } = await cachedGetUserLanguages(userId, next_date.format('YYYY-MM-DD'));
 
-      if (stat.get(langDAUCode) >= langThreshold) {
+      if (langStat.get(langDAUCode) >= langThreshold) {
         total++;
       }
     }
@@ -270,6 +270,28 @@ main()
     process.stderr.write(e.message);
     process.exit(1);
   });
+
+const userLanguagesCache = new Map();
+const cacheForDays = 15;
+const cacheMinLength = 500;
+async function cachedGetUserLanguages(userId, sqlDate, depth = 50) {
+  const cached = userLanguagesCache.get(userId);
+
+  if (cached && moment(sqlDate).isBefore(cached.expires)) {
+    return cached.result;
+  }
+
+  const result = await getUserLanguages(userId, sqlDate, depth);
+
+  if (result.totalBytes >= cacheMinLength) {
+    userLanguagesCache.set(userId, {
+      result,
+      expires: moment(sqlDate).add(cacheForDays, 'days').format(`YYYY-MM-DD`),
+    });
+  }
+
+  return result;
+}
 
 async function getUserLanguages(userId, sqlDate, depth = 50) {
   const texts = await dbAdapter.database.getCol(
@@ -310,5 +332,5 @@ async function getUserLanguages(userId, sqlDate, depth = 50) {
     langStat.set(langCode, langStat.get(langCode) / totalBytes);
   }
 
-  return langStat;
+  return { totalBytes, langStat };
 }
