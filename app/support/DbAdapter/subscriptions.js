@@ -198,13 +198,6 @@ const subscriptionsTrait = (superClass) =>
           subscriberId,
         });
 
-        // Lock user_stats table (we are going to change counters)
-        await trx.raw(
-          `select 1 from user_stats where user_id in (:subscriberId, :targetId)
-        order by user_id for no key update`,
-          { subscriberId, targetId },
-        );
-
         if (homeFeeds.length > 0) {
           // Get and lock feeds table (we don't want any feed to be deleted.)
           homeFeeds = await trx.getCol(
@@ -248,18 +241,6 @@ const subscriptionsTrait = (superClass) =>
             on conflict do nothing`,
             { subscriberId, targetId, homeFeeds },
           );
-
-          // Update users counters
-          await Promise.all([
-            trx.raw(
-              'update user_stats set :counterName: = :counterName: + 1 where user_id = :userId',
-              { userId: subscriberId, counterName: 'subscriptions_count' },
-            ),
-            trx.raw(
-              'update user_stats set :counterName: = :counterName: + 1 where user_id = :userId',
-              { userId: targetId, counterName: 'subscribers_count' },
-            ),
-          ]);
         }
 
         // Delete subscription request if any
@@ -343,13 +324,6 @@ const subscriptionsTrait = (superClass) =>
           subscriberId,
         });
 
-        // Lock user_stats table (we are going to change counters)
-        await trx.raw(
-          `select 1 from user_stats where user_id in (:subscriberId, :targetId)
-        order by user_id for no key update`,
-          { subscriberId, targetId },
-        );
-
         // Trying to unsubscribie from all feeds
         const feedNames = await trx.getCol(
           `delete from subscriptions s using feeds f
@@ -374,20 +348,6 @@ const subscriptionsTrait = (superClass) =>
 
         const wasUnsubscribed = feedNames.includes('Posts');
         const subscribedFeedIds = await updateSubscribedFeedIds(trx, subscriberId);
-
-        // Update users counters
-        if (wasUnsubscribed) {
-          await Promise.all([
-            trx.raw(
-              'update user_stats set :counterName: = :counterName: - 1 where user_id = :userId',
-              { userId: subscriberId, counterName: 'subscriptions_count' },
-            ),
-            trx.raw(
-              'update user_stats set :counterName: = :counterName: - 1 where user_id = :userId',
-              { userId: targetId, counterName: 'subscribers_count' },
-            ),
-          ]);
-        }
 
         // Delete subscription request if any
         await trx.raw(

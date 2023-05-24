@@ -928,30 +928,8 @@ export function addModel(dbAdapter) {
       return await dbAdapter.getHomeFeedsSubscribedTo(this.id, targetUser.id);
     }
 
-    async calculateStatsValues() {
-      let res;
-
-      try {
-        res = await dbAdapter.getUserStats(this.id);
-      } catch (e) {
-        res = {
-          posts: 0,
-          likes: 0,
-          comments: 0,
-          subscribers: 0,
-          subscriptions: 0,
-        };
-      }
-
-      return res;
-    }
-
-    async getStatistics() {
-      if (!this.statsValues) {
-        this.statsValues = await this.calculateStatsValues();
-      }
-
-      return this.statsValues;
+    getStatistics(viewerId = null) {
+      return dbAdapter.getDynamicUserStats(this.id, viewerId);
     }
 
     newComment(attrs) {

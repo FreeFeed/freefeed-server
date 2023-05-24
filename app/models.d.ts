@@ -33,6 +33,8 @@ export class User {
   description: string;
   createdAt: string; // numeric string
   updatedAt: string; // numeric string
+  isProtected: '0' | '1';
+  isPrivate: '0' | '1';
   profilePictureLargeUrl: string;
   readonly isActive: boolean;
   type: 'user';
@@ -41,6 +43,10 @@ export class User {
   goneStatusName: string;
   setGoneStatus(status: keyof typeof GONE_NAMES | null): Promise<void>;
   unban(usernames: string): Promise<1>;
+  subscribeTo(
+    targetUser: User,
+    params?: { noEvents: boolean; homeFeedIds: UUID[] },
+  ): Promise<boolean>;
   unsubscribeFrom(targetUser: User): Promise<boolean>;
   getHomeFeeds(): Promise<Timeline[]>;
   getSubscriptionsWithHomeFeeds(): Promise<{ user_id: UUID; homefeed_ids: UUID[] }[]>;
@@ -90,6 +96,14 @@ export class User {
   }): Promise<UUID>;
   isInvitesDisabled(): Promise<boolean>;
   setInvitesDisabled(isDisabled: boolean): Promise<void>;
+
+  getStatistics(viewerId?: UUID): Promise<{
+    posts: number;
+    likes: number;
+    comments: number;
+    subscribers: number;
+    subscriptions: number;
+  }>;
 }
 
 export class Group {

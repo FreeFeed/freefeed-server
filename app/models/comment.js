@@ -130,7 +130,6 @@ export function addModel(dbAdapter) {
         dbAdapter.setPostBumpedAt(post.id),
         dbAdapter.setUpdatedAtInGroupsByIds(postDestFeeds.map((f) => f.userId)),
         this.processHashtagsOnCreate(),
-        dbAdapter.statsCommentCreated(this.userId),
         pubSub.newComment(this),
         EventService.onCommentChanged(this, true),
         notifyBacklinkedNow(this, pubSub, getUpdatedUUIDs(this.body)),
@@ -213,7 +212,6 @@ export function addModel(dbAdapter) {
 
       await Promise.all([
         pubSub.destroyComment(this.id, this.postId, realtimeRooms),
-        this.userId ? dbAdapter.statsCommentDeleted(this.userId) : null,
         destroyedBy ? EventService.onCommentDestroyed(this, destroyedBy) : null,
         notifyBacklinked(),
       ]);
