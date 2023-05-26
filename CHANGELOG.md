@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.13.0] - Not released
 
+## [2.12.1] - 2023-05-26
+### Fixed
+- Dowgrade GraphicsMagick to fix image-rotation
+
 ## [2.12.0] - 2023-05-26
 ### Added
 - The new API method `GET /v2/users/:username/statistics` returns actual,
