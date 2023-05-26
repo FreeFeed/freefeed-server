@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.12.1] - 2023-05-26
+### Fixed
+- Dowgrade GraphicsMagick to fix image-rotation
+
 ## [2.12.0] - 2023-05-26
 ### Added
 - The new API method `GET /v2/users/:username/statistics` returns actual,
