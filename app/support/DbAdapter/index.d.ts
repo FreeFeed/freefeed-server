@@ -16,6 +16,8 @@ import { InvitationCreationCriterion } from '../types/invitations';
 import { RefusalReason } from '../../models/invitations';
 import { List } from '../open-lists';
 
+import { type UserStats } from './user-stats-dynamic';
+
 type QueryBindings = readonly Knex.RawBinding[] | Knex.ValueDict | Knex.RawBinding;
 
 type CommonDBHelpers = {
@@ -218,6 +220,9 @@ export class DbAdapter {
     viewerId?: UUID,
     options?: { postsTable: string; postAuthorsTable: string },
   ): Promise<string>;
+  notBannedActionsSQLFabric(
+    viewerId?: UUID,
+  ): Promise<(actionsTable: string, postsTable?: string, useIntBanIds?: boolean) => string>;
   isPostVisibleForViewer(postId: UUID, viewerId?: UUID): Promise<boolean>;
   getUsersWhoCanSeePost(postProps: { authorId: UUID; destFeeds: number[] }): Promise<List<UUID>>;
   isCommentBannedForViewer(commentId: UUID, viewerId?: UUID): Promise<boolean>;
@@ -225,6 +230,8 @@ export class DbAdapter {
     commentIds: UUID[],
     viewerId?: UUID,
   ): Promise<{ [id: UUID]: boolean }>;
+
+  getGroupsVisibility(accountIds: UUID[], viewerId: UUID | null): Promise<{ [k: UUID]: boolean }>;
 
   // App tokens
   createAppToken(token: AppTokenCreateParams): Promise<AppTokenV1>;
@@ -313,6 +320,8 @@ export class DbAdapter {
     userId: UUID | null,
     otherUserIds: UUID[],
   ): Promise<Map<UUID, 0 | 1 | 2 | 3>>;
+  isUserSubscribedToTimeline(userId: UUID, feedId: UUID): Promise<boolean>;
+  getUserFriendIds(userId: UUID): Promise<UUID[]>;
 
   // Email verification
   createEmailVerificationCode(email: string, ipAddress: IPAddr): Promise<string | null>;
@@ -368,4 +377,7 @@ export class DbAdapter {
   setInvitesDisabledForUser(userId: UUID, isDisabled: boolean): Promise<void>;
   isInvitesDisabledForUser(userId: UUID): Promise<boolean>;
   getInvitedByAssoc(userIds: UUID[]): Promise<Record<UUID, string>>;
+
+  // User stats
+  getDynamicUserStats(userId: UUID, viewerId: UUID | null): Promise<UserStats>;
 }
