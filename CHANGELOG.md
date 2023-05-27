@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [2.13.0] - Not released
+### Fixed
+- After version 1.23.1 the 'gm' package stopped clearing image metadata after
+  orientation correction. As a result, the picture was rotated, but the
+  "Orientation" EXIF tag remained the same. This caused the image to display
+  incorrectly in the browser. We now clear this tag if a rotation occurred.
 
 ## [2.12.1] - 2023-05-26
 ### Fixed
