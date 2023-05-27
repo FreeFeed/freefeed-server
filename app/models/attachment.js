@@ -16,6 +16,7 @@ import mv from 'mv';
 import gifsicle from 'gifsicle';
 import probe from 'probe-image-size';
 import Raven from 'raven';
+import { exiftool } from 'exiftool-vendored';
 
 import { getS3 } from '../support/s3';
 import { sanitizeMediaMetadata, SANITIZE_NONE, SANITIZE_VERSION } from '../support/sanitize-media';
@@ -371,6 +372,8 @@ export function addModel(dbAdapter) {
             .autoOrient()
             .quality(95);
           await img.writeAsync(originalFile);
+          // Clear orientation tag
+          await exiftool.write(originalFile, { 'Orientation#': null }, ['-overwrite_original']);
 
           originalImage = gm(originalFile);
           originalImage.orientationAsync = util.promisify(originalImage.orientation);
@@ -438,7 +441,6 @@ export function addModel(dbAdapter) {
           await originalImage // eslint-disable-line no-await-in-loop
             .resizeExact(w, h)
             .profile(`${__dirname}/../../lib/assets/sRGB.icm`)
-            .autoOrient()
             // Use white background for transparent images
             .background('white')
             .extent('0x0')
