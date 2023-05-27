@@ -58,7 +58,7 @@
     "ff-url-finder": "~2.3.7",
     "file-type": "~16.5.4",
     "gifsicle": "~7.0.1",
-    "gm": "~1.23.1",
+    "gm": "~1.25.0",
     "grapheme-breaker": "0.3.2",
     "humps": "~2.0.1",
     "ioredis": "~5.3.2",
