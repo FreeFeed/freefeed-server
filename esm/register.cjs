@@ -55,21 +55,12 @@ mmodule._extensions['.js'] = (mod, filename) => {
   try {
     jsHandler.call(this, mod, filename);
   } catch (error) {
-    if (error.code === 'ERR_REQUIRE_ESM') {
-      const content = fs.readFileSync(filename, 'utf8');
-      mod._compile(transpile(content, filename), filename);
-    } else if (
-      filename === path.join(__dirname, '../node_modules/config/lib/config.js') &&
-      error.message === 'hostName.split is not a function'
-    ) {
-      let content = fs.readFileSync(filename, 'utf8');
-      content = content.replace(/^(.*?hostName.split)/m, `console.log("hostName =",hostName);\n$1`);
-
-      mod._compile(content, filename);
-      // throw error;
-    } else {
+    if (error.code !== 'ERR_REQUIRE_ESM') {
       throw error;
     }
+
+    const content = fs.readFileSync(filename, 'utf8');
+    mod._compile(transpile(content, filename), filename);
   }
 };
 
