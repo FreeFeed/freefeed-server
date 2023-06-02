@@ -11,10 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   orientation correction. As a result, the picture was rotated, but the
   "Orientation" EXIF tag remained the same. This caused the image to display
   incorrectly in the browser. We now clear this tag if a rotation occurred.
+- Statistics did not give the number of subscriptions and subscribers to the
+  user himself, if that user is private.
 
 ## [2.12.1] - 2023-05-26
 ### Fixed
-- Dowgrade GraphicsMagick to fix image-rotation
+- Downgrade GraphicsMagick to fix image-rotation
 
 ## [2.12.0] - 2023-05-26
 ### Added

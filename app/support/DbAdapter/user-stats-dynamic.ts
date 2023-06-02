@@ -39,10 +39,9 @@ export default (superClass: typeof DbAdapter) =>
           this.postsVisibilitySQL(viewerId ?? undefined),
           this.notBannedActionsSQLFabric(viewerId ?? undefined),
         ]);
-      const isViewerSubscribed = await this.isUserSubscribedToTimeline(
-        viewerId ?? ZERO_UID,
-        postsFeed?.id ?? ZERO_UID,
-      );
+      const isViewerSubscribed =
+        viewerId === userId ||
+        (await this.isUserSubscribedToTimeline(viewerId ?? ZERO_UID, postsFeed?.id ?? ZERO_UID));
 
       if (!user?.isActive) {
         return {
