@@ -5,9 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.13.0] - Not released
+### Fixed
+- After version 1.23.1 the 'gm' package stopped clearing image metadata after
+  orientation correction. As a result, the picture was rotated, but the
+  "Orientation" EXIF tag remained the same. This caused the image to display
+  incorrectly in the browser. We now clear this tag if a rotation occurred.
+- Statistics did not give the number of subscriptions and subscribers to the
+  user himself, if that user is private.
+
 ## [2.12.1] - 2023-05-26
 ### Fixed
-- Dowgrade GraphicsMagick to fix image-rotation
+- Downgrade GraphicsMagick to fix image-rotation
 
 ## [2.12.0] - 2023-05-26
 ### Added

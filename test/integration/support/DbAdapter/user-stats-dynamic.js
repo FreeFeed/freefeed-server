@@ -54,6 +54,82 @@ describe('getDynamicUserStats', () => {
     });
   });
 
+  describe('Luna becomes protected', () => {
+    before(() => luna.update({ isProtected: '1', isPrivate: '0' }));
+    after(() => luna.update({ isProtected: '0', isPrivate: '0' }));
+
+    it('should not return subscribers/subscriptions for anonymous', async () => {
+      const stats = await dbAdapter.getDynamicUserStats(luna.id, null);
+      expect(stats, 'to equal', {
+        subscribers: null,
+        subscriptions: null,
+        posts: 0,
+        comments: 0,
+        likes: 0,
+      });
+    });
+
+    it('should return zero stats for Mars', async () => {
+      const stats = await dbAdapter.getDynamicUserStats(luna.id, mars.id);
+      expect(stats, 'to equal', {
+        subscribers: 0,
+        subscriptions: 0,
+        posts: 0,
+        comments: 0,
+        likes: 0,
+      });
+    });
+
+    it('should see Lunas group for Luna herself', async () => {
+      const stats = await dbAdapter.getDynamicUserStats(luna.id, luna.id);
+      expect(stats, 'to equal', {
+        subscribers: 0,
+        subscriptions: 1,
+        posts: 0,
+        comments: 0,
+        likes: 0,
+      });
+    });
+  });
+
+  describe('Luna becomes private', () => {
+    before(() => luna.update({ isProtected: '1', isPrivate: '1' }));
+    after(() => luna.update({ isProtected: '0', isPrivate: '0' }));
+
+    it('should not return subscribers/subscriptions for anonymous', async () => {
+      const stats = await dbAdapter.getDynamicUserStats(luna.id, null);
+      expect(stats, 'to equal', {
+        subscribers: null,
+        subscriptions: null,
+        posts: 0,
+        comments: 0,
+        likes: 0,
+      });
+    });
+
+    it('should not return subscribers/subscriptions for Mars', async () => {
+      const stats = await dbAdapter.getDynamicUserStats(luna.id, mars.id);
+      expect(stats, 'to equal', {
+        subscribers: null,
+        subscriptions: null,
+        posts: 0,
+        comments: 0,
+        likes: 0,
+      });
+    });
+
+    it('should see Lunas group for Luna herself', async () => {
+      const stats = await dbAdapter.getDynamicUserStats(luna.id, luna.id);
+      expect(stats, 'to equal', {
+        subscribers: 0,
+        subscriptions: 1,
+        posts: 0,
+        comments: 0,
+        likes: 0,
+      });
+    });
+  });
+
   describe('Luna going to be deleted', () => {
     before(() => luna.setGoneStatus(GONE_COOLDOWN));
     after(() => luna.setGoneStatus(null));
