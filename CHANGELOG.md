@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [2.13.0] - Not released
+### Fixed
+- GraphicsMagick cannot read the EXIF "Orientation" tag of some images. So now
+  we read it using exiftool and manually correct the orientation of the image.
 
 ## [2.12.2] - 2023-06-02
 ### Fixed
