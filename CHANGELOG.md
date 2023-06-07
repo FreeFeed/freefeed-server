@@ -7,8 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.13.0] - Not released
 ### Fixed
-- GraphicsMagick cannot read the EXIF "Orientation" tag of some images. So now
-  we read it using exiftool and manually correct the orientation of the image.
+- Exif orientation is a complex beast. The "Orientation" tag can be presents in
+  several EXIF sections: in IFD0 (the image itself) or in IFD1 (image
+  thumbnail). Different libraries and even browsers can read thumbnail's
+  Orientation as an image Orientation. So now we explicitly read
+  'IFD0:Orientation' and 'IFD1:Orientation' from the image. We rotate it
+  according to IFD0's and remove all orientation tags before saving the image.
 
 ## [2.12.2] - 2023-06-02
 ### Fixed

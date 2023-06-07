@@ -60,7 +60,7 @@ describe('Orientation', () => {
       it(`should create proper big file`, async () => {
         const image = gm(attachment.getPath());
         const o = await promisify(image.orientation.bind(image))();
-        expect(o, 'to be', orientation > 1 ? 'Unknown' : orientationNames[orientation]);
+        expect(o, 'to be', 'Unknown');
 
         await expectOrientation(image, orientation);
       });
@@ -68,7 +68,7 @@ describe('Orientation', () => {
       it(`should create proper thumbnail file`, async () => {
         const image = gm(attachment.getResizedImagePath('t'));
         const o = await promisify(image.orientation.bind(image))();
-        expect(o, 'to be', orientation > 1 ? 'Unknown' : orientationNames[orientation]);
+        expect(o, 'to be', 'Unknown');
 
         await expectOrientation(image, orientation);
       });

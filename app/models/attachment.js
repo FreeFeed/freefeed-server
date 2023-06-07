@@ -368,8 +368,6 @@ export function addModel(dbAdapter) {
             .out(...autoOrientCommands)
             .quality(95);
           await img.writeAsync(originalFile);
-          // Clear orientation tag
-          await exiftool.write(originalFile, { 'Orientation#': null }, ['-overwrite_original']);
 
           originalImage = gm(originalFile);
           originalImage.writeAsync = util.promisify(originalImage.write);
@@ -378,6 +376,9 @@ export function addModel(dbAdapter) {
           this.imageSizes.o.w = originalSize.width;
           this.imageSizes.o.h = originalSize.height;
         }
+
+        // In any case, clear all orientation tags
+        await clearOrientation(originalFile);
       }
 
       const thumbIds = [];
@@ -688,13 +689,33 @@ const orientationCommands = {
   8: ['-rotate', 270],
 };
 
+/**
+ * @param {string} fileName
+ * @returns {Promise<null | string[]>}
+ */
 async function gmAutoOrientCommands(fileName) {
-  const { Orientation } = await exiftool.read(fileName);
-  const commands = orientationCommands[Orientation];
+  const { 'IFD0:Orientation': orientation } = await exiftool.readRaw(fileName, [
+    '-IFD0:Orientation',
+    '-G1',
+    '-n',
+  ]);
+  const commands = orientationCommands[orientation];
 
   if (!commands) {
     return null;
   }
 
   return [...commands, '-page', '+0+0'];
+}
+
+/**
+ * Clear all orientation tags
+ *
+ * @param {string} fileName
+ * @returns {Promise<void>}
+ */
+async function clearOrientation(fileName) {
+  await exiftool.write(fileName, { 'IFD0:Orientation': null, 'IFD1:Orientation': null }, [
+    '-overwrite_original',
+  ]);
 }
