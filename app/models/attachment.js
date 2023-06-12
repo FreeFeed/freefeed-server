@@ -358,31 +358,27 @@ export function addModel(dbAdapter) {
       // Fix EXIF orientation for original image, if JPEG
       if (this.mimeType === 'image/jpeg') {
         originalImage = gm(originalFile);
-        originalImage.orientationAsync = util.promisify(originalImage.orientation);
         originalImage.writeAsync = util.promisify(originalImage.write);
 
-        // orientation() returns a string. Possible values are:
-        // unknown, Unknown, TopLeft, TopRight, BottomRight, BottomLeft, LeftTop, RightTop, RightBottom, LeftBottom
-        // The first three options are fine, the rest should be fixed.
-        const orientation = await originalImage.orientationAsync();
+        const autoOrientCommands = await gmAutoOrientCommands(originalFile);
 
-        if (!['unknown', 'Unknown', 'TopLeft'].includes(orientation)) {
+        if (autoOrientCommands) {
           const img = originalImage
             .profile(`${__dirname}/../../lib/assets/sRGB.icm`)
-            .autoOrient()
+            .out(...autoOrientCommands)
             .quality(95);
           await img.writeAsync(originalFile);
-          // Clear orientation tag
-          await exiftool.write(originalFile, { 'Orientation#': null }, ['-overwrite_original']);
 
           originalImage = gm(originalFile);
-          originalImage.orientationAsync = util.promisify(originalImage.orientation);
           originalImage.writeAsync = util.promisify(originalImage.write);
 
           originalSize = await getImageSize(originalFile);
           this.imageSizes.o.w = originalSize.width;
           this.imageSizes.o.h = originalSize.height;
         }
+
+        // In any case, clear all orientation tags
+        await clearOrientation(originalFile);
       }
 
       const thumbIds = [];
@@ -432,7 +428,6 @@ export function addModel(dbAdapter) {
         // because gm is acting up weirdly when writing files in parallel mode
         if (originalImage === null) {
           originalImage = gm(originalFile);
-          originalImage.orientationAsync = util.promisify(originalImage.orientation);
           originalImage.writeAsync = util.promisify(originalImage.write);
         }
 
@@ -682,4 +677,65 @@ function fitIntoBounds(size, bounds) {
   }
 
   return { width, height };
+}
+
+const orientationCommands = {
+  2: ['-flop'],
+  3: ['-rotate', 180],
+  4: ['-flip'],
+  5: ['-flip', '-rotate', 90],
+  6: ['-rotate', 90],
+  7: ['-flop', '-rotate', 90],
+  8: ['-rotate', 270],
+};
+
+/**
+ * @param {string} fileName
+ * @returns {Promise<null | string[]>}
+ */
+async function gmAutoOrientCommands(fileName) {
+  const { 'IFD0:Orientation': orientation } = await exiftool.readRaw(fileName, [
+    '-IFD0:Orientation',
+    '-G1',
+    '-n',
+  ]);
+  const commands = orientationCommands[orientation];
+
+  if (!commands) {
+    return null;
+  }
+
+  return [...commands, '-page', '+0+0'];
+}
+
+/**
+ * Clear all orientation tags
+ *
+ * @param {string} fileName
+ * @returns {Promise<void>}
+ */
+async function clearOrientation(fileName) {
+  const orientTags = ['IFD0:Orientation', 'IFD1:Orientation'];
+  const imageTags = await exiftool.readRaw(fileName, [
+    ...orientTags.map((t) => `-${t}`),
+    '-G1',
+    '-n',
+  ]);
+  const tagsToClean = {};
+
+  // We do not want to change images if it is not necessary, so we ignore tag
+  // values of '1' (Normal).
+  for (const tag of orientTags) {
+    if (tag in imageTags && imageTags[tag] !== 1) {
+      tagsToClean[tag] = null;
+    }
+  }
+
+  if (Object.keys(tagsToClean).length > 0) {
+    try {
+      await exiftool.write(fileName, tagsToClean, ['-overwrite_original', '-ignoreMinorErrors']);
+    } catch (e) {
+      // It's ok to fail, we cannot do anything useful in this case
+    }
+  }
 }

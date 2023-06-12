@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.13.0] - Not released
+### Fixed
+- Exif orientation is a complex beast. The "Orientation" tag can be presents in
+  several EXIF sections: in IFD0 (the image itself) or in IFD1 (image
+  thumbnail). Different libraries and even browsers can read thumbnail's
+  Orientation as an image Orientation. So now we explicitly read
+  'IFD0:Orientation' and 'IFD1:Orientation' from the image. We rotate it
+  according to IFD0's and remove all orientation tags before saving the image.
+
 ## [2.12.2] - 2023-06-02
 ### Fixed
 - After version 1.23.1 the 'gm' package stopped clearing image metadata after
