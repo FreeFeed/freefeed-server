@@ -682,7 +682,7 @@ describe('Comment likes', () => {
 
         it("should not show Luna Mars' comment likes", async () => {
           const res = await getCommentLikes(marsComment.id, luna);
-          expect(res, 'to be an API error', 403, 'You have banned by the author of this comment');
+          expect(res, 'to be an API error', 403, 'You have banned the author of this comment');
         });
 
         it("should not show Luna Pluto's comment likes", async () => {

@@ -11,19 +11,44 @@ import { postAccessRequired } from './post-access-required';
  * Checks if the current user has access to the comment. It also checks access
  * to the comment's post. This middleware fills ctx.state.comment and
  * ctx.state.post.
+ *
+ * It requires ctx.params.commentId or (ctx.params.seqNumber and
+ * ctx.params.postId).
+ *
+ * If the required parameter 'mustBeVisible' is true, it throws
+ * ForbiddenException on comment from banned user or other hidden comment.
+ * Otherwise, it returns comment as with non-empty hideType and with placeholder
+ * body.
+ *
+ * @param {{ mustBeVisible: bool}} options
+ * @returns {import("koa").Middleware}
  */
-export function commentAccessRequired() {
+export function commentAccessRequired({ mustBeVisible }) {
   return async (ctx, next) => {
     const { user: viewer } = ctx.state;
 
-    if (!ctx.params.commentId) {
+    if (!ctx.params.commentId && !ctx.params.seqNumber) {
       throw new ServerErrorException(
-        `Server misconfiguration: the required parameter 'commentId' is missing`,
+        `Server misconfiguration: the required parameters 'commentId' or 'seqNumber' are missing`,
       );
     }
 
-    const { commentId } = ctx.params;
-    const comment = await dbAdapter.getCommentById(commentId);
+    /** @type {Comment|null}*/
+    let comment;
+
+    if (ctx.params.commentId) {
+      comment = await dbAdapter.getCommentById(ctx.params.commentId);
+    } else if (ctx.params.seqNumber && ctx.params.postId) {
+      const number = Number.parseInt(ctx.params.seqNumber, 10);
+      comment = await dbAdapter.getCommentBySeqNumber(
+        ctx.params.postId,
+        Number.isFinite(number) ? number : -1,
+      );
+    } else {
+      throw new ServerErrorException(
+        `Server misconfiguration: the required parameters 'commentId' or 'seqNumber' are missing`,
+      );
+    }
 
     if (!comment) {
       throw new NotFoundException("Can't find comment");
@@ -35,13 +60,15 @@ export function commentAccessRequired() {
       postAccessRequired()(ctx, resolve).then((x) => x, reject),
     );
 
-    const viewerBanIds = viewer ? await viewer.getBanIds() : [];
-
-    if (viewerBanIds.includes(comment.userId)) {
-      throw new ForbiddenException('You have banned by the author of this comment');
+    if (await dbAdapter.isCommentBannedForViewer(comment.id, viewer?.id)) {
+      if (mustBeVisible) {
+        throw new ForbiddenException('You have banned the author of this comment');
+      } else {
+        comment.setHideType(Comment.HIDDEN_BANNED);
+      }
     }
 
-    if (comment.hideType !== Comment.VISIBLE) {
+    if (comment.hideType !== Comment.VISIBLE && mustBeVisible) {
       throw new ForbiddenException(`You don't have access to this comment`);
     }
 
