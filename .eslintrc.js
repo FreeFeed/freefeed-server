@@ -79,6 +79,7 @@ module.exports = {
     'no-async-promise-executor': 2,
     'no-await-in-loop': 2,
     'no-control-regex': 0,
+    'no-constant-binary-expression': 2,
     'no-debugger': 2,
     'no-duplicate-imports': 2,
     'no-else-return': 2,
