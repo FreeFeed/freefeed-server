@@ -47,8 +47,16 @@ If the post is visible but the comment is not, the comment may appear as a stub
 (with hideType = HIDDEN_BANNED). It depends on *hideCommentsOfTypes* field of
 viewer properties.
 
+Handling the visibility of comments is a bit special (see the
+'commentAccessRequired' middleware). If the viewer has access to post, but not
+to comment, the middleware acts as follows:
+* If the comment itself is requested, the comment is returned, but with the
+  appropriate hideType and with a placeholder instead of the body.
+* If the comment-related resource is requested (currently it is a comment like),
+  the middleware throws a 403 error.
+
 ### In code
-The post visibility rules calculates in the following places:
+The action visibility rules calculates in the following places:
 * app/support/DbAdapter/visibility.js, notBannedSQLFabric function. This makes
   SQL filter fabric to select non-banned actions.
 * app/support/DbAdapter/visibility.js, getUsersWhoCanSeeComment function. This
@@ -57,3 +65,5 @@ The post visibility rules calculates in the following places:
   function returns true if comment is banned (and should be hidden) for the
   given viewer.
 * app/pubsub-listener.js, broadcastMessage function checks access for actions.
+* app/controllers/middlewares/comment-access-required.js, the
+  'commentAccessRequired' middleware.

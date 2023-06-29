@@ -173,6 +173,17 @@ export function addModel(dbAdapter) {
       return dbAdapter.getPostById(this.postId);
     }
 
+    setHideType(hideType) {
+      this.hideType = hideType;
+
+      if (this.hideType === Comment.VISIBLE) {
+        return;
+      }
+
+      this.body = Comment.hiddenBody(this.hideType);
+      this.userId = null;
+    }
+
     /**
      * Users can view post body
      */

@@ -8,7 +8,7 @@ import { authRequired, monitored, commentAccessRequired } from '../../middleware
 export default class CommentLikesController {
   static like = compose([
     authRequired(),
-    commentAccessRequired(),
+    commentAccessRequired({ mustBeVisible: true }),
     monitored('comments.like'),
     async (ctx) => {
       const { comment, user } = ctx.state;
@@ -30,7 +30,7 @@ export default class CommentLikesController {
 
   static unlike = compose([
     authRequired(),
-    commentAccessRequired(),
+    commentAccessRequired({ mustBeVisible: true }),
     monitored('comments.unlike'),
     async (ctx) => {
       const { comment, user } = ctx.state;
@@ -51,7 +51,7 @@ export default class CommentLikesController {
   ]);
 
   static likes = compose([
-    commentAccessRequired(),
+    commentAccessRequired({ mustBeVisible: true }),
     async (ctx) => {
       const { comment, user } = ctx.state;
 
