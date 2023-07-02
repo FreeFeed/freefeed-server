@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.13.0] - Not released
+### Fixed
+- Ban visibility rules were incorrectly handled by some comment related methods
+  (get comment by id, get list of comment likes). For example, the viewer
+  couldn't see the list of likes of a banned user's comment, even if the viewer
+  selected to see banned users in the comment's post group.
+
 ## [2.12.3] - 2023-06-02
 ### Fixed
 - Exif orientation is a complex beast. The "Orientation" tag can be presents in

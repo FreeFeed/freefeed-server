@@ -213,8 +213,8 @@ const commentsTrait = (superClass) =>
 
       if (
         params.hideType === Comment.HIDDEN_ARCHIVED &&
-        !params.userId === null &&
-        params.oldUsername === null
+        // Archived comment should have either a userId OR an oldUsername, emulating XOR here
+        Boolean(params.userId) === Boolean(params.oldUsername)
       ) {
         throw new Error(`Undefined author of HIDDEN_ARCHIVED comment`);
       }

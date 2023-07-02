@@ -18,6 +18,7 @@ import {
   inputSchemaRequired,
   postAccessRequired,
   monitored,
+  commentAccessRequired,
 } from '../../middlewares';
 
 import { commentCreateInputSchema, commentUpdateInputSchema } from './data-schemes';
@@ -58,30 +59,11 @@ export const create = compose([
 
 export const update = compose([
   authRequired(),
+  commentAccessRequired({ mustBeVisible: true }),
   inputSchemaRequired(commentUpdateInputSchema),
   monitored('comments.update'),
   async (ctx) => {
-    const { user } = ctx.state;
-    const { commentId } = ctx.params;
-
-    const comment = await dbAdapter.getCommentById(commentId);
-
-    if (!comment) {
-      throw new NotFoundException('Can not find comment');
-    }
-
-    const post = await dbAdapter.getPostById(comment.postId);
-
-    if (!post) {
-      // Should not be possible
-      throw new NotFoundException('Post not found');
-    }
-
-    const isPostVisible = await post.isVisibleFor(user);
-
-    if (!isPostVisible) {
-      throw new ForbiddenException('You can not see this post');
-    }
+    const { user, comment } = ctx.state;
 
     if (comment.userId !== user.id) {
       throw new ForbiddenException("You can't update another user's comment");
@@ -99,29 +81,11 @@ export const update = compose([
 
 export const destroy = compose([
   authRequired(),
+  // Post owner or group admin can delete hidden comments
+  commentAccessRequired({ mustBeVisible: false }),
   monitored('comments.destroy'),
   async (ctx) => {
-    const { user } = ctx.state;
-    const { commentId } = ctx.params;
-
-    const comment = await dbAdapter.getCommentById(commentId);
-
-    if (!comment) {
-      throw new NotFoundException('Can not find comment');
-    }
-
-    const post = await dbAdapter.getPostById(comment.postId);
-
-    if (!post) {
-      // Should not be possible
-      throw new NotFoundException('Post not found');
-    }
-
-    const isPostVisible = await post.isVisibleFor(user);
-
-    if (!isPostVisible) {
-      throw new ForbiddenException('You can not see this post');
-    }
+    const { user, post, comment } = ctx.state;
 
     if (!comment.canBeDestroyed()) {
       throw new ForbiddenException('You can not destroy a deleted comment');
@@ -138,31 +102,13 @@ export const destroy = compose([
   },
 ]);
 
-export async function getById(ctx) {
-  const { user } = ctx.state;
-  const { commentId } = ctx.params;
-
-  const comment = await dbAdapter.getCommentById(commentId);
-
-  if (!comment) {
-    throw new NotFoundException('Comment not found');
-  }
-
-  const post = await dbAdapter.getPostById(comment.postId);
-
-  if (!post) {
-    // Should not be possible
-    throw new NotFoundException('Comment not found');
-  }
-
-  const isPostVisible = await post.isVisibleFor(user);
-
-  if (!isPostVisible) {
-    throw new ForbiddenException('You can not see this comment');
-  }
-
-  ctx.body = await serializeCommentFull(comment, user?.id);
-}
+export const getById = compose([
+  commentAccessRequired({ mustBeVisible: false }),
+  async (ctx) => {
+    const { comment, user } = ctx.state;
+    ctx.body = await serializeCommentFull(comment, user?.id);
+  },
+]);
 
 const maxCommentsByIds = 100;
 

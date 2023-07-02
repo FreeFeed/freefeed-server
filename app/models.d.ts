@@ -42,6 +42,7 @@ export class User {
   goneStatus: keyof typeof GONE_NAMES | null;
   goneStatusName: string;
   setGoneStatus(status: keyof typeof GONE_NAMES | null): Promise<void>;
+  ban(usernames: string): Promise<1>;
   unban(usernames: string): Promise<1>;
   subscribeTo(
     targetUser: User,
@@ -196,6 +197,7 @@ export class Comment {
   removeLike(user: User): Promise<boolean>;
   getCreatedBy(): Promise<User>;
   usersCanSee(): Promise<List<UUID>>;
+  setHideType(hideType: number): void;
 }
 
 export const sessionTokenV1Store: SessionTokenV1Store;
