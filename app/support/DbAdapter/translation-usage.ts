@@ -64,4 +64,12 @@ export default (superClass: typeof DbAdapter) =>
       // Sliding window approximation using the current and previous interval data
       return (nowUsage ?? 0) + (prevUsage ?? 0) * (1 - nowPart);
     }
+
+    async cleanOldTranslationUsageData(now: ISO8601DateTimeString | 'now' = 'now') {
+      await this.database.raw(
+        `delete from translation_usage where
+          date < date_trunc(period, :now::timestamptz) - ('2 ' || period)::interval`,
+        { now },
+      );
+    }
   };

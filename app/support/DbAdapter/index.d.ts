@@ -388,4 +388,5 @@ export class DbAdapter {
   // Translation usage
   registerTranslationUsage(options: TranslationRegisterOptions): Promise<void>;
   getTranslationUsage(options: TranslationUsageOptions): Promise<number>;
+  cleanOldTranslationUsageData(now?: ISO8601DateTimeString | 'now'): Promise<void>;
 }

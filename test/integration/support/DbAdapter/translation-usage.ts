@@ -85,4 +85,10 @@ describe('translationUsageTrait', () => {
       expect(usage, 'to be', 0);
     });
   });
+
+  describe('Cleaning up', () => {
+    it(`should clean up the old data and doesn't blow up`, async () => {
+      await dbAdapter.cleanOldTranslationUsageData();
+    });
+  });
 });
