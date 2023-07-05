@@ -17,6 +17,10 @@ import { RefusalReason } from '../../models/invitations';
 import { List } from '../open-lists';
 
 import { type UserStats } from './user-stats-dynamic';
+import {
+  type RegisterOptions as TranslationRegisterOptions,
+  type UsageOptions as TranslationUsageOptions,
+} from './translation-usage';
 
 type QueryBindings = readonly Knex.RawBinding[] | Knex.ValueDict | Knex.RawBinding;
 
@@ -380,4 +384,8 @@ export class DbAdapter {
 
   // User stats
   getDynamicUserStats(userId: UUID, viewerId: UUID | null): Promise<UserStats>;
+
+  // Translation usage
+  registerTranslationUsage(options: TranslationRegisterOptions): Promise<void>;
+  getTranslationUsage(options: TranslationUsageOptions): Promise<number>;
 }
