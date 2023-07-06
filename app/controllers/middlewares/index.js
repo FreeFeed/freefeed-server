@@ -62,3 +62,13 @@ export { postAccessRequired } from './post-access-required';
 export { targetUserRequired } from './target-user-required';
 export { inputSchemaRequired } from './input-schema-required';
 export { commentAccessRequired } from './comment-access-required';
+
+/**
+ *
+ * @param {import("koa").Middleware} mw
+ * @param {import("koa").COntext} ctx
+ * @returns {Promise<void>}
+ */
+export async function applyMiddleware(mw, ctx) {
+  await new Promise((resolve, reject) => mw(ctx, resolve).then((x) => x, reject));
+}
