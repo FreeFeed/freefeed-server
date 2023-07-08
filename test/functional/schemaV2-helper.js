@@ -471,6 +471,10 @@ export const serverInfoResponse = {
   },
   registrationRequiresInvite: expect.it('to be a boolean'),
   multiUseInvitesEnabled: expect.it('to be a boolean'),
+  textTranslation: expect.it('to satisfy', {
+    enabled: expect.it('to be a boolean'),
+    serviceTitle: expect.it('to be a string'),
+  }),
 };
 
 export const externalProfile = {

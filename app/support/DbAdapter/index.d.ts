@@ -1,4 +1,5 @@
 import { Knex } from 'knex';
+import { Cache } from 'cache-manager';
 
 import { IPAddr, ISO8601DateTimeString, ISO8601DurationString, Nullable, UUID } from '../types';
 import { AppTokenV1, Attachment, Comment, Group, Post, Timeline, User, Job } from '../../models';
@@ -93,6 +94,8 @@ export class DbAdapter {
   constructor(connection: Knex);
 
   database: Knex & CommonDBHelpers & TrxDBHelpers;
+  memoryCache: Cache;
+  cache: Cache;
 
   now(): Promise<Date>;
 
