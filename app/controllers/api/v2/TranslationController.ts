@@ -1,10 +1,16 @@
 import { createHash } from 'crypto';
 
+import monitor from 'monitor-dog';
 import compose from 'koa-compose';
 import type { TranslationLimits } from 'config';
 import type { Context } from 'koa';
 
-import { authRequired, commentAccessRequired, postAccessRequired } from '../../middlewares';
+import {
+  authRequired,
+  commentAccessRequired,
+  monitored,
+  postAccessRequired,
+} from '../../middlewares';
 import { type User, type Post, type Comment, dbAdapter } from '../../../models';
 import type { Ctx, UUID } from '../../../support/types';
 import { ForbiddenException, ServerErrorException } from '../../../support/exceptions';
@@ -16,9 +22,15 @@ export const getTranslatedBody = compose([
   authRequired(),
   async (ctx: Context, next) => {
     if (ctx.params.commentId) {
-      await commentAccessRequired({ mustBeVisible: true })(ctx, next);
+      await compose([
+        monitored('translated-body', { entity: 'comment' }),
+        commentAccessRequired({ mustBeVisible: true }),
+      ])(ctx, next);
     } else if (ctx.params.postId) {
-      await postAccessRequired()(ctx, next);
+      await compose([monitored('translated-body', { entity: 'post' }), postAccessRequired()])(
+        ctx,
+        next,
+      );
     } else {
       throw new ServerErrorException(
         `Server misconfiguration: the required parameters 'postId' or 'commentId' are missing`,
@@ -45,45 +57,61 @@ export const getTranslatedBody = compose([
 
     const cacheKey = createHash('sha1').update(text).update(':').update(targetLang).digest('hex');
 
-    let result = await dbAdapter.cache.get<TranslationResult>(cacheKey);
+    let result: TranslationResult | undefined;
+    let cacheHit = true;
+    let overQuote = false;
 
-    if (!result) {
-      await checkLimits(ctx.config.translation.limits, user.id);
+    try {
+      result = await dbAdapter.cache.get<TranslationResult>(cacheKey);
 
-      result = await translateText(text, targetLang, ctx.config);
+      if (!result) {
+        cacheHit = false;
 
-      await Promise.all([
-        // Save the translation in the cache
-        dbAdapter.cache.set(cacheKey, result),
-        // Update usage data
-        dbAdapter.registerTranslationUsage({ period: 'month', characters: text.length }),
-        dbAdapter.registerTranslationUsage({
-          period: 'day',
-          userId: user.id,
-          characters: text.length,
-        }),
-      ]);
+        if (await isOverQuote(ctx.config.translation.limits, user.id)) {
+          overQuote = true;
+          throw new ForbiddenException(
+            'You have reached the limit of allowed translations. Please try again later.',
+          );
+        }
+
+        result = await translateText(text, targetLang, ctx.config);
+
+        await Promise.all([
+          // Save the translation in the cache
+          dbAdapter.cache.set(cacheKey, result),
+          // Update usage data
+          dbAdapter.registerTranslationUsage({ period: 'month', characters: text.length }),
+          dbAdapter.registerTranslationUsage({
+            period: 'day',
+            userId: user.id,
+            characters: text.length,
+          }),
+        ]);
+      }
+
+      ctx.body = result;
+    } finally {
+      const statTags = {
+        detectedLang: result?.detectedLang ?? '',
+        targetLang,
+        cacheHit: cacheHit ? 'true' : 'false',
+        overQuote: overQuote ? 'true' : 'false',
+      };
+
+      monitor.increment('translation-usage', text.length, statTags);
+      monitor.increment('translation-requests', 1, statTags);
     }
-
-    ctx.body = result;
   },
 ]);
 
-async function checkLimits(limits: TranslationLimits, userId: UUID): Promise<void> {
+async function isOverQuote(limits: TranslationLimits, userId: UUID): Promise<boolean> {
   const [allUsedChars, userUsedChars] = await Promise.all([
     dbAdapter.getTranslationUsage({ period: 'month' }),
     dbAdapter.getTranslationUsage({ period: 'day', userId }),
   ]);
 
-  if (
-    allUsedChars < limits.totalCharactersPerMonth &&
-    userUsedChars < limits.userCharactersPerDay
-  ) {
-    return;
-  }
-
-  throw new ForbiddenException(
-    'You have reached the limit of allowed translations. Please try again later.',
+  return (
+    allUsedChars > limits.totalCharactersPerMonth || userUsedChars > limits.userCharactersPerDay
   );
 }
 
