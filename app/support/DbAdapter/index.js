@@ -41,6 +41,7 @@ import groupBlocksTrait from './group-blocks';
 import emailVerificationTrait from './email-verification';
 import adminTrait from './admins';
 import userStatsDynamicTrait from './user-stats-dynamic';
+import translationUsageTrait from './translation-usage';
 
 class DbAdapterBase {
   constructor(database) {
@@ -131,4 +132,5 @@ export const DbAdapter = _.flow([
   emailVerificationTrait,
   adminTrait,
   userStatsDynamicTrait,
+  translationUsageTrait,
 ])(DbAdapterBase);

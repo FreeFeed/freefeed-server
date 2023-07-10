@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [2.13.0] - Not released
+### Added
+- Translation post and comment texts (via Google Translate) to the user
+  language.
+  - Two API methods added:
+    - `GET /v2/posts/:postId/translated-body`
+    - `GET /v2/comments/:commentId/translated-body`
+
+    Both methods returns the translated body text and detected source language
+    in form: `{translatedText: string; detectedLang: string}`. Client can
+    specify language to translate to with `lang` query parameter. If no language
+    is specified, the preferred language from 'Accept-Language' header is used.
+
+  - The server administrator can enable translation in the configuration file
+    and set the Google API key. API usage is limited by configuration, the
+    administrator can set server-wide limit of translated characters per month
+    and per-user limit of translated characters per day.
 
 ## [2.12.4] - 2023-02-07
 ### Fixed
