@@ -12,6 +12,7 @@ export async function translate(
     body: JSON.stringify({
       q: text,
       target: targetLang,
+      format: 'text',
     }),
     headers: {
       'Content-Type': 'application/json; charset=utf-8',
