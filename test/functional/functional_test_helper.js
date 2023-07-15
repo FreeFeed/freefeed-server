@@ -3,8 +3,7 @@ import http from 'http';
 import { stringify as qsStringify } from 'querystring';
 import util from 'util';
 
-import fetch, { fileFrom } from 'node-fetch';
-import { FormData } from 'formdata-node';
+import fetch, { fileFrom, FormData } from 'node-fetch';
 import request from 'superagent';
 import _, { merge } from 'lodash';
 import SocketIO from 'socket.io-client';

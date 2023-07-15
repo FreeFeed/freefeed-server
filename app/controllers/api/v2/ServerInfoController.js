@@ -31,5 +31,9 @@ export async function serverInfo(ctx) {
     emailVerificationEnabled: config.emailVerification.enabled,
     registrationRequiresInvite: config.invitations.requiredForSignUp,
     multiUseInvitesEnabled: !config.invitations.requiredForSignUp,
+    textTranslation: {
+      enabled: config.translation.enabled,
+      serviceTitle: config.translation.serviceTitle,
+    },
   };
 }

@@ -59,4 +59,14 @@ module.exports = {
   emailVerification: {
     domainBlockList: resolve(__dirname, '../test/emailDomainBlockList.txt'),
   },
+
+  translation: {
+    enabled: true,
+    limits: {
+      totalCharactersPerMonth: 500_000,
+      userCharactersPerDay: 5_000,
+    },
+    service: 'test',
+    serviceTitle: 'Test',
+  },
 };

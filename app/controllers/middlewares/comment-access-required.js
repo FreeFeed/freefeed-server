@@ -7,6 +7,8 @@ import { dbAdapter, Comment } from '../../models';
 
 import { postAccessRequired } from './post-access-required';
 
+import { applyMiddleware } from '.';
+
 /**
  * Checks if the current user has access to the comment. It also checks access
  * to the comment's post. This middleware fills ctx.state.comment and
@@ -56,9 +58,7 @@ export function commentAccessRequired({ mustBeVisible }) {
 
     // Check post access first and then the comment access
     ctx.params.postId = comment.postId;
-    await new Promise((resolve, reject) =>
-      postAccessRequired()(ctx, resolve).then((x) => x, reject),
-    );
+    await applyMiddleware(postAccessRequired(), ctx);
 
     if (await dbAdapter.isCommentBannedForViewer(comment.id, viewer?.id)) {
       if (mustBeVisible) {

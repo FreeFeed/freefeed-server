@@ -3,10 +3,9 @@
 import fs from 'fs';
 import path from 'path';
 
-import { FormData } from 'formdata-node';
 import unexpected from 'unexpected';
 import unexpectedDate from 'unexpected-date';
-import { Blob, fileFrom } from 'node-fetch';
+import { Blob, fileFrom, FormData } from 'node-fetch';
 
 import cleanDB from '../dbCleaner';
 import { dbAdapter } from '../../app/models';

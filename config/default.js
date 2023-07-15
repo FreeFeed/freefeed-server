@@ -457,4 +457,15 @@ config.invitations = {
   ],
 };
 
+config.translation = {
+  enabled: false,
+  limits: {
+    totalCharactersPerMonth: 500_000,
+    userCharactersPerDay: 5_000,
+  },
+  service: 'google',
+  serviceTitle: 'Google',
+  apiKey: 'OVERRIDE_IT',
+};
+
 module.exports = config;

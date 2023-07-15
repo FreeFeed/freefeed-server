@@ -153,6 +153,19 @@ declare module 'config' {
       requiredForSignUp: boolean;
       canCreateIf: InvitationCreationCriterion[];
     };
+
+    translation:
+      | { enabled: false }
+      | ({
+          enabled: true;
+          limits: TranslationLimits;
+          serviceTitle: string;
+        } & ({ service: 'test' } | { service: 'google'; apiKey: string }));
+  };
+
+  export type TranslationLimits = {
+    totalCharactersPerMonth: number;
+    userCharactersPerDay: number;
   };
 
   const c: Config;

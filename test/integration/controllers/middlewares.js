@@ -58,14 +58,17 @@ describe('Controller middlewares', () => {
       timer: stub().returns(timer),
     };
 
-    const handler = compose([monitored('test', monitor)]);
+    const handler = compose([monitored('test', {}, monitor)]);
     const failHandler = compose([
-      monitored('test', monitor),
+      monitored('test', {}, monitor),
       () => {
         throw new Error('');
       },
     ]);
-    const nestedHandler = compose([monitored('test1', monitor), monitored('test', monitor)]);
+    const nestedHandler = compose([
+      monitored('test1', {}, monitor),
+      monitored('test', {}, monitor),
+    ]);
 
     let ctx;
     beforeEach(() => {
@@ -94,7 +97,7 @@ describe('Controller middlewares', () => {
 
     it(`should start and stop 'test-time' timer`, async () => {
       await handler(ctx);
-      expect(monitor.timer, 'to have a call satisfying', ['test-time']);
+      expect(monitor.timer, 'to have a call satisfying', ['test-time', true, {}]);
       expect(timer.stop, 'was called');
       expect([monitor.timer, timer.stop], 'given call order');
     });
@@ -111,15 +114,15 @@ describe('Controller middlewares', () => {
         1,
         { auth: 'anonymous' },
       ]);
-      expect(monitor.timer, 'to have a call satisfying', ['test1-time']);
+      expect(monitor.timer, 'to have a call satisfying', ['test1-time', true, {}]);
       expect(monitor.increment, 'was called once');
       expect(monitor.timer, 'was called once');
       expect(timer.stop, 'was called once');
     });
 
     it(`should use custom counter and timer names`, async () => {
-      await monitored({ timer: 'timerA', requests: 'requestsB' }, monitor)(ctx, noop);
-      expect(monitor.timer, 'to have a call satisfying', ['timerA']);
+      await monitored({ timer: 'timerA', requests: 'requestsB' }, {}, monitor)(ctx, noop);
+      expect(monitor.timer, 'to have a call satisfying', ['timerA', true, {}]);
       expect(monitor.increment, 'to have a call satisfying', [
         'requestsB',
         1,

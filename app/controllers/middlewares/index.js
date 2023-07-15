@@ -6,9 +6,9 @@ import { NotAuthorizedException } from '../../support/exceptions';
  * Middleware that monitors requests count and duration
  *
  * @param {string|{timer: string, requests: string}} monitorName
- * @param {object} monitor
+ * @param {typeof monitorDog} monitor
  */
-export function monitored(monitorName, monitor = monitorDog) {
+export function monitored(monitorName, tags = {}, monitor = monitorDog) {
   return async (ctx, next) => {
     if (ctx.state.isMonitored) {
       await next();
@@ -26,7 +26,7 @@ export function monitored(monitorName, monitor = monitorDog) {
       ({ timer: timerName, requests: requestsName } = monitorName);
     }
 
-    const timer = monitor.timer(timerName);
+    const timer = monitor.timer(timerName, true, tags);
 
     if (ctx.serverTiming) {
       ctx.serverTiming.start('controller', timerName);
@@ -35,7 +35,7 @@ export function monitored(monitorName, monitor = monitorDog) {
     try {
       await next();
       const authTokenType = ctx.state.authJWTPayload?.type || 'anonymous';
-      monitor.increment(requestsName, 1, { auth: authTokenType });
+      monitor.increment(requestsName, 1, { ...tags, auth: authTokenType });
     } finally {
       timer.stop();
 
@@ -62,3 +62,13 @@ export { postAccessRequired } from './post-access-required';
 export { targetUserRequired } from './target-user-required';
 export { inputSchemaRequired } from './input-schema-required';
 export { commentAccessRequired } from './comment-access-required';
+
+/**
+ *
+ * @param {import("koa").Middleware} mw
+ * @param {import("koa").COntext} ctx
+ * @returns {Promise<void>}
+ */
+export async function applyMiddleware(mw, ctx) {
+  await new Promise((resolve, reject) => mw(ctx, resolve).then((x) => x, reject));
+}
