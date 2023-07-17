@@ -21,6 +21,17 @@ declare module 'config' {
       url: string;
       path: string;
       fileSizeLimit: number;
+      maxCount: number;
+      imageSizes: Record<
+        string,
+        {
+          path: string;
+          bounds: {
+            width: number;
+            height: number;
+          };
+        }
+      >;
       storage: {
         rootDir: string;
       };
@@ -28,6 +39,7 @@ declare module 'config' {
         removeTags: RegExp[];
         ignoreTags: RegExp[];
       };
+      useImgProxy: boolean;
     };
     maintenance: {
       messageFile: string;
