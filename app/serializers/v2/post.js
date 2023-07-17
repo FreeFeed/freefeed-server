@@ -1,6 +1,7 @@
 import { uniqBy, pick, compact, uniq } from 'lodash';
 
 import { dbAdapter } from '../../models';
+import { currentConfig } from '../../support/app-async-context';
 
 import { serializeUsersByIds } from './user';
 
@@ -26,19 +27,34 @@ export function serializeLike(user) {
 }
 
 export function serializeAttachment(att) {
+  const config = currentConfig();
+  const { useImgProxy } = config.attachments;
+  const imageSizes = { ...att.imageSizes };
+  let { thumbnailUrl } = att;
+
+  // Compatibility hack: we use JPEG previews for WebP originals, so we need to
+  // update preview paths when ImgProxy is in use.
+  if (useImgProxy && att.mediaType === 'image' && /\.webp$/.test(att.url)) {
+    for (const sizeId of Object.keys(imageSizes)) {
+      imageSizes[sizeId].url = imageSizes[sizeId].url.replace(/\.jpg$/, '.webp?format=jpg');
+    }
+
+    thumbnailUrl = thumbnailUrl.replace(/\.jpg$/, '.webp?format=jpg');
+  }
+
   const result = {
     ...pick(att, [
       'id',
       'fileName',
       'fileSize',
       'url',
-      'thumbnailUrl',
-      'imageSizes',
       'mediaType',
       'createdAt',
       'updatedAt',
       ...(att.mediaType === 'audio' ? ['artist', 'title'] : []),
     ]),
+    imageSizes,
+    thumbnailUrl,
     createdBy: att.userId,
     postId: att.postId || null,
   };

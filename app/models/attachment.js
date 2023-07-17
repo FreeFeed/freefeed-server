@@ -345,7 +345,7 @@ export function addModel(dbAdapter) {
       this.imageSizes.o = {
         w: originalSize.width,
         h: originalSize.height,
-        url: await this.getUrl(),
+        url: this.getUrl(),
       };
 
       if (this.mimeType === 'image/svg+xml') {

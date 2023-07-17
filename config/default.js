@@ -156,6 +156,8 @@ config.attachments = {
     // Non-writable tags: synthetic and permanent
     ignoreTags: [/^GPSPosition$/, /^SerialNumberFormat$/],
   },
+  // Use https://imgproxy.net/ to dynamically create image thumbnails
+  useImgProxy: false,
 };
 config.profilePictures = {
   defaultProfilePictureMediumUrl: 'http://placekitten.com/50/50',
