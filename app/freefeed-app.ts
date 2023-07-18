@@ -22,6 +22,7 @@ import { reportError } from './support/exceptions';
 import { normalizeInputStrings } from './controllers/middlewares/normalize-input';
 import { AppContext } from './support/types';
 import { apiVersionMiddleware } from './setup/initializers/api-version';
+import { asyncContextMiddleware } from './support/app-async-context';
 
 const env = process.env.NODE_ENV || 'development';
 
@@ -38,6 +39,8 @@ class FreefeedApp extends Application<DefaultState, AppContext> {
 
     this.context.config = config;
     this.context.port = process.env.PORT ? parseInt(process.env.PORT) : config.port;
+
+    this.use(asyncContextMiddleware);
 
     this.use(
       koaBody({
