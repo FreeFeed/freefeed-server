@@ -185,6 +185,7 @@ export const listConditions: [RegExp, string][] = [
   // Authorship
   [/^from$/, 'from'],
   [/^authors?$/, 'author'],
+  [/^by$/, 'author'], // synonym for "author"
 ];
 
 // A simple trimmer, trims punctuation, separators and some symbols.
