@@ -74,6 +74,16 @@ describe('SearchController', () => {
       expect(response, 'to satisfy', { posts: [{ body: 'hello from luna' }] });
     });
 
+    it("should search in user's posts using 'author'", async () => {
+      const response = await funcTestHelper.performSearch(venusContext, 'author:luna hello');
+      expect(response, 'to satisfy', { posts: [{ body: 'hello from luna' }] });
+    });
+
+    it("should search in user's posts using 'by'", async () => {
+      const response = await funcTestHelper.performSearch(venusContext, 'by:luna hello');
+      expect(response, 'to satisfy', { posts: [{ body: 'hello from luna' }] });
+    });
+
     // Anonymous search is disabled
     xit('should not search anonymously with from:me', async () => {
       const response = await funcTestHelper.performSearch(venusContext, 'from:me hello');
