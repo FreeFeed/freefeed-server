@@ -183,6 +183,7 @@ export class DbAdapter {
   disableBansInGroup(userId: UUID, groupId: UUID, doDisable: boolean): Promise<boolean>;
 
   // Posts
+  getPostShortId(longId: UUID): string | null;
   getPostLongId(shortId: string): UUID | null;
   getPostById(id: UUID): Promise<Post | null>;
   getAdminsOfPostGroups(postId: UUID): Promise<User[]>;

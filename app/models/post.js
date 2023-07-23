@@ -325,6 +325,10 @@ export function addModel(dbAdapter) {
       ]);
     }
 
+    getShortId() {
+      return dbAdapter.getPostShortId(this.id);
+    }
+
     getCreatedBy() {
       return dbAdapter.getUserById(this.userId);
     }
