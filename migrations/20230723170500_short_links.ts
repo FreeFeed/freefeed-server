@@ -1,4 +1,6 @@
-export const up = (knex) =>
+import type { Knex } from 'knex';
+
+export const up = (knex: Knex) =>
   knex.schema.raw(`do $$begin
   create table post_short_ids (
     short_id text primary key,
@@ -6,7 +8,7 @@ export const up = (knex) =>
   );
 end$$`);
 
-export const down = (knex) =>
+export const down = (knex: Knex) =>
   knex.schema.raw(`do $$begin
     drop table post_short_ids;
 end$$`);
