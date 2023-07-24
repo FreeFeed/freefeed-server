@@ -270,4 +270,97 @@ describe('Backlinks DB trait', () => {
       expect(result, 'to equal', new Map([[lunaPost.id, 2]]));
     });
   });
+
+  describe('Short links', () => {
+    let jupiterFeed, jupiterPost, jupiterCommentNo2;
+    let lunaPostShortId;
+
+    before(async () => {
+      jupiterFeed = await jupiter.getPostsTimeline();
+      lunaPostShortId = await lunaPost.getShortId();
+    });
+
+    it(`should count short links on post update`, async () => {
+      jupiterPost = new Post({
+        body: 'just a post',
+        userId: jupiter.id,
+        timelineIds: [jupiterFeed.id],
+      });
+      await jupiterPost.create();
+
+      let result = await dbAdapter.getBacklinksCounts([lunaPost.id]);
+      expect(result, 'to equal', new Map([[lunaPost.id, 2]]));
+
+      await jupiterPost.update({ body: `luna post: /luna/${lunaPostShortId}` });
+
+      result = await dbAdapter.getBacklinksCounts([lunaPost.id]);
+      expect(result, 'to equal', new Map([[lunaPost.id, 3]]));
+
+      await jupiterPost.update({ body: `just a post` });
+
+      result = await dbAdapter.getBacklinksCounts([lunaPost.id]);
+      expect(result, 'to equal', new Map([[lunaPost.id, 2]]));
+    });
+
+    it(`should count short links on comment update`, async () => {
+      jupiterCommentNo2 = jupiter.newComment({
+        postId: jupiterPost.id,
+        body: `just a comment`,
+      });
+      await jupiterCommentNo2.create();
+
+      let result = await dbAdapter.getBacklinksCounts([lunaPost.id]);
+      expect(result, 'to equal', new Map([[lunaPost.id, 2]]));
+
+      await jupiterCommentNo2.update({ body: `luna post: /luna/${lunaPostShortId}` });
+
+      result = await dbAdapter.getBacklinksCounts([lunaPost.id]);
+      expect(result, 'to equal', new Map([[lunaPost.id, 3]]));
+
+      await jupiterCommentNo2.update({ body: `just a comment` });
+
+      result = await dbAdapter.getBacklinksCounts([lunaPost.id]);
+      expect(result, 'to equal', new Map([[lunaPost.id, 2]]));
+    });
+
+    it(`should count short links on post create`, async () => {
+      await jupiterCommentNo2.destroy();
+      await jupiterPost.destroy();
+
+      jupiterPost = new Post({
+        body: `luna post: /luna/${lunaPostShortId}`,
+        userId: jupiter.id,
+        timelineIds: [jupiterFeed.id],
+      });
+      await jupiterPost.create();
+
+      const result = await dbAdapter.getBacklinksCounts([lunaPost.id]);
+      expect(result, 'to equal', new Map([[lunaPost.id, 3]]));
+    });
+
+    it(`should count short links on comment create`, async () => {
+      jupiterCommentNo2 = jupiter.newComment({
+        postId: jupiterPost.id,
+        body: `luna post: /luna/${lunaPostShortId}`,
+      });
+      await jupiterCommentNo2.create();
+
+      const result = await dbAdapter.getBacklinksCounts([lunaPost.id]);
+      expect(result, 'to equal', new Map([[lunaPost.id, 4]]));
+    });
+
+    it(`should count short links on comment destroy`, async () => {
+      await jupiterCommentNo2.destroy();
+
+      const result = await dbAdapter.getBacklinksCounts([lunaPost.id]);
+      expect(result, 'to equal', new Map([[lunaPost.id, 3]]));
+    });
+
+    it(`should count short links on post destroy`, async () => {
+      await jupiterPost.destroy();
+
+      const result = await dbAdapter.getBacklinksCounts([lunaPost.id]);
+      expect(result, 'to equal', new Map([[lunaPost.id, 2]]));
+    });
+  });
 });

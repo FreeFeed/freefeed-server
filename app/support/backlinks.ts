@@ -16,6 +16,11 @@ export function extractUUIDs(text: string | null): UUID[] {
   return text ? [...text.matchAll(uuidRe)].map((m) => m[0]).filter(onlyUnique) : [];
 }
 
+export const shortLinkRe = /\/[A-Za-z0-9-]{3,35}\/([0-9a-f]{6,10})/gi;
+export function extractShortIds(text: string | null): string[] {
+  return text ? [...text.matchAll(shortLinkRe)].map((m) => m[1]).filter(onlyUnique) : [];
+}
+
 function onlyUnique<T>(value: T, index: number, arr: T[]) {
   return arr.indexOf(value) === index;
 }

@@ -1,5 +1,5 @@
 import { Comment } from '../../models';
-import { extractUUIDs } from '../backlinks';
+import { extractShortIds, extractUUIDs } from '../backlinks';
 
 ///////////////////////////////////////////////////
 // Backlinks
@@ -53,9 +53,10 @@ const backlinksTrait = (superClass) =>
     }
 
     async updateBacklinks(text, refPostUID, refCommentUID = null, db = this.database) {
-      const uuids = await db.getCol(`select uid from posts where uid = any(?)`, [
-        extractUUIDs(text),
-      ]);
+      const uuids = await db.getCol(
+        `select long_id from post_short_ids where long_id = any(?) or short_id = any(?)`,
+        [extractUUIDs(text), extractShortIds(text)],
+      );
 
       // Remove the old backlinks
       if (refCommentUID) {

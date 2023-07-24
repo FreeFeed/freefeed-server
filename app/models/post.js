@@ -29,6 +29,7 @@ export function addModel(dbAdapter) {
   class Post {
     id;
     intId;
+    shortId;
     attachments;
     userId;
     timelineIds;
@@ -46,6 +47,7 @@ export function addModel(dbAdapter) {
     constructor(params) {
       this.id = params.id;
       this.intId = params.intId;
+      this.shortId = params.shortId;
       this.body = params.body;
       this.attachments = params.attachments || [];
       this.userId = params.userId;
@@ -59,10 +61,6 @@ export function addModel(dbAdapter) {
       this.isPrivate = params.isPrivate || '0';
       this.isProtected = params.isProtected || '0';
       this.isPropagable = params.isPropagable || '0';
-
-      if (params.shortId) {
-        this.shortId = params.shortId;
-      }
 
       if (params.friendfeedUrl) {
         this.friendfeedUrl = params.friendfeedUrl;
