@@ -72,8 +72,8 @@ describe('Backlinks DB trait', () => {
   });
 
   describe('Venus becomes protected', () => {
-    before(() => venus.update({ isProtected: '1', isPrivate: '0' }));
-    after(() => venus.update({ isProtected: '0', isPrivate: '0' }));
+    before(async () => await venus.update({ isProtected: '1', isPrivate: '0' }));
+    after(async () => await venus.update({ isProtected: '0', isPrivate: '0' }));
 
     it(`should not count Venus post for anonymous`, async () => {
       const result = await dbAdapter.getBacklinksCounts([lunaPost.id, marsPost.id, venusPost.id]);
@@ -105,8 +105,8 @@ describe('Backlinks DB trait', () => {
   });
 
   describe('Venus becomes private', () => {
-    before(() => venus.update({ isProtected: '1', isPrivate: '1' }));
-    after(() => venus.update({ isProtected: '0', isPrivate: '0' }));
+    before(async () => await venus.update({ isProtected: '1', isPrivate: '1' }));
+    after(async () => await venus.update({ isProtected: '0', isPrivate: '0' }));
 
     it(`should not count Venus post for anonymous`, async () => {
       const result = await dbAdapter.getBacklinksCounts([lunaPost.id, marsPost.id, venusPost.id]);
@@ -153,8 +153,8 @@ describe('Backlinks DB trait', () => {
   });
 
   describe('Mars bans Jupiter', () => {
-    before(() => mars.ban(jupiter.username));
-    after(() => mars.unban(jupiter.username));
+    before(async () => await mars.ban(jupiter.username));
+    after(async () => await mars.unban(jupiter.username));
 
     it(`should count Jupiter comment for anonymous`, async () => {
       const result = await dbAdapter.getBacklinksCounts([lunaPost.id, marsPost.id, venusPost.id]);
@@ -217,8 +217,8 @@ describe('Backlinks DB trait', () => {
   });
 
   describe('Mars suspends themselves', () => {
-    before(() => mars.setGoneStatus(GONE_SUSPENDED));
-    after(() => mars.setGoneStatus(null));
+    before(async () => await mars.setGoneStatus(GONE_SUSPENDED));
+    after(async () => await mars.setGoneStatus(null));
 
     it(`should not count Mars post for anonymous`, async () => {
       const result = await dbAdapter.getBacklinksCounts([lunaPost.id, marsPost.id, venusPost.id]);
@@ -234,8 +234,11 @@ describe('Backlinks DB trait', () => {
   });
 
   describe('Link to the post itself', () => {
-    before(() => lunaPost.update({ body: `this post has address example.com/${lunaPost.id}` }));
-    after(() => lunaPost.update({ body: 'just a post' }));
+    before(
+      async () =>
+        await lunaPost.update({ body: `this post has address example.com/${lunaPost.id}` }),
+    );
+    after(async () => await lunaPost.update({ body: 'just a post' }));
 
     it(`should not count self-link to the Luna post`, async () => {
       const result = await dbAdapter.getBacklinksCounts([lunaPost.id]);
@@ -246,9 +249,9 @@ describe('Backlinks DB trait', () => {
   describe('Counting backlinks in posts and comments', () => {
     let jupiterCommentNo2;
 
-    after(() => {
-      marsPost.update({ body: `luna post: example.com/${lunaPost.id}` });
-      jupiterCommentNo2.destroy();
+    after(async () => {
+      await marsPost.update({ body: `luna post: example.com/${lunaPost.id}` });
+      await jupiterCommentNo2.destroy();
     });
 
     it(`should increase count by 1 when adding a comment with link`, async () => {
