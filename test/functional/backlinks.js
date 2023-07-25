@@ -81,6 +81,30 @@ describe('Backlinks in API output', () => {
       expect(resp, 'to satisfy', { posts: { backlinksCount: 1 } });
     });
   });
+
+  describe('Counting backlinks in posts and comments', () => {
+    before(async () => {
+      mars.post = await createAndReturnPost(mars, `As Luna said, example.com/${lunaPostId}`);
+    });
+    after(() => deletePostAsync(mars, mars.post.id));
+
+    it(`should increase backlinkCount by 1 when adding a comment with link`, async () => {
+      await createCommentAsync(
+        mars,
+        mars.post.id,
+        `I repeat: as Luna said, example.com/${lunaPostId}`,
+      ).then((r) => r.json());
+      const resp = await performJSONRequest('GET', `/v2/posts/${lunaPostId}`);
+      expect(resp, 'to satisfy', { posts: { backlinksCount: 3 } });
+    });
+
+    it(`should decrease backlinkCount by 1 (not 2) when link from post removed`, async () => {
+      // Making sure the backlinks in comments are not "discarded" when the link in their parent post is removed
+      await updatePostAsync(mars, { body: `As Luna said... Ah, never mind.` });
+      const resp = await performJSONRequest('GET', `/v2/posts/${lunaPostId}`);
+      expect(resp, 'to satisfy', { posts: { backlinksCount: 2 } });
+    });
+  });
 });
 
 describe('Backlinks in realtime', () => {
