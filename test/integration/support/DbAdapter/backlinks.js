@@ -246,9 +246,9 @@ describe('Backlinks DB trait', () => {
   describe('Counting backlinks in posts and comments', () => {
     let jupiterCommentNo2;
 
-    after(() => {
-      marsPost.update({ body: `luna post: example.com/${lunaPost.id}` });
-      jupiterCommentNo2.destroy();
+    after(async () => {
+      await marsPost.update({ body: `luna post: example.com/${lunaPost.id}` });
+      await jupiterCommentNo2.destroy();
     });
 
     it(`should increase count by 1 when adding a comment with link`, async () => {
