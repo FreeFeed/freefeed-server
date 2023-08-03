@@ -64,9 +64,12 @@ const backlinksTrait = (superClass) =>
           { refPostUID, refCommentUID },
         );
       } else {
-        await db.raw(`delete from backlinks where ref_post_id = :refPostUID`, {
-          refPostUID,
-        });
+        await db.raw(
+          `delete from backlinks where ref_post_id = :refPostUID and ref_comment_id is null`,
+          {
+            refPostUID,
+          },
+        );
       }
 
       if (uuids.length === 0) {

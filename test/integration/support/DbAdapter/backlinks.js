@@ -242,4 +242,32 @@ describe('Backlinks DB trait', () => {
       expect(result, 'to equal', new Map([[lunaPost.id, 2]]));
     });
   });
+
+  describe('Counting backlinks in posts and comments', () => {
+    let jupiterCommentNo2;
+
+    after(() => {
+      marsPost.update({ body: `luna post: example.com/${lunaPost.id}` });
+      jupiterCommentNo2.destroy();
+    });
+
+    it(`should increase count by 1 when adding a comment with link`, async () => {
+      jupiterCommentNo2 = jupiter.newComment({
+        postId: marsPost.id,
+        body: `luna post: example.com/${lunaPost.id}`,
+      });
+      await jupiterCommentNo2.create();
+
+      const result = await dbAdapter.getBacklinksCounts([lunaPost.id]);
+      expect(result, 'to equal', new Map([[lunaPost.id, 3]]));
+    });
+
+    it(`should decrease count by 1 (not 2) when link from post removed`, async () => {
+      // Making sure the backlinks in comments are not "discarded" when the link in their parent post is removed
+      await marsPost.update({ body: 'luna post: ah, never mind' });
+
+      const result = await dbAdapter.getBacklinksCounts([lunaPost.id]);
+      expect(result, 'to equal', new Map([[lunaPost.id, 2]]));
+    });
+  });
 });

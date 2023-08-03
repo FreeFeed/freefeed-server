@@ -10,9 +10,9 @@ where "likes" for user generated content were implemented for the first time.
 
 FreeFeed is based on [Pepyatka](https://github.com/pepyatka/pepyatka-server/) project
 
-## Getting started with FreeFeed on OSX
+## Getting started with FreeFeed on macOS
 
-### Setup dependencies via Homebrew
+### Set up dependencies via Homebrew
 
 ```
 brew install redis
@@ -24,13 +24,15 @@ createuser -P -s freefeed (enter freefeed as password)
 createdb -O freefeed freefeed
 ```
 
-### Or setup dependencies via Docker
+### Or set up dependencies using Docker
 
 1. `brew install graphicsmagick`
 1. [Install and run Docker](https://www.docker.com/get-started)
 1. docker-compose up -d
 
-### Then setup NodeJS environment and the app
+### Then prepare Node.js environment and the app
+
+1. Set up JS dependencies:
 
 ```
 brew install nvm
@@ -40,7 +42,19 @@ yarn install
 yarn knex --env production migrate:latest
 mkdir ./public/files/attachments/thumbnails/ && mkdir ./public/files/attachments/thumbnails2/
 ```
-Now create config `config/local.json` with some random secret string: `{   "secret": "myverysecretstring"  }`
+
+2. Create temporary directories for attachments:
+
+```
+mkdir -p /tmp/pepyatka-media/attachments/thumbnails
+mkdir -p /tmp/pepyatka-media/attachments/thumbnails2
+mkdir -p /tmp/pepyatka-media/attachments/anotherTestSize
+```
+
+3. Create config `config/local.json` with some random secret string: `{   "secret": "myverysecretstring"  }`.
+
+4. Now you are ready to run the FreeFeed server:
+
 ```
 yarn start
 ```
@@ -56,8 +70,8 @@ The default configuration is defined in `config/default.js` file. The `config/te
 ## Testing
 
 1. Create a Postgres database `freefeed_test`:
-   - `createdb -O freefeed freefeed_test` if you're using local Postgres
-   - open a terminal to Docker container, run Postgres CLI (`psql -U freefeed`), create a database `create database freefeed_test`
+   - if using local Postgres: run locally `createdb -O freefeed freefeed_test`
+   - if using Docker: open a terminal to the Docker container, run Postgres CLI (`psql -U freefeed`), then create the database (`create database freefeed_test;`)
    - or use any other appropriate method such as pgAdmin
 1. `yarn test`
 
