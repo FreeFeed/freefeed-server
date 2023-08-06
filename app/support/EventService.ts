@@ -10,7 +10,7 @@ import {
   T_EVENT_TYPE,
 } from './EventTypes';
 import { Nullable, UUID } from './types';
-import { extractUUIDs } from './backlinks';
+import { extractShortIds, extractUUIDs } from './backlinks';
 
 type OnPostFeedsChangedParams = {
   addedFeeds?: Timeline[];
@@ -718,6 +718,13 @@ async function processBacklinks(srcEntity: Post | Comment, prevBody = '') {
   const prevUUIDs = extractUUIDs(prevBody);
   const newUUIDs = extractUUIDs(srcEntity.body);
   const uuids = difference(newUUIDs, prevUUIDs);
+
+  const prevShortIds = extractShortIds(prevBody);
+  const newShortIds = extractShortIds(srcEntity.body);
+  const shortIds = difference(newShortIds, prevShortIds);
+  const moreUUIDs = await dbAdapter.getPostLongIds(shortIds);
+  uuids.push(...moreUUIDs);
+
   const [mentionedPosts, mentionedComments] = await Promise.all([
     dbAdapter.getPostsByIds(uuids),
     dbAdapter.getCommentsByIds(uuids),

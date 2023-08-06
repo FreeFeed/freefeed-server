@@ -15,6 +15,7 @@ describe('EventService', () => {
     let /** @type {User} */ luna, /** @type {User} */ mars, /** @type {User} */ venus;
     let /** @type {Group} */ dubhe;
     let /** @type {Post} */ lunaPost, /** @type {Post} */ marsPost, /** @type {Post} */ venusPost;
+    let marsPostShortId;
 
     before(async () => {
       luna = new User({ username: 'luna', password: 'pw' });
@@ -29,6 +30,8 @@ describe('EventService', () => {
       [lunaPost, marsPost, venusPost] = await Promise.all(
         [luna, mars, venus].map((u) => createPost(u, `${u.username} post`)),
       );
+
+      marsPostShortId = await marsPost.getShortId();
     });
 
     // Clean events before each test
@@ -45,13 +48,19 @@ describe('EventService', () => {
           await expectBacklinkEvents(luna, []);
         });
 
+        it('should create backlink_in_post event for mentioned posts author (short link)', async () => {
+          post = await createPost(luna, `Mentioning /mars/${marsPostShortId}`);
+          await expectBacklinkEvents(mars, [await backlinkInPostEvent(post, marsPost)]);
+          await expectBacklinkEvents(luna, []);
+        });
+
         it('should not create backlink_in_post event for mentioned post author', async () => {
           post = await createPost(luna, `Mentioning ${lunaPost.id}`);
           await expectBacklinkEvents(luna, []);
         });
 
         it('should create backlink_in_post event for each mentioned post', async () => {
-          post = await createPost(luna, `Mentioning ${marsPost.id} ${venusPost.id}`);
+          post = await createPost(luna, `Mentioning /mars/${marsPostShortId} ${venusPost.id}`);
           await expectBacklinkEvents(mars, [await backlinkInPostEvent(post, marsPost)]);
           await expectBacklinkEvents(venus, [await backlinkInPostEvent(post, venusPost)]);
           await expectBacklinkEvents(luna, []);
@@ -108,6 +117,16 @@ describe('EventService', () => {
             await expectBacklinkEvents(mars, [await backlinkInPostEvent(post, marsPost)]);
           });
 
+          it('should create backlink_in_post when post without mention updates with mention (short link)', async () => {
+            post = await createAndUpdatePost(
+              luna,
+              'Post without mentions',
+              `Mentioning /mars/${marsPostShortId}`,
+            );
+
+            await expectBacklinkEvents(mars, [await backlinkInPostEvent(post, marsPost)]);
+          });
+
           it('should not remove backlink_in_post when mention disappears from the post', async () => {
             post = await createAndUpdatePost(
               luna,
@@ -120,8 +139,8 @@ describe('EventService', () => {
           it('should create additional backlink_in_post when a new mention appears in the post', async () => {
             post = await createAndUpdatePost(
               luna,
-              `Mentioning ${marsPost.id}`,
               `Mentioning ${venusPost.id}`,
+              `Mentioning /mars/${marsPostShortId}`,
             );
             await expectBacklinkEvents(mars, [await backlinkInPostEvent(post, marsPost)]);
             await expectBacklinkEvents(venus, [await backlinkInPostEvent(post, venusPost)]);
@@ -139,6 +158,12 @@ describe('EventService', () => {
           await expectBacklinkEvents(luna, []);
         });
 
+        it('should create backlink_in_comment event for mentioned posts author (short link)', async () => {
+          comment = await createComment(luna, venusPost, `Mentioning /mars/${marsPostShortId}`);
+          await expectBacklinkEvents(mars, [await backlinkInCommentEvent(comment, marsPost)]);
+          await expectBacklinkEvents(luna, []);
+        });
+
         it('should not create backlink_in_comment event for mentioned post author', async () => {
           comment = await createComment(luna, venusPost, `Mentioning ${lunaPost.id}`);
           await expectBacklinkEvents(luna, []);
@@ -148,7 +173,7 @@ describe('EventService', () => {
           comment = await createComment(
             luna,
             venusPost,
-            `Mentioning ${marsPost.id} ${venusPost.id}`,
+            `Mentioning /mars/${marsPostShortId} ${venusPost.id}`,
           );
           await expectBacklinkEvents(mars, [await backlinkInCommentEvent(comment, marsPost)]);
           await expectBacklinkEvents(venus, [await backlinkInCommentEvent(comment, venusPost)]);
@@ -206,6 +231,17 @@ describe('EventService', () => {
             await expectBacklinkEvents(mars, [await backlinkInCommentEvent(comment, marsPost)]);
           });
 
+          it('should create backlink_in_post when post without mention updates with mention (short link)', async () => {
+            comment = await createComment(
+              luna,
+              venusPost,
+              'Post without mentions',
+              `Mentioning /mars/${marsPostShortId}`,
+            );
+
+            await expectBacklinkEvents(mars, [await backlinkInCommentEvent(comment, marsPost)]);
+          });
+
           it('should not remove backlink_in_post when mention disappears from the post', async () => {
             comment = await createComment(
               luna,
@@ -220,8 +256,8 @@ describe('EventService', () => {
             comment = await createComment(
               luna,
               venusPost,
-              `Mentioning ${marsPost.id}`,
               `Mentioning ${venusPost.id}`,
+              `Mentioning /mars/${marsPostShortId}`,
             );
             await expectBacklinkEvents(mars, [await backlinkInCommentEvent(comment, marsPost)]);
             await expectBacklinkEvents(venus, [await backlinkInCommentEvent(comment, venusPost)]);

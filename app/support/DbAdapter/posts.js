@@ -96,6 +96,13 @@ const postsTrait = (superClass) =>
       return res.long_id;
     }
 
+    async getPostLongIds(shortIds) {
+      const res = await this.database('post_short_ids')
+        .select('long_id')
+        .whereIn('short_id', shortIds);
+      return res.map((r) => r.long_id);
+    }
+
     async getPostById(id, params) {
       if (!validator.isUUID(id)) {
         return null;
