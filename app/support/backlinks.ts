@@ -11,6 +11,14 @@ export function getUpdatedUUIDs(text1: string, text2: string = '') {
   return xor(extractUUIDs(text1), extractUUIDs(text2));
 }
 
+export function getUpdatedShortIds(text1: string, text2: string = '') {
+  if (text1 === text2) {
+    return [];
+  }
+
+  return xor(extractShortIds(text1), extractShortIds(text2));
+}
+
 export const uuidRe = /[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/gi;
 export function extractUUIDs(text: string | null): UUID[] {
   return text ? [...text.matchAll(uuidRe)].map((m) => m[0]).filter(onlyUnique) : [];

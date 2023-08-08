@@ -8,7 +8,12 @@ import { extractHashtags } from '../support/hashtags';
 import { PubSub as pubSub } from '../models';
 import { EventService } from '../support/EventService';
 import { getRoomsOfPost } from '../pubsub-listener';
-import { getUpdatedUUIDs, notifyBacklinkedLater, notifyBacklinkedNow } from '../support/backlinks';
+import {
+  getUpdatedShortIds,
+  getUpdatedUUIDs,
+  notifyBacklinkedLater,
+  notifyBacklinkedNow,
+} from '../support/backlinks';
 import { List } from '../support/open-lists';
 
 export function addModel(dbAdapter) {
@@ -125,6 +130,9 @@ export function addModel(dbAdapter) {
         .filter((f) => f.isDirects())
         .map((f) => pubSub.updateUnreadDirects(f.userId));
 
+      const uuids = await dbAdapter.getPostLongIds(getUpdatedShortIds(this.body));
+      uuids.push(...getUpdatedUUIDs(this.body));
+
       await Promise.all([
         ...rtUpdates,
         dbAdapter.setPostBumpedAt(post.id),
@@ -132,7 +140,7 @@ export function addModel(dbAdapter) {
         this.processHashtagsOnCreate(),
         pubSub.newComment(this),
         EventService.onCommentChanged(this, true),
-        notifyBacklinkedNow(this, pubSub, getUpdatedUUIDs(this.body)),
+        notifyBacklinkedNow(this, pubSub, uuids),
       ]);
 
       await pubSub.updateGroupTimes(postDestFeeds.map((f) => f.userId));
@@ -141,11 +149,10 @@ export function addModel(dbAdapter) {
     }
 
     async update(params) {
-      const notifyBacklinked = await notifyBacklinkedLater(
-        this,
-        pubSub,
-        getUpdatedUUIDs(this.body, params.body),
-      );
+      const uuids = await dbAdapter.getPostLongIds(getUpdatedShortIds(this.body, params.body));
+      uuids.push(...getUpdatedUUIDs(this.body, params.body));
+
+      const notifyBacklinked = await notifyBacklinkedLater(this, pubSub, uuids);
 
       const prevBody = this.body;
       this.updatedAt = new Date().getTime();
@@ -203,13 +210,12 @@ export function addModel(dbAdapter) {
     }
 
     async destroy(destroyedBy = null) {
+      const uuids = await dbAdapter.getPostLongIds(getUpdatedShortIds(this.body));
+      uuids.push(...getUpdatedUUIDs(this.body));
+
       const post = await this.getPost();
       const realtimeRooms = await getRoomsOfPost(post);
-      const notifyBacklinked = await notifyBacklinkedLater(
-        this,
-        pubSub,
-        getUpdatedUUIDs(this.body),
-      );
+      const notifyBacklinked = await notifyBacklinkedLater(this, pubSub, uuids);
 
       const deleted = await dbAdapter.deleteComment(this.id, this.postId);
 

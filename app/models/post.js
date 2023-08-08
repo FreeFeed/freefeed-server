@@ -7,7 +7,12 @@ import { extractHashtags } from '../support/hashtags';
 import { PubSub as pubSub } from '../models';
 import { getRoomsOfPost } from '../pubsub-listener';
 import { EventService } from '../support/EventService';
-import { getUpdatedUUIDs, notifyBacklinkedLater, notifyBacklinkedNow } from '../support/backlinks';
+import {
+  getUpdatedShortIds,
+  getUpdatedUUIDs,
+  notifyBacklinkedLater,
+  notifyBacklinkedNow,
+} from '../support/backlinks';
 
 import {
   HOMEFEED_MODE_FRIENDS_ONLY,
@@ -164,10 +169,13 @@ export function addModel(dbAdapter) {
         author,
       );
 
+      const uuids = await dbAdapter.getPostLongIds(getUpdatedShortIds(this.body));
+      uuids.push(...getUpdatedUUIDs(this.body));
+
       await Promise.all([
         ...rtUpdates,
         dbAdapter.setUpdatedAtInGroupsByIds(destFeeds.map((f) => f.userId)),
-        notifyBacklinkedNow(this, pubSub, getUpdatedUUIDs(this.body)),
+        notifyBacklinkedNow(this, pubSub, uuids),
       ]);
 
       await pubSub.updateGroupTimes(destFeeds.map((f) => f.userId));
@@ -208,9 +216,9 @@ export function addModel(dbAdapter) {
         // Update post hashtags
         afterUpdate.push(() => this.processHashtagsOnUpdate());
         // Notify mentioned posts
-        afterUpdate.push(
-          await notifyBacklinkedLater(this, pubSub, getUpdatedUUIDs(this.body, prevBody)),
-        );
+        const uuids = await dbAdapter.getPostLongIds(getUpdatedShortIds(this.body, prevBody));
+        uuids.push(...getUpdatedUUIDs(this.body, prevBody));
+        afterUpdate.push(await notifyBacklinkedLater(this, pubSub, uuids));
       }
 
       // Actualize this.attachments field
@@ -303,11 +311,14 @@ export function addModel(dbAdapter) {
     }
 
     async destroy(destroyedBy = null) {
+      const uuids = await dbAdapter.getPostLongIds(getUpdatedShortIds(this.body));
+      uuids.push(...getUpdatedUUIDs(this.body));
+
       const [realtimeRooms, comments, groups, notifyBacklinked] = await Promise.all([
         getRoomsOfPost(this),
         this.getComments(),
         this.getGroupsPostedTo(),
-        notifyBacklinkedLater(this, pubSub, getUpdatedUUIDs(this.body)),
+        notifyBacklinkedLater(this, pubSub, uuids),
       ]);
 
       // remove all comments
