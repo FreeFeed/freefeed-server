@@ -54,7 +54,7 @@ const backlinksTrait = (superClass) =>
 
     async updateBacklinks(text, refPostUID, refCommentUID = null, db = this.database) {
       const uuids = await db.getCol(
-        `select long_id from post_short_ids where long_id = any(?) or short_id = any(?)`,
+        `SELECT long_id FROM post_short_ids WHERE long_id = ANY(?) OR (short_id = ANY(?) AND long_id IS NOT NULL)`,
         [extractUUIDs(text), extractShortIds(text)],
       );
 

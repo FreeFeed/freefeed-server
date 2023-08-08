@@ -133,7 +133,7 @@ process.stdout.write(`\n`);
 
               // Only the real post Short Ids
               const shortIdRecords = await dbAdapter.database.getAll(
-                `select long_id, short_id from post_short_ids where short_id = any(:shortIds)`,
+                `SELECT long_id, short_id FROM post_short_ids WHERE short_id = ANY(:shortIds) AND long_id IS NOT NULL`,
                 {
                   shortIds: [...allShortIds],
                 },
