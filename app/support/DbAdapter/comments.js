@@ -1,4 +1,5 @@
 import validator from 'validator';
+import pgFormat from 'pg-format';
 
 import { Comment } from '../../models';
 import { toTSVector } from '../search/to-tsvector';
@@ -41,6 +42,28 @@ const commentsTrait = (superClass) =>
 
         return commentId;
       });
+    }
+
+    async getCommentLongIds(shortIds) {
+      if (shortIds.length === 0) {
+        return [];
+      }
+
+      const values = shortIds
+        .map((l) =>
+          l.replace(/^(.+)#(..)(.+)$/, (m, p1, p2, p3) =>
+            pgFormat(`(%L, %L, %L::int)`, p1, p2, +`0x${p3}`),
+          ),
+        )
+        .join(',');
+
+      return await this.database.getCol(`
+        SELECT c.uid
+        FROM (VALUES ${values}) AS links (post_short_id, comment_prefix, comment_num)
+        JOIN post_short_ids AS psi ON links.post_short_id = psi.short_id
+        JOIN comments AS c ON psi.long_id = c.post_id
+        WHERE c.uid::text ^@ links.comment_prefix AND c.seq_number = links.comment_num
+      `);
     }
 
     async getCommentById(id) {

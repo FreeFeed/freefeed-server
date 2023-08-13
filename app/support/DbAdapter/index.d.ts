@@ -197,6 +197,7 @@ export class DbAdapter {
   unlikePost(postId: UUID, userId: UUID): Promise<boolean>;
 
   // Comments
+  getCommentLongIds(shortIds: string[]): Promise<UUID[]>;
   getCommentById(id: UUID): Promise<Comment | null>;
   getCommentsByIds(ids: UUID[]): Promise<Comment[]>;
   getCommentsByIntIds(ids: number[]): Promise<Comment[]>;

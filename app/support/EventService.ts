@@ -10,7 +10,7 @@ import {
   T_EVENT_TYPE,
 } from './EventTypes';
 import { Nullable, UUID } from './types';
-import { extractShortIds, extractUUIDs } from './backlinks';
+import { extractHashedShortIds, extractShortIds, extractUUIDs } from './backlinks';
 
 type OnPostFeedsChangedParams = {
   addedFeeds?: Timeline[];
@@ -715,15 +715,23 @@ async function getDirectEvents(post: Post, authorId: Nullable<UUID>, eventType: 
 }
 
 async function processBacklinks(srcEntity: Post | Comment, prevBody = '') {
+  // Long links with UUIDs, both post and post+comment
   const prevUUIDs = extractUUIDs(prevBody);
   const newUUIDs = extractUUIDs(srcEntity.body);
   const uuids = difference(newUUIDs, prevUUIDs);
 
-  const prevShortIds = extractShortIds(prevBody);
-  const newShortIds = extractShortIds(srcEntity.body);
-  const shortIds = difference(newShortIds, prevShortIds);
-  const moreUUIDs = await dbAdapter.getPostLongIds(shortIds);
-  uuids.push(...moreUUIDs);
+  // Short post links (e.g. `/user/5168a0`)
+  const postShortIds = difference(extractShortIds(srcEntity.body), extractShortIds(prevBody));
+  const morePostUUIDs = await dbAdapter.getPostLongIds(postShortIds);
+  uuids.push(...morePostUUIDs);
+
+  // Short comment links (e.g. `/user/9bac13#ad2b`)
+  const commentShortIds = difference(
+    extractHashedShortIds(srcEntity.body),
+    extractHashedShortIds(prevBody),
+  );
+  const moreCommentUUIDs = await dbAdapter.getCommentLongIds(commentShortIds);
+  uuids.push(...moreCommentUUIDs);
 
   const [mentionedPosts, mentionedComments] = await Promise.all([
     dbAdapter.getPostsByIds(uuids),
