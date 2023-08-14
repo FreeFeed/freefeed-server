@@ -66,6 +66,11 @@ export function addModel(dbAdapter) {
       }
     }
 
+    get shortId() {
+      // Two chars of UUID + hex-encoded seqNumber
+      return this.id.slice(0, 2) + this.seqNumber.toString(16);
+    }
+
     get body() {
       return this.body_;
     }

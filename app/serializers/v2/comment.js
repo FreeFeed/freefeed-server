@@ -31,7 +31,16 @@ export async function serializeCommentsFull(comments, viewerId) {
 
   const sComments = comments.map((comment) => {
     const ser = {
-      ...pick(comment, ['id', 'body', 'createdAt', 'updatedAt', 'seqNumber', 'postId', 'hideType']),
+      ...pick(comment, [
+        'id',
+        'shortId',
+        'body',
+        'createdAt',
+        'updatedAt',
+        'seqNumber',
+        'postId',
+        'hideType',
+      ]),
       createdBy: comment.userId,
     };
 

@@ -9,6 +9,7 @@ export function serializeComment(comment) {
   return {
     ...pick(comment, [
       'id',
+      'shortId',
       'body',
       'createdAt',
       'updatedAt',
