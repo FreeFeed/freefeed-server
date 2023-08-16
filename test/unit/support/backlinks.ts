@@ -93,22 +93,22 @@ describe('Backlinks parser', () => {
         result: ['f482e5#ad2b'],
       },
       {
-        text: 'abc /venus/f482e5#ad2b /venus/f482e5#bf9',
-        result: ['f482e5#ad2b', 'f482e5#bf9'],
+        text: 'abc /venus/f482e5#ad2b /venus/f482e5#bf9e',
+        result: ['f482e5#ad2b', 'f482e5#bf9e'],
       },
       {
         text: 'abc /venus/f482e5#ad2b /venus/f4g2e5#ad2b',
-        // _______________________________^ (invalid hexadecimal)
+        // ____________________________________^ (invalid hexadecimal)
         result: ['f482e5#ad2b'],
       },
       {
-        text: 'abc /venus/f482e5#ad2b hello mars/4a39b8#055',
+        text: 'abc /venus/f482e5#ad2b hello mars/4a39b8#055f',
         // _________________________________^ (no starting slash)
         result: ['f482e5#ad2b'],
       },
       {
-        text: 'abc /venus/f482e5#ad2b /group-for-very-secret-meetings/4a39b8#0a5',
-        result: ['f482e5#ad2b', '4a39b8#0a5'],
+        text: 'abc /venus/f482e5#ad2b /group-for-very-secret-meetings/4a39b8#0a5b',
+        result: ['f482e5#ad2b', '4a39b8#0a5b'],
       },
     ];
 

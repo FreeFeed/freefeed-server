@@ -91,8 +91,11 @@ declare module 'config' {
       tokenTTL: number;
     };
 
-    postShortIds: {
-      initialLength: number;
+    shortLinks: {
+      initialLength: {
+        post: number;
+        comment: number;
+      };
       stopWords: string[];
       maxAttempts: number;
     };

@@ -422,9 +422,9 @@ const postsTrait = (superClass) =>
     }
 
     async createPostShortId(trx, longId) {
-      let length = config.postShortIds.initialLength;
+      let length = config.shortLinks.initialLength.post;
 
-      for (; ; length++) {
+      for (; length <= 10; length++) {
         // eslint-disable-next-line no-await-in-loop
         if (await this.createPostShortIdForLength(trx, longId, length)) {
           return;
@@ -433,7 +433,7 @@ const postsTrait = (superClass) =>
     }
 
     async createPostShortIdForLength(trx, longId, length) {
-      for (let i = 0; i < config.postShortIds.maxAttempts; i++) {
+      for (let i = 0; i < config.shortLinks.maxAttempts; i++) {
         const shortId = this.getDecentRandomString(length);
 
         // eslint-disable-next-line no-await-in-loop
@@ -459,7 +459,7 @@ const postsTrait = (superClass) =>
       }
     }
 
-    isStringDecent = (str) => !config.postShortIds.stopWords.some((word) => str.includes(word));
+    isStringDecent = (str) => !config.shortLinks.stopWords.some((word) => str.includes(word));
 
     getRandomString = (length) =>
       randomBytes(Math.ceil(length / 2)) // divide by 2 since bytes are twice longer than hex

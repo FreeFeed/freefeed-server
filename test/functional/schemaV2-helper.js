@@ -13,7 +13,7 @@ export const freefeedAssertions = {
     });
 
     unexpected.addAssertion('<string> to be a hexadecimal string', (xpct, subject) => {
-      xpct(subject, 'to match', /^[a-f0-9]{3,10}$/);
+      xpct(subject, 'to match', /^[a-f0-9]{4,10}$/);
     });
 
     unexpected.addAssertion('<string> to be boolString', (xpct, subject) => {

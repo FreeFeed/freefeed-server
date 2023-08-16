@@ -29,7 +29,7 @@ export function extractShortIds(text: string | null): string[] {
   return text ? [...text.matchAll(shortLinkRe)].map((m) => m[1]).filter(onlyUnique) : [];
 }
 
-export const hashedShortLinkRe = /\/[A-Za-z0-9-]{3,35}\/([0-9a-f]{6,10}#[0-9a-f]{3,6})/gi;
+export const hashedShortLinkRe = /\/[A-Za-z0-9-]{3,35}\/([0-9a-f]{6,10}#[0-9a-f]{4,6})/gi;
 export function extractHashedShortIds(text: string | null): string[] {
   return text ? [...text.matchAll(hashedShortLinkRe)].map((m) => m[1]).filter(onlyUnique) : [];
 }

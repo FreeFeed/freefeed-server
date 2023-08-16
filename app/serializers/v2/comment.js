@@ -6,7 +6,7 @@ import { serializeUsersByIds } from './user';
 
 export async function serializeComment(comment, viewerId) {
   const comments = {
-    ...pick(comment, ['id', 'body', 'createdAt', 'seqNumber']),
+    ...pick(comment, ['id', 'shortId', 'body', 'createdAt', 'seqNumber']),
     createdBy: comment.userId,
   };
 

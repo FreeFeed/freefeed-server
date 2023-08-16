@@ -25,6 +25,7 @@ export function addModel(dbAdapter) {
 
     id;
     intId;
+    shortId;
     body_;
     userId;
     postId;
@@ -51,6 +52,7 @@ export function addModel(dbAdapter) {
     constructor(params) {
       this.id = params.id;
       this.intId = params.intId;
+      this.shortId = params.shortId;
       this.body = params.body;
       this.userId = params.userId;
       this.postId = params.postId;
@@ -64,11 +66,6 @@ export function addModel(dbAdapter) {
       if (parseInt(params.updatedAt, 10)) {
         this.updatedAt = params.updatedAt;
       }
-    }
-
-    get shortId() {
-      // Two chars of UUID + hex-encoded seqNumber
-      return this.id.slice(0, 2) + this.seqNumber.toString(16);
     }
 
     get body() {
@@ -116,7 +113,7 @@ export function addModel(dbAdapter) {
 
       this.id = await dbAdapter.createComment(payload);
       const newComment = await dbAdapter.getCommentById(this.id);
-      const fieldsToUpdate = ['intId', 'createdAt', 'updatedAt', 'seqNumber'];
+      const fieldsToUpdate = ['intId', 'shortId', 'createdAt', 'updatedAt', 'seqNumber'];
 
       for (const f of fieldsToUpdate) {
         this[f] = newComment[f];

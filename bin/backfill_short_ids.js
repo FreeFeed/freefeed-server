@@ -30,6 +30,9 @@ process.stdout.write(`\n`);
 
 (async () => {
   try {
+    // 1. Posts
+
+    process.stdout.write(`Processing posts...\n`);
     let lastUID = ZERO_UID;
 
     // eslint-disable-next-line no-constant-condition
@@ -60,8 +63,42 @@ process.stdout.write(`\n`);
     }
 
     process.stdout.write(`All posts were processed.\n`);
-    process.stdout.write(`Done.\n`);
 
+    // 2. Comments
+
+    process.stdout.write(`Processing comments...\n`);
+    lastUID = ZERO_UID;
+
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      const rows = await dbAdapter.database.getAll(
+        `SELECT uid as comment_id, post_id
+        FROM comments 
+        WHERE short_id IS NULL AND uid > :lastUID
+        ORDER BY uid
+        LIMIT :batchSize`,
+        { lastUID, batchSize },
+      );
+
+      if (rows.length === 0) {
+        break;
+      }
+
+      for (const { comment_id, post_id } of rows) {
+        const short_id = await dbAdapter.generateCommentShortId(dbAdapter.database, post_id);
+        await dbAdapter.database('comments').where('uid', comment_id).update({ short_id });
+        lastUID = comment_id;
+      }
+
+      const percent = (parseInt(lastUID.slice(0, 2), 16) * 100) >> 8;
+      process.stdout.write(`\tprocessed ${percent}% of total\n`);
+
+      await delay(1000 * delaySec);
+    }
+
+    process.stdout.write(`All comments were processed.\n`);
+
+    process.stdout.write(`Done.\n`);
     process.exit(0);
   } catch (e) {
     process.stderr.write(`⛔ ERROR: ${e.message}\n`);

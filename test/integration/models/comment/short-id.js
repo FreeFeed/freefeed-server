@@ -17,9 +17,7 @@ describe('Comment Short ID', () => {
   });
 
   it('should create a comment with a valid shortId', async () => {
-    const comment1 = await createComment(luna, lunaPost, 'Comment body 1');
-    const comment2 = await createComment(luna, lunaPost, 'Comment body 2');
-    expect(comment1.shortId, 'to match', /^[a-f0-9]{2}1$/);
-    expect(comment2.shortId, 'to match', /^[a-f0-9]{2}2$/);
+    const comment = await createComment(luna, lunaPost, 'Comment body');
+    expect(comment.shortId, 'to match', /^[a-f0-9]{4,6}$/);
   });
 });

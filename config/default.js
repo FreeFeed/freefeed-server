@@ -358,8 +358,11 @@ config.passwordReset = {
   tokenTTL: 8 * 3600, // in seconds
 };
 
-config.postShortIds = {
-  initialLength: 6,
+config.shortLinks = {
+  initialLength: {
+    post: 6,
+    comment: 4,
+  },
   stopWords: ['dea', 'bad', 'bee', 'bab', 'fee'],
   maxAttempts: 3, // max number of attempts (with DB uniqueness check) for selected length, before increasing the length by one
 };

@@ -1,5 +1,6 @@
 import validator from 'validator';
 import pgFormat from 'pg-format';
+import config from 'config';
 
 import { Comment } from '../../models';
 import { toTSVector } from '../search/to-tsvector';
@@ -35,6 +36,8 @@ const commentsTrait = (superClass) =>
 
         preparedPayload.seq_number = (maxCommentNumber || 0) + 1;
 
+        preparedPayload.short_id = await this.generateCommentShortId(trx, payload.postId);
+
         const [{ uid: commentId }] = await trx('comments').returning('uid').insert(preparedPayload);
 
         // Update backlinks in the comment body
@@ -50,19 +53,15 @@ const commentsTrait = (superClass) =>
       }
 
       const values = shortIds
-        .map((l) =>
-          l.replace(/^(.+)#(..)(.+)$/, (m, p1, p2, p3) =>
-            pgFormat(`(%L, %L, %L::int)`, p1, p2, +`0x${p3}`),
-          ),
-        )
+        .map((l) => l.replace(/^(.+)#(.+)$/, (m, p1, p2) => pgFormat(`(%L, %L)`, p1, p2)))
         .join(',');
 
       return await this.database.getCol(`
         SELECT c.uid
-        FROM (VALUES ${values}) AS links (post_short_id, comment_prefix, comment_num)
+        FROM (VALUES ${values}) AS links (post_short_id, comment_short_id)
         JOIN post_short_ids AS psi ON links.post_short_id = psi.short_id
         JOIN comments AS c ON psi.long_id = c.post_id
-        WHERE c.uid::text ^@ links.comment_prefix AND c.seq_number = links.comment_num
+        WHERE c.short_id = links.comment_short_id
       `);
     }
 
@@ -265,6 +264,38 @@ const commentsTrait = (superClass) =>
 
       return uid;
     }
+
+    async generateCommentShortId(trx, postId) {
+      let length = config.shortLinks.initialLength.comment;
+
+      for (; length <= 6; length++) {
+        // eslint-disable-next-line no-await-in-loop
+        const shortId = await this.generateCommentShortIdForLength(trx, postId, length);
+
+        if (shortId !== null) {
+          return shortId;
+        }
+      }
+
+      return null;
+    }
+
+    async generateCommentShortIdForLength(trx, postId, length) {
+      for (let i = 0; i < config.shortLinks.maxAttempts; i++) {
+        const shortId = this.getDecentRandomString(length);
+
+        // eslint-disable-next-line no-await-in-loop
+        const [{ count }] = await trx('comments')
+          .where({ short_id: shortId, post_id: postId })
+          .count();
+
+        if (+count === 0) {
+          return shortId;
+        }
+      }
+
+      return null;
+    }
   };
 
 export default commentsTrait;
@@ -305,6 +336,7 @@ const COMMENT_COLUMNS_MAPPING = {
 export const COMMENT_FIELDS = {
   uid: 'id',
   id: 'intId',
+  short_id: 'shortId',
   created_at: 'createdAt',
   updated_at: 'updatedAt',
   body: 'body',
