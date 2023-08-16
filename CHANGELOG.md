@@ -6,6 +6,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [2.14.0] - Not released
+### Added
+- Short Links for posts and comments in FreeFeed texts: e.g. `/user/4a39b8`
+  (a linked post) or `/groupname/f482e5#ad2b` (a linked comment).
+
+  A short link consists of `/` followed by username/groupname, and another `/`
+  followed by `post_short_id`. There's also an optional part in the end 
+  consisting of `#` and `comment_short_id`. Short IDs are hexadecimal strings, 
+  6 to 10 chars long (post_short_id), or 4 to 6 chars long (comment_short_id).
+
+  FreeFeed clients will be expected to parse these in texts and make them 
+  clickable hyperlinks where it makes sense. Server-side support includes:
+
+  - Generating short IDs for posts and comments, storing them in the DB
+  - Exposing new property `shortId` for post and comment objects in all
+    relevant API responses
+  - Allowing using post's short ID in the "get single post" API request
+    (`GET /v2/posts/:postId`)
+  - Necessary changes in Backlinks and Notifications to enable the short links
+    support
+  - An admin script for backfilling short IDs for existing FreeFeed instances
 
 ## [2.13.2] - 2023-08-03
 ### Fixed
