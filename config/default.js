@@ -358,6 +358,15 @@ config.passwordReset = {
   tokenTTL: 8 * 3600, // in seconds
 };
 
+config.shortLinks = {
+  initialLength: {
+    post: 6,
+    comment: 4,
+  },
+  stopWords: ['dea', 'bad', 'bee', 'bab', 'fee'],
+  maxAttempts: 3, // max number of attempts (with DB uniqueness check) for selected length, before increasing the length by one
+};
+
 config.userPreferences = {
   /**
    * Default user preferences. This object must satisfy the JSON Schema defined

@@ -183,6 +183,9 @@ export class DbAdapter {
   disableBansInGroup(userId: UUID, groupId: UUID, doDisable: boolean): Promise<boolean>;
 
   // Posts
+  getPostShortId(longId: UUID): Promise<string | null>;
+  getPostLongId(shortId: string): Promise<UUID | null>;
+  getPostLongIds(shortIds: string[]): Promise<UUID[]>;
   getPostById(id: UUID): Promise<Post | null>;
   getAdminsOfPostGroups(postId: UUID): Promise<User[]>;
   getPostsByIds(ids: UUID[]): Promise<Post[]>;
@@ -194,6 +197,7 @@ export class DbAdapter {
   unlikePost(postId: UUID, userId: UUID): Promise<boolean>;
 
   // Comments
+  getCommentLongIds(shortIds: string[]): Promise<UUID[]>;
   getCommentById(id: UUID): Promise<Comment | null>;
   getCommentsByIds(ids: UUID[]): Promise<Comment[]>;
   getCommentsByIntIds(ids: number[]): Promise<Comment[]>;

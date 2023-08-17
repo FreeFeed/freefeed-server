@@ -4,6 +4,8 @@ import expect from 'unexpected';
 
 import {
   extractUUIDs,
+  extractShortIds,
+  extractHashedShortIds,
   notifyBacklinkedLater,
   notifyBacklinkedNow,
 } from '../../../app/support/backlinks';
@@ -37,6 +39,82 @@ describe('Backlinks parser', () => {
     cases.forEach(({ text, result }) => {
       it(`should extract ${result.length} UUID(s) from "${text}"`, () => {
         expect(extractUUIDs(text), 'to equal', result);
+      });
+    });
+  });
+
+  describe('extractShortIds', () => {
+    const cases = [
+      { text: 'abc', result: [] },
+      {
+        text: 'abc /venus/f482e5',
+        result: ['f482e5'],
+      },
+      {
+        text: 'abc /venus/f482e5 /venus/f482e5',
+        result: ['f482e5'],
+      },
+      {
+        text: 'abc /venus/f482e5 /venus/f482e8',
+        result: ['f482e5', 'f482e8'],
+      },
+      {
+        text: 'abc /venus/f482e5 /venus/f4g2e5',
+        // _______________________________^ (invalid hexadecimal)
+        result: ['f482e5'],
+      },
+      {
+        text: 'abc /venus/f482e5 hello mars/4a39b8',
+        // ____________________________^ (no starting slash)
+        result: ['f482e5'],
+      },
+      {
+        text: 'abc /venus/f482e5 /group-for-very-secret-meetings/4a39b8',
+        result: ['f482e5', '4a39b8'],
+      },
+    ];
+
+    cases.forEach(({ text, result }) => {
+      it(`should extract ${result.length} shortId(s) from "${text}"`, () => {
+        expect(extractShortIds(text), 'to equal', result);
+      });
+    });
+  });
+
+  describe('extractHashedShortIds', () => {
+    const cases = [
+      { text: 'abc', result: [] },
+      {
+        text: 'abc /venus/f482e5#ad2b',
+        result: ['f482e5#ad2b'],
+      },
+      {
+        text: 'abc /venus/f482e5#ad2b /venus/f482e5#ad2b',
+        result: ['f482e5#ad2b'],
+      },
+      {
+        text: 'abc /venus/f482e5#ad2b /venus/f482e5#bf9e',
+        result: ['f482e5#ad2b', 'f482e5#bf9e'],
+      },
+      {
+        text: 'abc /venus/f482e5#ad2b /venus/f4g2e5#ad2b',
+        // ____________________________________^ (invalid hexadecimal)
+        result: ['f482e5#ad2b'],
+      },
+      {
+        text: 'abc /venus/f482e5#ad2b hello mars/4a39b8#055f',
+        // _________________________________^ (no starting slash)
+        result: ['f482e5#ad2b'],
+      },
+      {
+        text: 'abc /venus/f482e5#ad2b /group-for-very-secret-meetings/4a39b8#0a5b',
+        result: ['f482e5#ad2b', '4a39b8#0a5b'],
+      },
+    ];
+
+    cases.forEach(({ text, result }) => {
+      it(`should extract ${result.length} shortId(s) from "${text}"`, () => {
+        expect(extractHashedShortIds(text), 'to equal', result);
       });
     });
   });

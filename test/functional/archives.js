@@ -182,7 +182,7 @@ describe('Archives', () => {
       await dbAdapter.setOldPostName(post.id, oldName, oldUrl);
     });
 
-    it('should return post object with old URL', async () => {
+    it('should return post object with old (FriendFeed) URL', async () => {
       const resp = await testHelper.fetchPost(post.id);
       expect(resp, 'to satisfy', { posts: { friendfeedUrl: oldUrl } });
     });

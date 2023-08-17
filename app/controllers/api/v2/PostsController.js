@@ -15,7 +15,7 @@ import { ForbiddenException } from '../../../support/exceptions';
 import { getPostsByIdsInputSchema } from './data-schemes/posts';
 
 export const show = compose([
-  postAccessRequired(),
+  postAccessRequired(true),
   monitored('posts.show-v2'),
   async (ctx) => {
     const { user: viewer, post } = ctx.state;

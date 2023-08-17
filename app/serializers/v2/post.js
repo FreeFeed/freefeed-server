@@ -9,6 +9,7 @@ export function serializeComment(comment) {
   return {
     ...pick(comment, [
       'id',
+      'shortId',
       'body',
       'createdAt',
       'updatedAt',
@@ -216,6 +217,7 @@ function serializePostData(post) {
   return {
     ...pick(post, [
       'id',
+      'shortId',
       'body',
       'commentsDisabled',
       'createdAt',

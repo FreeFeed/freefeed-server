@@ -5,41 +5,46 @@ import {
 } from '../../support/exceptions';
 import { dbAdapter } from '../../models';
 
-export function postAccessRequired(map = { postId: 'post' }) {
+export function postAccessRequired(acceptShortId = false) {
   return async (ctx, next) => {
     const forbidden = (reason = 'You can not see this post') => new ForbiddenException(reason);
     const notFound = (reason = 'Post not found') => new NotFoundException(reason);
+
     const { user: viewer } = ctx.state;
+    let { postId } = ctx.params;
 
-    await Promise.all(
-      Object.keys(map).map(async (key) => {
-        if (!ctx.params[key]) {
-          throw new ServerErrorException(
-            `Server misconfiguration: the required parameter '${key}' is missing`,
-          );
-        }
+    if (acceptShortId && postId && postId.length < 36) {
+      postId = await dbAdapter.getPostLongId(postId);
 
-        const { [key]: postId } = ctx.params;
-        const post = await dbAdapter.getPostById(postId);
-        const author = post ? await dbAdapter.getUserById(post.userId) : null;
+      if (!postId) {
+        throw notFound();
+      }
+    }
 
-        if (!post || !author.isActive) {
-          throw notFound();
-        }
+    if (!postId) {
+      throw new ServerErrorException(
+        `Server misconfiguration: the required parameter 'postId' is missing`,
+      );
+    }
 
-        const isVisible = await post.isVisibleFor(viewer);
+    const post = await dbAdapter.getPostById(postId);
+    const author = post ? await dbAdapter.getUserById(post.userId) : null;
 
-        if (!isVisible) {
-          if (!viewer && post.isProtected === '1' && post.isPrivate === '0') {
-            throw forbidden('Please sign in to view this post');
-          }
+    if (!post || !author.isActive) {
+      throw notFound();
+    }
 
-          throw forbidden();
-        }
+    const isVisible = await post.isVisibleFor(viewer);
 
-        ctx.state[map[key]] = post;
-      }),
-    );
+    if (!isVisible) {
+      if (!viewer && post.isProtected === '1' && post.isPrivate === '0') {
+        throw forbidden('Please sign in to view this post');
+      }
+
+      throw forbidden();
+    }
+
+    ctx.state.post = post;
 
     await next();
   };

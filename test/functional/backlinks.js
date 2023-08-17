@@ -131,7 +131,7 @@ describe('Backlinks in realtime', () => {
   });
 
   describe('Mars is public', () => {
-    it(`should deliver 'post:update' to the Luna when Mars creates post with her post ID`, async () => {
+    it(`should deliver 'post:update' to Luna when Mars creates post with her post ID`, async () => {
       const test = lunaSession.receiveWhile(
         'post:update',
         async () =>
@@ -145,14 +145,14 @@ describe('Backlinks in realtime', () => {
       });
     });
 
-    it(`should not deliver 'post:update' to the Luna when Mars updates post keeping her post ID`, async () => {
+    it(`should not deliver 'post:update' to Luna when Mars updates post keeping her post ID`, async () => {
       const test = lunaSession.notReceiveWhile('post:update', () =>
         updatePostAsync(mars, { body: `As Luna said, again, example.com/${luna.post.id}` }),
       );
       await expect(test, 'to be fulfilled');
     });
 
-    it(`should deliver 'post:update' to the Luna when Mars updates post and removes her post ID`, async () => {
+    it(`should deliver 'post:update' to Luna when Mars updates post and removes her post ID`, async () => {
       const test = lunaSession.receiveWhile('post:update', () =>
         updatePostAsync(mars, { body: `As Luna said, hmm...` }),
       );
@@ -161,7 +161,7 @@ describe('Backlinks in realtime', () => {
       });
     });
 
-    it(`should deliver 'post:update' to the Luna when Mars updates post and returns her post ID`, async () => {
+    it(`should deliver 'post:update' to Luna when Mars updates post and restores her post ID`, async () => {
       const test = lunaSession.receiveWhile('post:update', () =>
         updatePostAsync(mars, { body: `As Luna said, again, example.com/${luna.post.id}` }),
       );
@@ -170,7 +170,54 @@ describe('Backlinks in realtime', () => {
       });
     });
 
-    it(`should deliver 'post:update' to the Luna when Mars removes post with her post ID`, async () => {
+    it(`should deliver 'post:update' to Luna when Mars removes post with her post ID`, async () => {
+      const test = lunaSession.receiveWhile('post:update', () =>
+        deletePostAsync(mars, mars.post.id),
+      );
+      await expect(test, 'when fulfilled', 'to satisfy', {
+        posts: { id: luna.post.id, backlinksCount: 0 },
+      });
+    });
+  });
+
+  describe('Mars uses short links', () => {
+    it(`should deliver 'post:update' to Luna when Mars creates post with her post ID`, async () => {
+      const test = lunaSession.receiveWhile(
+        'post:update',
+        async () =>
+          (mars.post = await createAndReturnPost(mars, `As Luna said, /luna/${luna.post.shortId}`)),
+      );
+      await expect(test, 'when fulfilled', 'to satisfy', {
+        posts: { id: luna.post.id, backlinksCount: 1 },
+      });
+    });
+
+    it(`should not deliver 'post:update' to Luna when Mars updates post keeping her post ID`, async () => {
+      const test = lunaSession.notReceiveWhile('post:update', () =>
+        updatePostAsync(mars, { body: `As Luna said, again, /luna/${luna.post.shortId}` }),
+      );
+      await expect(test, 'to be fulfilled');
+    });
+
+    it(`should deliver 'post:update' to Luna when Mars updates post and removes her post ID`, async () => {
+      const test = lunaSession.receiveWhile('post:update', () =>
+        updatePostAsync(mars, { body: `As Luna said, hmm...` }),
+      );
+      await expect(test, 'when fulfilled', 'to satisfy', {
+        posts: { id: luna.post.id, backlinksCount: 0 },
+      });
+    });
+
+    it(`should deliver 'post:update' to Luna when Mars updates post and restores her post ID`, async () => {
+      const test = lunaSession.receiveWhile('post:update', () =>
+        updatePostAsync(mars, { body: `As Luna said, again, /luna/${luna.post.shortId}` }),
+      );
+      await expect(test, 'when fulfilled', 'to satisfy', {
+        posts: { id: luna.post.id, backlinksCount: 1 },
+      });
+    });
+
+    it(`should deliver 'post:update' to Luna when Mars removes post with her post ID`, async () => {
       const test = lunaSession.receiveWhile('post:update', () =>
         deletePostAsync(mars, mars.post.id),
       );
@@ -184,7 +231,7 @@ describe('Backlinks in realtime', () => {
     before(() => goPrivate(mars));
     after(() => goPublic(mars));
 
-    it(`should not deliver 'post:update' to the Luna when Mars creates post with her post ID`, async () => {
+    it(`should not deliver 'post:update' to Luna when Mars creates post with her post ID`, async () => {
       const test = lunaSession.notReceiveWhile(
         'post:update',
         async () =>
@@ -196,28 +243,28 @@ describe('Backlinks in realtime', () => {
       await expect(test, 'to be fulfilled');
     });
 
-    it(`should not deliver 'post:update' to the Luna when Mars updates post keeping her post ID`, async () => {
+    it(`should not deliver 'post:update' to Luna when Mars updates post keeping her post ID`, async () => {
       const test = lunaSession.notReceiveWhile('post:update', () =>
         updatePostAsync(mars, { body: `As Luna said, again, example.com/${luna.post.id}` }),
       );
       await expect(test, 'to be fulfilled');
     });
 
-    it(`should not deliver 'post:update' to the Luna when Mars updates post and removes her post ID`, async () => {
+    it(`should not deliver 'post:update' to Luna when Mars updates post and removes her post ID`, async () => {
       const test = lunaSession.notReceiveWhile('post:update', () =>
         updatePostAsync(mars, { body: `As Luna said, hmm...` }),
       );
       await expect(test, 'to be fulfilled');
     });
 
-    it(`should not deliver 'post:update' to the Luna when Mars updates post and returns her post ID`, async () => {
+    it(`should not deliver 'post:update' to Luna when Mars updates post and restores her post ID`, async () => {
       const test = lunaSession.notReceiveWhile('post:update', () =>
         updatePostAsync(mars, { body: `As Luna said, again, example.com/${luna.post.id}` }),
       );
       await expect(test, 'to be fulfilled');
     });
 
-    it(`should not deliver 'post:update' to the Luna when Mars removes post with her post ID`, async () => {
+    it(`should not deliver 'post:update' to Luna when Mars removes post with her post ID`, async () => {
       const test = lunaSession.notReceiveWhile('post:update', () =>
         deletePostAsync(mars, mars.post.id),
       );
@@ -230,7 +277,7 @@ describe('Backlinks in realtime', () => {
     after(() => deletePostAsync(mars, mars.post.id));
 
     describe('Mars is public', () => {
-      it(`should deliver 'post:update' to the Luna when Mars creates comment with her post ID`, async () => {
+      it(`should deliver 'post:update' to Luna when Mars creates comment with her post ID`, async () => {
         const test = lunaSession.receiveWhile(
           'post:update',
           async () =>
@@ -245,7 +292,7 @@ describe('Backlinks in realtime', () => {
         });
       });
 
-      it(`should not deliver 'post:update' to the Luna when Mars updates comment keeping her post ID`, async () => {
+      it(`should not deliver 'post:update' to Luna when Mars updates comment keeping her post ID`, async () => {
         const test = lunaSession.notReceiveWhile('post:update', () =>
           updateCommentAsync(
             mars,
@@ -256,7 +303,7 @@ describe('Backlinks in realtime', () => {
         await expect(test, 'to be fulfilled');
       });
 
-      it(`should deliver 'post:update' to the Luna when Mars updates comment and removes her post ID`, async () => {
+      it(`should deliver 'post:update' to Luna when Mars updates comment and removes her post ID`, async () => {
         const test = lunaSession.receiveWhile('post:update', () =>
           updateCommentAsync(mars, mars.comment.id, `As Luna said, hmm...`),
         );
@@ -265,7 +312,7 @@ describe('Backlinks in realtime', () => {
         });
       });
 
-      it(`should deliver 'post:update' to the Luna when Mars updates comment and returns her post ID`, async () => {
+      it(`should deliver 'post:update' to Luna when Mars updates comment and restores her post ID`, async () => {
         const test = lunaSession.receiveWhile('post:update', () =>
           updateCommentAsync(
             mars,
@@ -278,7 +325,66 @@ describe('Backlinks in realtime', () => {
         });
       });
 
-      it(`should deliver 'post:update' to the Luna when Mars removes comment with her post ID`, async () => {
+      it(`should deliver 'post:update' to Luna when Mars removes comment with her post ID`, async () => {
+        const test = lunaSession.receiveWhile('post:update', () =>
+          removeCommentAsync(mars, mars.comment.id),
+        );
+        await expect(test, 'when fulfilled', 'to satisfy', {
+          posts: { id: luna.post.id, backlinksCount: 0 },
+        });
+      });
+    });
+
+    describe('Mars uses short links', () => {
+      it(`should deliver 'post:update' to Luna when Mars creates comment with her post ID`, async () => {
+        const test = lunaSession.receiveWhile(
+          'post:update',
+          async () =>
+            ({ comments: mars.comment } = await createCommentAsync(
+              mars,
+              mars.post.id,
+              `As Luna said, /luna/${luna.post.shortId}`,
+            ).then((r) => r.json())),
+        );
+        await expect(test, 'when fulfilled', 'to satisfy', {
+          posts: { id: luna.post.id, backlinksCount: 1 },
+        });
+      });
+
+      it(`should not deliver 'post:update' to Luna when Mars updates comment keeping her post ID`, async () => {
+        const test = lunaSession.notReceiveWhile('post:update', () =>
+          updateCommentAsync(
+            mars,
+            mars.comment.id,
+            `As Luna said, again, /luna/${luna.post.shortId}`,
+          ),
+        );
+        await expect(test, 'to be fulfilled');
+      });
+
+      it(`should deliver 'post:update' to Luna when Mars updates comment and removes her post ID`, async () => {
+        const test = lunaSession.receiveWhile('post:update', () =>
+          updateCommentAsync(mars, mars.comment.id, `As Luna said, hmm...`),
+        );
+        await expect(test, 'when fulfilled', 'to satisfy', {
+          posts: { id: luna.post.id, backlinksCount: 0 },
+        });
+      });
+
+      it(`should deliver 'post:update' to Luna when Mars updates comment and restores her post ID`, async () => {
+        const test = lunaSession.receiveWhile('post:update', () =>
+          updateCommentAsync(
+            mars,
+            mars.comment.id,
+            `As Luna said, again, /luna/${luna.post.shortId}`,
+          ),
+        );
+        await expect(test, 'when fulfilled', 'to satisfy', {
+          posts: { id: luna.post.id, backlinksCount: 1 },
+        });
+      });
+
+      it(`should deliver 'post:update' to Luna when Mars removes comment with her post ID`, async () => {
         const test = lunaSession.receiveWhile('post:update', () =>
           removeCommentAsync(mars, mars.comment.id),
         );
@@ -292,7 +398,7 @@ describe('Backlinks in realtime', () => {
       before(() => goPrivate(mars));
       after(() => goPublic(mars));
 
-      it(`should not deliver 'post:update' to the Luna when Mars creates comment with her post ID`, async () => {
+      it(`should not deliver 'post:update' to Luna when Mars creates comment with her post ID`, async () => {
         const test = lunaSession.notReceiveWhile(
           'post:update',
           async () =>
@@ -305,7 +411,7 @@ describe('Backlinks in realtime', () => {
         await expect(test, 'to be fulfilled');
       });
 
-      it(`should not deliver 'post:update' to the Luna when Mars updates comment keeping her post ID`, async () => {
+      it(`should not deliver 'post:update' to Luna when Mars updates comment keeping her post ID`, async () => {
         const test = lunaSession.notReceiveWhile('post:update', () =>
           updateCommentAsync(
             mars,
@@ -316,14 +422,14 @@ describe('Backlinks in realtime', () => {
         await expect(test, 'to be fulfilled');
       });
 
-      it(`should not deliver 'post:update' to the Luna when Mars updates comment and removes her post ID`, async () => {
+      it(`should not deliver 'post:update' to Luna when Mars updates comment and removes her post ID`, async () => {
         const test = lunaSession.notReceiveWhile('post:update', () =>
           updateCommentAsync(mars, mars.comment.id, `As Luna said, hmm...`),
         );
         await expect(test, 'to be fulfilled');
       });
 
-      it(`should not deliver 'post:update' to the Luna when Mars updates comment and returns her post ID`, async () => {
+      it(`should not deliver 'post:update' to Luna when Mars updates comment and restores her post ID`, async () => {
         const test = lunaSession.notReceiveWhile('post:update', () =>
           updateCommentAsync(
             mars,
@@ -334,7 +440,7 @@ describe('Backlinks in realtime', () => {
         await expect(test, 'to be fulfilled');
       });
 
-      it(`should not deliver 'post:update' to the Luna when Mars removes comment with her post ID`, async () => {
+      it(`should not deliver 'post:update' to Luna when Mars removes comment with her post ID`, async () => {
         const test = lunaSession.notReceiveWhile('post:update', () =>
           removeCommentAsync(mars, mars.comment.id),
         );
