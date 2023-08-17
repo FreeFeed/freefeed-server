@@ -439,7 +439,9 @@ const postsTrait = (superClass) =>
         // eslint-disable-next-line no-await-in-loop
         const res = await trx('post_short_ids')
           .insert({ short_id: shortId, long_id: longId })
-          .returning('short_id');
+          .returning('short_id')
+          .onConflict()
+          .ignore();
 
         if (res && res.length > 0) {
           return true;
