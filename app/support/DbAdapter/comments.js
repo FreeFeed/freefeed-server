@@ -1,9 +1,9 @@
 import validator from 'validator';
 import pgFormat from 'pg-format';
-import config from 'config';
 
 import { Comment } from '../../models';
 import { toTSVector } from '../search/to-tsvector';
+import { currentConfig } from '../app-async-context';
 
 import { initObject, prepareModelPayload } from './utils';
 
@@ -266,7 +266,7 @@ const commentsTrait = (superClass) =>
     }
 
     async generateCommentShortId(trx, postId) {
-      let length = config.shortLinks.initialLength.comment;
+      let length = currentConfig().shortLinks.initialLength.comment;
 
       for (; length <= 6; length++) {
         // eslint-disable-next-line no-await-in-loop
@@ -281,7 +281,7 @@ const commentsTrait = (superClass) =>
     }
 
     async generateCommentShortIdForLength(trx, postId, length) {
-      for (let i = 0; i < config.shortLinks.maxAttempts; i++) {
+      for (let i = 0; i < currentConfig().shortLinks.maxAttempts; i++) {
         const shortId = this.getDecentRandomString(length);
 
         // eslint-disable-next-line no-await-in-loop

@@ -3,10 +3,10 @@ import { randomBytes } from 'crypto';
 import _ from 'lodash';
 import validator from 'validator';
 import pgFormat from 'pg-format';
-import config from 'config';
 
 import { Post } from '../../models';
 import { toTSVector } from '../search/to-tsvector';
+import { currentConfig } from '../app-async-context';
 
 import { initObject, prepareModelPayload, sqlNotIn } from './utils';
 
@@ -422,7 +422,7 @@ const postsTrait = (superClass) =>
     }
 
     async createPostShortId(trx, longId) {
-      let length = config.shortLinks.initialLength.post;
+      let length = currentConfig().shortLinks.initialLength.post;
 
       for (; length <= 10; length++) {
         // eslint-disable-next-line no-await-in-loop
@@ -433,13 +433,15 @@ const postsTrait = (superClass) =>
     }
 
     async createPostShortIdForLength(trx, longId, length) {
-      for (let i = 0; i < config.shortLinks.maxAttempts; i++) {
+      for (let i = 0; i < currentConfig().shortLinks.maxAttempts; i++) {
         const shortId = this.getDecentRandomString(length);
 
         // eslint-disable-next-line no-await-in-loop
         const res = await trx('post_short_ids')
           .insert({ short_id: shortId, long_id: longId })
-          .returning('short_id');
+          .returning('short_id')
+          .onConflict()
+          .ignore();
 
         if (res && res.length > 0) {
           return true;
@@ -459,7 +461,8 @@ const postsTrait = (superClass) =>
       }
     }
 
-    isStringDecent = (str) => !config.shortLinks.stopWords.some((word) => str.includes(word));
+    isStringDecent = (str) =>
+      !currentConfig().shortLinks.stopWords.some((word) => str.includes(word));
 
     getRandomString = (length) =>
       randomBytes(Math.ceil(length / 2)) // divide by 2 since bytes are twice longer than hex
