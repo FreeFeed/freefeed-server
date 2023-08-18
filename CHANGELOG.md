@@ -27,6 +27,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     support
   - An admin script for backfilling short IDs for existing FreeFeed instances
 
+- A `withModifiedConfig` helper function that allows to override configuration
+  in test.
+
 ## [2.13.2] - 2023-08-03
 ### Fixed
 - "Discarding" backlinks in comments when the link in their parent post is

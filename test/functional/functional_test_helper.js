@@ -1159,6 +1159,10 @@ export class MockHTTPServer {
 /**
  * Run tests in 'describe' block with modified app config. Use it only in
  * 'describe', not in test functions!
+ *
+ * See also the `withModifiedConfig()` helper from
+ * `test/helpers/with-modified-config.ts`
+ *
  * @typedef {import('config').Config} Config
  * @param {import('../../app/support/types').DeepPartial<Config>} patch
  */
