@@ -1,10 +1,11 @@
 /* eslint-env node, mocha */
 /* global $pg_database */
 import expect from 'unexpected';
-import config from 'config';
 
 import cleanDB from '../../../dbCleaner';
 import { dbAdapter, User } from '../../../../app/models';
+import { withModifiedConfig } from '../../../helpers/with-modified-config';
+import { currentConfig } from '../../../../app/support/app-async-context';
 
 describe('Post Short ID', () => {
   let luna;
@@ -16,33 +17,10 @@ describe('Post Short ID', () => {
   });
 
   it('should create a post with a valid shortId', async () => {
-    const re = RegExp(`^[a-f0-9]{${config.shortLinks.initialLength.post},10}$`);
+    const re = RegExp(`^[a-f0-9]{${currentConfig().shortLinks.initialLength.post},10}$`);
     const post = await createPost(luna, { body: 'Post body' });
     const shortId = await post.getShortId();
     expect(shortId, 'to match', re);
-  });
-
-  it('should eventually increase shortId length after the collision', async () => {
-    const originalLength = config.shortLinks.initialLength.post;
-    config.shortLinks.initialLength.post = 1; // To get a collision sooner
-
-    const re1 = RegExp(`^[a-f0-9]$`);
-    const re2 = RegExp(`^[a-f0-9]{2}$`);
-
-    let post = await createPost(luna, { body: 'Post body' });
-    let shortId = await post.getShortId();
-    let longestShortId = shortId;
-    expect(shortId, 'to match', re1); // First post must have shortId of initial length
-
-    for (let i = 0; i < 16; i++) {
-      post = await createPost(luna, { body: `Post body ${i}` }); // eslint-disable-line no-await-in-loop
-      shortId = await post.getShortId(); // eslint-disable-line no-await-in-loop
-      longestShortId = longestShortId.length > shortId.length ? longestShortId : shortId;
-    }
-
-    expect(longestShortId, 'to match', re2); // At least one post out of 17 must have shortId of initialLength + 1
-
-    config.shortLinks.initialLength.post = originalLength;
   });
 
   it('should keep the shortId record with longId=null after the post removal', async () => {
@@ -55,6 +33,28 @@ describe('Post Short ID', () => {
     );
     expect(records.length, 'to equal', 1);
     expect(records[0].long_id, 'to equal', null);
+  });
+
+  describe('With modified config.shortLinks', () => {
+    withModifiedConfig({ shortLinks: { initialLength: { post: 1 } } }); // To get a collision sooner
+
+    it('should eventually increase shortId length after collision', async () => {
+      const re1 = RegExp(`^[a-f0-9]$`);
+      const re2 = RegExp(`^[a-f0-9]{2}$`);
+
+      let post = await createPost(luna, { body: 'Post body' });
+      let shortId = await post.getShortId();
+      let longestShortId = shortId;
+      expect(shortId, 'to match', re1); // First post must have shortId of initial length
+
+      for (let i = 0; i < 16; i++) {
+        post = await createPost(luna, { body: `Post body ${i}` }); // eslint-disable-line no-await-in-loop
+        shortId = await post.getShortId(); // eslint-disable-line no-await-in-loop
+        longestShortId = longestShortId.length > shortId.length ? longestShortId : shortId;
+      }
+
+      expect(longestShortId, 'to match', re2); // At least one post out of 17 must have shortId of initialLength + 1
+    });
   });
 });
 
