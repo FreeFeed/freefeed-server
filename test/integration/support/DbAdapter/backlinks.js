@@ -58,10 +58,14 @@ describe('Backlinks DB trait', () => {
       .create();
   });
 
-  it(`should calculate backlink counts for Luna, Mars and Venus posts`, async () => {
-    const result = await dbAdapter.getBacklinksCounts([lunaPost.id, marsPost.id, venusPost.id]);
+  it(`should calculate backlinks for Luna, Mars and Venus posts`, async () => {
+    const [counts, referenced] = await getCountsAndReferenced([
+      lunaPost.id,
+      marsPost.id,
+      venusPost.id,
+    ]);
     expect(
-      result,
+      counts,
       'to equal',
       new Map([
         [lunaPost.id, 2],
@@ -69,6 +73,7 @@ describe('Backlinks DB trait', () => {
         [venusPost.id, 1],
       ]),
     );
+    expect(referenced, 'to equal', [[venusPost.id, marsPost.id], [venusPost.id], [marsPost.id]]);
   });
 
   describe('Venus becomes protected', () => {
@@ -76,24 +81,29 @@ describe('Backlinks DB trait', () => {
     after(() => venus.update({ isProtected: '0', isPrivate: '0' }));
 
     it(`should not count Venus post for anonymous`, async () => {
-      const result = await dbAdapter.getBacklinksCounts([lunaPost.id, marsPost.id, venusPost.id]);
+      const [counts, referenced] = await getCountsAndReferenced([
+        lunaPost.id,
+        marsPost.id,
+        venusPost.id,
+      ]);
       expect(
-        result,
+        counts,
         'to equal',
         new Map([
           [lunaPost.id, 1],
           [venusPost.id, 1],
         ]),
       );
+      expect(referenced, 'to equal', [[marsPost.id], [], [marsPost.id]]);
     });
 
     it(`should count Venus post for Luna`, async () => {
-      const result = await dbAdapter.getBacklinksCounts(
+      const [counts, referenced] = await getCountsAndReferenced(
         [lunaPost.id, marsPost.id, venusPost.id],
         luna.id,
       );
       expect(
-        result,
+        counts,
         'to equal',
         new Map([
           [lunaPost.id, 2],
@@ -101,6 +111,7 @@ describe('Backlinks DB trait', () => {
           [venusPost.id, 1],
         ]),
       );
+      expect(referenced, 'to equal', [[venusPost.id, marsPost.id], [venusPost.id], [marsPost.id]]);
     });
   });
 
@@ -109,39 +120,45 @@ describe('Backlinks DB trait', () => {
     after(() => venus.update({ isProtected: '0', isPrivate: '0' }));
 
     it(`should not count Venus post for anonymous`, async () => {
-      const result = await dbAdapter.getBacklinksCounts([lunaPost.id, marsPost.id, venusPost.id]);
+      const [counts, referenced] = await getCountsAndReferenced([
+        lunaPost.id,
+        marsPost.id,
+        venusPost.id,
+      ]);
       expect(
-        result,
+        counts,
         'to equal',
         new Map([
           [lunaPost.id, 1],
           [venusPost.id, 1],
         ]),
       );
+      expect(referenced, 'to equal', [[marsPost.id], [], [marsPost.id]]);
     });
 
     it(`should not count Venus post for Luna`, async () => {
-      const result = await dbAdapter.getBacklinksCounts(
+      const [counts, referenced] = await getCountsAndReferenced(
         [lunaPost.id, marsPost.id, venusPost.id],
         luna.id,
       );
       expect(
-        result,
+        counts,
         'to equal',
         new Map([
           [lunaPost.id, 1],
           [venusPost.id, 1],
         ]),
       );
+      expect(referenced, 'to equal', [[marsPost.id], [], [marsPost.id]]);
     });
 
     it(`should count Venus post for Venus`, async () => {
-      const result = await dbAdapter.getBacklinksCounts(
+      const [counts, referenced] = await getCountsAndReferenced(
         [lunaPost.id, marsPost.id, venusPost.id],
         venus.id,
       );
       expect(
-        result,
+        counts,
         'to equal',
         new Map([
           [lunaPost.id, 2],
@@ -149,6 +166,7 @@ describe('Backlinks DB trait', () => {
           [venusPost.id, 1],
         ]),
       );
+      expect(referenced, 'to equal', [[venusPost.id, marsPost.id], [venusPost.id], [marsPost.id]]);
     });
   });
 
@@ -157,9 +175,13 @@ describe('Backlinks DB trait', () => {
     after(() => mars.unban(jupiter.username));
 
     it(`should count Jupiter comment for anonymous`, async () => {
-      const result = await dbAdapter.getBacklinksCounts([lunaPost.id, marsPost.id, venusPost.id]);
+      const [counts, referenced] = await getCountsAndReferenced([
+        lunaPost.id,
+        marsPost.id,
+        venusPost.id,
+      ]);
       expect(
-        result,
+        counts,
         'to equal',
         new Map([
           [lunaPost.id, 2],
@@ -167,15 +189,16 @@ describe('Backlinks DB trait', () => {
           [venusPost.id, 1],
         ]),
       );
+      expect(referenced, 'to equal', [[venusPost.id, marsPost.id], [venusPost.id], [marsPost.id]]);
     });
 
     it(`should count Jupiter comment for Venus`, async () => {
-      const result = await dbAdapter.getBacklinksCounts(
+      const [counts, referenced] = await getCountsAndReferenced(
         [lunaPost.id, marsPost.id, venusPost.id],
         venus.id,
       );
       expect(
-        result,
+        counts,
         'to equal',
         new Map([
           [lunaPost.id, 2],
@@ -183,36 +206,39 @@ describe('Backlinks DB trait', () => {
           [venusPost.id, 1],
         ]),
       );
+      expect(referenced, 'to equal', [[venusPost.id, marsPost.id], [venusPost.id], [marsPost.id]]);
     });
 
     it(`should not count Jupiter comment for Mars`, async () => {
-      const result = await dbAdapter.getBacklinksCounts(
+      const [counts, referenced] = await getCountsAndReferenced(
         [lunaPost.id, marsPost.id, venusPost.id],
         mars.id,
       );
       expect(
-        result,
+        counts,
         'to equal',
         new Map([
           [lunaPost.id, 2],
           [marsPost.id, 1],
         ]),
       );
+      expect(referenced, 'to equal', [[venusPost.id, marsPost.id], [venusPost.id], []]);
     });
 
     it(`should not count Mars post for Jupiter`, async () => {
-      const result = await dbAdapter.getBacklinksCounts(
+      const [counts, referenced] = await getCountsAndReferenced(
         [lunaPost.id, marsPost.id, venusPost.id],
         jupiter.id,
       );
       expect(
-        result,
+        counts,
         'to equal',
         new Map([
           [lunaPost.id, 1],
           [marsPost.id, 1],
         ]),
       );
+      expect(referenced, 'to equal', [[venusPost.id], [venusPost.id], []]);
     });
   });
 
@@ -221,15 +247,20 @@ describe('Backlinks DB trait', () => {
     after(() => mars.setGoneStatus(null));
 
     it(`should not count Mars post for anonymous`, async () => {
-      const result = await dbAdapter.getBacklinksCounts([lunaPost.id, marsPost.id, venusPost.id]);
+      const [counts, referenced] = await getCountsAndReferenced([
+        lunaPost.id,
+        marsPost.id,
+        venusPost.id,
+      ]);
       expect(
-        result,
+        counts,
         'to equal',
         new Map([
           [lunaPost.id, 1],
           [marsPost.id, 1],
         ]),
       );
+      expect(referenced, 'to equal', [[venusPost.id], [venusPost.id], []]);
     });
   });
 
@@ -238,8 +269,9 @@ describe('Backlinks DB trait', () => {
     after(() => lunaPost.update({ body: 'just a post' }));
 
     it(`should not count self-link to the Luna post`, async () => {
-      const result = await dbAdapter.getBacklinksCounts([lunaPost.id]);
-      expect(result, 'to equal', new Map([[lunaPost.id, 2]]));
+      const [counts, referenced] = await getCountsAndReferenced([lunaPost.id]);
+      expect(counts, 'to equal', new Map([[lunaPost.id, 2]]));
+      expect(referenced, 'to equal', [[venusPost.id, marsPost.id]]);
     });
   });
 
@@ -258,16 +290,18 @@ describe('Backlinks DB trait', () => {
       });
       await jupiterCommentNo2.create();
 
-      const result = await dbAdapter.getBacklinksCounts([lunaPost.id]);
-      expect(result, 'to equal', new Map([[lunaPost.id, 3]]));
+      const [counts, referenced] = await getCountsAndReferenced([lunaPost.id]);
+      expect(counts, 'to equal', new Map([[lunaPost.id, 3]]));
+      expect(referenced, 'to equal', [[venusPost.id, marsPost.id]]);
     });
 
     it(`should decrease count by 1 (not 2) when link from post removed`, async () => {
       // Making sure the backlinks in comments are not "discarded" when the link in their parent post is removed
       await marsPost.update({ body: 'luna post: ah, never mind' });
 
-      const result = await dbAdapter.getBacklinksCounts([lunaPost.id]);
-      expect(result, 'to equal', new Map([[lunaPost.id, 2]]));
+      const [counts, referenced] = await getCountsAndReferenced([lunaPost.id]);
+      expect(counts, 'to equal', new Map([[lunaPost.id, 2]]));
+      expect(referenced, 'to equal', [[venusPost.id, marsPost.id]]);
     });
   });
 
@@ -288,18 +322,21 @@ describe('Backlinks DB trait', () => {
       });
       await jupiterPost.create();
 
-      let result = await dbAdapter.getBacklinksCounts([lunaPost.id]);
-      expect(result, 'to equal', new Map([[lunaPost.id, 2]]));
+      let [counts, referenced] = await getCountsAndReferenced([lunaPost.id]);
+      expect(counts, 'to equal', new Map([[lunaPost.id, 2]]));
+      expect(referenced, 'to equal', [[venusPost.id, marsPost.id]]);
 
       await jupiterPost.update({ body: `luna post: /luna/${lunaPostShortId}` });
 
-      result = await dbAdapter.getBacklinksCounts([lunaPost.id]);
-      expect(result, 'to equal', new Map([[lunaPost.id, 3]]));
+      [counts, referenced] = await getCountsAndReferenced([lunaPost.id]);
+      expect(counts, 'to equal', new Map([[lunaPost.id, 3]]));
+      expect(referenced, 'to equal', [[jupiterPost.id, venusPost.id, marsPost.id]]);
 
       await jupiterPost.update({ body: `just a post` });
 
-      result = await dbAdapter.getBacklinksCounts([lunaPost.id]);
-      expect(result, 'to equal', new Map([[lunaPost.id, 2]]));
+      [counts, referenced] = await getCountsAndReferenced([lunaPost.id]);
+      expect(counts, 'to equal', new Map([[lunaPost.id, 2]]));
+      expect(referenced, 'to equal', [[venusPost.id, marsPost.id]]);
     });
 
     it(`should count short links on comment update`, async () => {
@@ -309,18 +346,21 @@ describe('Backlinks DB trait', () => {
       });
       await jupiterCommentNo2.create();
 
-      let result = await dbAdapter.getBacklinksCounts([lunaPost.id]);
-      expect(result, 'to equal', new Map([[lunaPost.id, 2]]));
+      let [counts, referenced] = await getCountsAndReferenced([lunaPost.id]);
+      expect(counts, 'to equal', new Map([[lunaPost.id, 2]]));
+      expect(referenced, 'to equal', [[venusPost.id, marsPost.id]]);
 
       await jupiterCommentNo2.update({ body: `luna post: /luna/${lunaPostShortId}` });
 
-      result = await dbAdapter.getBacklinksCounts([lunaPost.id]);
-      expect(result, 'to equal', new Map([[lunaPost.id, 3]]));
+      [counts, referenced] = await getCountsAndReferenced([lunaPost.id]);
+      expect(counts, 'to equal', new Map([[lunaPost.id, 3]]));
+      expect(referenced, 'to equal', [[jupiterPost.id, venusPost.id, marsPost.id]]);
 
       await jupiterCommentNo2.update({ body: `just a comment` });
 
-      result = await dbAdapter.getBacklinksCounts([lunaPost.id]);
-      expect(result, 'to equal', new Map([[lunaPost.id, 2]]));
+      [counts, referenced] = await getCountsAndReferenced([lunaPost.id]);
+      expect(counts, 'to equal', new Map([[lunaPost.id, 2]]));
+      expect(referenced, 'to equal', [[venusPost.id, marsPost.id]]);
     });
 
     it(`should count short links on post create`, async () => {
@@ -334,8 +374,9 @@ describe('Backlinks DB trait', () => {
       });
       await jupiterPost.create();
 
-      const result = await dbAdapter.getBacklinksCounts([lunaPost.id]);
-      expect(result, 'to equal', new Map([[lunaPost.id, 3]]));
+      const [counts, referenced] = await getCountsAndReferenced([lunaPost.id]);
+      expect(counts, 'to equal', new Map([[lunaPost.id, 3]]));
+      expect(referenced, 'to equal', [[jupiterPost.id, venusPost.id, marsPost.id]]);
     });
 
     it(`should count short links on comment create`, async () => {
@@ -345,22 +386,34 @@ describe('Backlinks DB trait', () => {
       });
       await jupiterCommentNo2.create();
 
-      const result = await dbAdapter.getBacklinksCounts([lunaPost.id]);
-      expect(result, 'to equal', new Map([[lunaPost.id, 4]]));
+      const [counts, referenced] = await getCountsAndReferenced([lunaPost.id]);
+      expect(counts, 'to equal', new Map([[lunaPost.id, 4]]));
+      expect(referenced, 'to equal', [[jupiterPost.id, venusPost.id, marsPost.id]]);
     });
 
     it(`should count short links on comment destroy`, async () => {
       await jupiterCommentNo2.destroy();
 
-      const result = await dbAdapter.getBacklinksCounts([lunaPost.id]);
-      expect(result, 'to equal', new Map([[lunaPost.id, 3]]));
+      const [counts, referenced] = await getCountsAndReferenced([lunaPost.id]);
+      expect(counts, 'to equal', new Map([[lunaPost.id, 3]]));
+      expect(referenced, 'to equal', [[jupiterPost.id, venusPost.id, marsPost.id]]);
     });
 
     it(`should count short links on post destroy`, async () => {
       await jupiterPost.destroy();
 
-      const result = await dbAdapter.getBacklinksCounts([lunaPost.id]);
-      expect(result, 'to equal', new Map([[lunaPost.id, 2]]));
+      const [counts, referenced] = await getCountsAndReferenced([lunaPost.id]);
+      expect(counts, 'to equal', new Map([[lunaPost.id, 2]]));
+      expect(referenced, 'to equal', [[venusPost.id, marsPost.id]]);
     });
   });
 });
+
+function getCountsAndReferenced(postIds, viewerId = null) {
+  return Promise.all([
+    dbAdapter.getBacklinksCounts(postIds, viewerId),
+    Promise.all(
+      postIds.map((id) => dbAdapter.getReferringPosts(id, viewerId, { sort: 'created' })),
+    ),
+  ]);
+}
