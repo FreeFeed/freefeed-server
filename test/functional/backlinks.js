@@ -24,13 +24,13 @@ import Session from './realtime-session';
 
 describe('Backlinks in API output', () => {
   let luna, mars;
-  let lunaPostId, marsPostId;
+  let lunaPostId, marsPostId, lunaPostShortId;
 
   before(async () => {
     await cleanDB($pg_database);
     [luna, mars] = await createTestUsers(['luna', 'mars']);
 
-    ({ id: lunaPostId } = await createAndReturnPost(luna, 'Luna post'));
+    ({ id: lunaPostId, shortId: lunaPostShortId } = await createAndReturnPost(luna, 'Luna post'));
     ({ id: marsPostId } = await createAndReturnPost(
       mars,
       `As Luna said, example.com/${lunaPostId}`,
@@ -46,6 +46,26 @@ describe('Backlinks in API output', () => {
     const resp = await performJSONRequest(
       'GET',
       `/v2/search?qs=${encodeURIComponent(lunaPostId)}`,
+      null,
+      authHeaders(luna),
+    );
+    expect(resp, 'to satisfy', { posts: [{ id: marsPostId }] });
+  });
+
+  it(`should return Mars post by Luna post's backlinks`, async () => {
+    const resp = await performJSONRequest(
+      'GET',
+      `/v2/posts/${lunaPostId}/backlinks`,
+      null,
+      authHeaders(luna),
+    );
+    expect(resp, 'to satisfy', { posts: [{ id: marsPostId }] });
+  });
+
+  it(`should return Mars post by Luna post's backlinks with short ID`, async () => {
+    const resp = await performJSONRequest(
+      'GET',
+      `/v2/posts/${lunaPostShortId}/backlinks`,
       null,
       authHeaders(luna),
     );

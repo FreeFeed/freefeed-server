@@ -13,6 +13,7 @@ import {
 import { ForbiddenException } from '../../../support/exceptions';
 
 import { getPostsByIdsInputSchema } from './data-schemes/posts';
+import { getCommonParams } from './TimelinesController';
 
 export const show = compose([
   postAccessRequired(true),
@@ -137,5 +138,28 @@ export const leave = compose([
     }
 
     ctx.body = {};
+  },
+]);
+
+/**
+ * Returns feed of posts that references to the given post
+ */
+export const getReferringPosts = compose([
+  monitored('posts.referring'),
+  postAccessRequired(true),
+  async (ctx) => {
+    const { post, user } = ctx.state;
+
+    const params = getCommonParams(ctx);
+    params.limit++;
+
+    const foundPostsIds = await dbAdapter.getReferringPosts(post.id, user?.id, params);
+    const isLastPage = foundPostsIds.length <= params.limit - 1;
+
+    if (!isLastPage) {
+      foundPostsIds.length = params.limit - 1;
+    }
+
+    ctx.body = await serializeFeed(foundPostsIds, user?.id, null, { isLastPage });
   },
 ]);

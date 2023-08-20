@@ -137,7 +137,7 @@ export const metatags = compose([
  * @return {object}                                   - Object with the following sructure:
  *                                                      { limit:number, offset:number, sort:string, withMyPosts:boolean }
  */
-function getCommonParams(ctx, defaultSort = ORD_UPDATED) {
+export function getCommonParams(ctx, defaultSort = ORD_UPDATED) {
   const { query } = ctx.request;
 
   let limit = parseInt(query.limit, 10);
