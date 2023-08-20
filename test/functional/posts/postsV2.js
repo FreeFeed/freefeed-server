@@ -229,6 +229,13 @@ describe('TimelinesControllerV2', () => {
             response.should.include('<meta property="og:description" content="Luna post" />');
           });
 
+          it('should return information for a public post by its short id', async () => {
+            const response = await fetchPostOpenGraph(lunaPost.shortId);
+            response.should.include('og:title');
+            response.should.include('luna');
+            response.should.include('<meta property="og:description" content="Luna post" />');
+          });
+
           it('should escape special characters', async () => {
             const response = await fetchPostOpenGraph(lunaPostWithSpecialCharacters.id);
             response.should.include(
