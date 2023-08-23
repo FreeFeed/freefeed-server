@@ -30,7 +30,13 @@ export const show = compose([
 export const opengraph = compose([
   monitored('posts.opengraph-v2'),
   async (ctx) => {
-    const post = await dbAdapter.getPostById(ctx.params.postId);
+    let { postId } = ctx.params;
+
+    if (postId && postId.length < 36) {
+      postId = (await dbAdapter.getPostLongId(postId)) ?? postId;
+    }
+
+    const post = await dbAdapter.getPostById(postId);
 
     // OpenGraph is available for public posts that are not protected
     if (!post || post.isProtected === '1') {
