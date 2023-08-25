@@ -306,6 +306,17 @@ export class DbAdapter {
     refCommentUID?: Nullable<UUID>,
     db?: Knex,
   ): Promise<void>;
+  getReferringPosts(
+    postId: UUID,
+    viewerId?: Nullable<UUID>,
+    params?: {
+      limit?: number;
+      offset?: number;
+      sort?: 'bumped' | 'created';
+      createdBefore?: Nullable<ISO8601DateTimeString>;
+      createdAfter?: Nullable<ISO8601DateTimeString>;
+    },
+  ): Promise<UUID[]>;
 
   // Jobs
   createJob<T extends {}>(
