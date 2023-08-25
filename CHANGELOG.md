@@ -31,7 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   in test.
 
 - A new `/v2/posts/:postId/backlinks` API method that returns feed of all posts
-  that references to the given post.
+  that reference the given post.
 
 ## [2.13.2] - 2023-08-03
 ### Fixed

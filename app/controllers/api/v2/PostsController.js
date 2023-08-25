@@ -142,7 +142,7 @@ export const leave = compose([
 ]);
 
 /**
- * Returns feed of posts that references to the given post
+ * Returns feed of posts that reference the given post
  */
 export const getReferringPosts = compose([
   monitored('posts.referring'),
