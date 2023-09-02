@@ -3241,13 +3241,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"bluebird@npm:^2.10.2":
-  version: 2.11.0
-  resolution: "bluebird@npm:2.11.0"
-  checksum: f1c6cbec64100bca65c88e5de0d9ee9bbb435f7c74c68a16a9466a8b40daf64346805c2fe04af821564ce6d4199085e7855d2e272282a065eb723344815cc354
-  languageName: node
-  linkType: hard
-
 "boolbase@npm:^1.0.0":
   version: 1.0.0
   resolution: "boolbase@npm:1.0.0"
@@ -6078,7 +6071,6 @@ __metadata:
     pg-format: ~1.0.4
     prettier: ~2.8.8
     probe-image-size: ~7.2.3
-    promise-streams: ~2.1.1
     raven: ~2.6.4
     react: ~16.13.1
     react-dom: ~16.13.1
@@ -10280,15 +10272,6 @@ __metadata:
     err-code: ^2.0.2
     retry: ^0.12.0
   checksum: f96a3f6d90b92b568a26f71e966cbbc0f63ab85ea6ff6c81284dc869b41510e6cdef99b6b65f9030f0db422bf7c96652a3fff9f2e8fb4a0f069d8f4430359429
-  languageName: node
-  linkType: hard
-
-"promise-streams@npm:~2.1.1":
-  version: 2.1.1
-  resolution: "promise-streams@npm:2.1.1"
-  dependencies:
-    bluebird: ^2.10.2
-  checksum: e493c6e3b1dc7d6dc7773921ed2b7834848b6660cc1030065beca0fbf3654bda881d5f81c4d8f9195911630d6fa477d86f2c7cd515d0bbca4a27b883fa0746dd
   languageName: node
   linkType: hard
 

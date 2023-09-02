@@ -2,9 +2,10 @@ import { promises as fs, createWriteStream } from 'fs';
 import crypto from 'crypto';
 import path from 'path';
 import { URL } from 'url';
+import { pipeline, finished } from 'stream/promises';
 
 import meter from 'stream-meter';
-import { wait as waitStream, pipeline } from 'promise-streams';
+// import { wait as waitStream, pipeline } from 'promise-streams';
 import fetch from 'node-fetch';
 import mediaType from 'media-type';
 import { parse as bytesParse } from 'bytes';
@@ -51,9 +52,8 @@ export async function downloadURL(url: string) {
 
   try {
     const stream = createWriteStream(filePath, { flags: 'w' });
-    const fileWasWritten = waitStream(stream);
     await pipeline(response.body, meter(fileSizeLimit), stream);
-    await fileWasWritten; // waiting for the file to be written and closed
+    await finished(stream); // wait for the file to be written and closed
 
     const stats = await fs.stat(filePath);
 

@@ -98,7 +98,6 @@
     "pg-cursor": "~2.10.3",
     "pg-format": "~1.0.4",
     "probe-image-size": "~7.2.3",
-    "promise-streams": "~2.1.1",
     "raven": "~2.6.4",
     "react": "~16.13.1",
     "react-dom": "~16.13.1",
