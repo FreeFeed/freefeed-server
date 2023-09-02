@@ -1,5 +1,9 @@
+import pgFormat from 'pg-format';
+
 import { Comment } from '../../models';
-import { extractUUIDs } from '../backlinks';
+import { extractShortIds, extractUUIDs } from '../backlinks';
+
+import { andJoin, orJoin } from './utils';
 
 ///////////////////////////////////////////////////
 // Backlinks
@@ -53,9 +57,10 @@ const backlinksTrait = (superClass) =>
     }
 
     async updateBacklinks(text, refPostUID, refCommentUID = null, db = this.database) {
-      const uuids = await db.getCol(`select uid from posts where uid = any(?)`, [
-        extractUUIDs(text),
-      ]);
+      const uuids = await db.getCol(
+        `SELECT long_id FROM post_short_ids WHERE long_id = ANY(?) OR (short_id = ANY(?) AND long_id IS NOT NULL)`,
+        [extractUUIDs(text), extractShortIds(text)],
+      );
 
       // Remove the old backlinks
       if (refCommentUID) {
@@ -82,6 +87,46 @@ const backlinksTrait = (superClass) =>
         select post_id, :refPostUID, :refCommentUID from unnest(:uuids::uuid[]) post_id
         on conflict do nothing`,
         { uuids, refPostUID, refCommentUID },
+      );
+    }
+
+    async getReferringPosts(
+      postId,
+      viewerId = null,
+      { limit = 30, offset = 0, sort = 'bumped', createdBefore = null, createdAfter = null } = {},
+    ) {
+      const [postsVisibilitySQL, notBannedSQLFabric] = await Promise.all([
+        this.postsVisibilitySQL(viewerId),
+        this.notBannedActionsSQLFabric(viewerId),
+      ]);
+
+      const commentsVisibilitySQL = orJoin([
+        'c.uid is null',
+        andJoin([pgFormat('c.hide_type=%L', Comment.VISIBLE), notBannedSQLFabric('c')]),
+      ]);
+
+      const allFilters = andJoin([
+        pgFormat('b.post_id = %L', postId),
+        // Don't count backlinks to the post itself
+        'b.post_id <> b.ref_post_id',
+        postsVisibilitySQL,
+        commentsVisibilitySQL,
+        createdBefore && pgFormat('p.created_at < %L', createdBefore),
+        createdAfter && pgFormat('p.created_at > %L', createdAfter),
+      ]);
+
+      const order = `p.${pgFormat('%I', `${sort}_at`)}`;
+
+      return await this.database.getCol(
+        `select distinct p.uid, ${order} from
+          backlinks b
+          join posts p on b.ref_post_id = p.uid
+          join users u on p.user_id = u.uid
+          left join comments c on b.ref_comment_id = c.uid
+        where ${allFilters}
+        order by ${order} desc
+        limit :limit offset :offset`,
+        { limit, offset },
       );
     }
   };

@@ -12,6 +12,10 @@ export const freefeedAssertions = {
       xpct(subject, 'to match', uuidRegExp);
     });
 
+    unexpected.addAssertion('<string> to be a hexadecimal string', (xpct, subject) => {
+      xpct(subject, 'to match', /^[a-f0-9]{4,10}$/);
+    });
+
     unexpected.addAssertion('<string> to be boolString', (xpct, subject) => {
       xpct(subject, 'to be one of', ['0', '1']);
     });
@@ -195,6 +199,7 @@ export const userOrGroup = (obj) => {
 
 const postBasic = {
   id: expect.it('to be UUID'),
+  shortId: expect.it('to be a hexadecimal string'),
   body: expect.it('to be a string'),
   commentsDisabled: expect.it('to be boolString'),
   createdAt: expect.it('to be timeStampString'),
@@ -227,6 +232,7 @@ const postBasic = {
 
 const commentBasic = {
   id: expect.it('to be UUID'),
+  shortId: expect.it('to be a hexadecimal string'),
   postId: expect.it('to be UUID'),
   body: expect.it('to be a string'),
   createdAt: expect.it('to be timeStampString'),

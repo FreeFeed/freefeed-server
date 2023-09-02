@@ -5,10 +5,10 @@ import path from 'path';
 import { program } from 'commander';
 
 import { dbAdapter } from '../app/models';
-import { extractUUIDs } from '../app/support/backlinks';
+import { extractShortIds, extractUUIDs } from '../app/support/backlinks';
 import { delay } from '../app/support/timers';
 
-// Reindex baclinks in posts and comments.
+// Reindex backlinks in posts and comments.
 // Usage: yarn babel bin/reindex_backlinks.js --help
 
 const allTables = ['posts', 'comments'];
@@ -95,15 +95,22 @@ process.stdout.write(`\n`);
         }
 
         const allUUIDs = new Set();
+        const allShortIds = new Set();
 
         for (const row of rows) {
           const uuids = extractUUIDs(row.body);
+          const shortIds = extractShortIds(row.body);
 
           for (const uuid of uuids) {
             allUUIDs.add(uuid);
           }
 
+          for (const shortId of shortIds) {
+            allShortIds.add(shortId);
+          }
+
           row.uuids = uuids;
+          row.shortIds = shortIds;
         }
 
         let attemptsLeft = retries;
@@ -124,6 +131,20 @@ process.stdout.write(`\n`);
                 }),
               );
 
+              // Only the real post Short Ids
+              const shortIdRecords = await dbAdapter.database.getAll(
+                `SELECT long_id, short_id FROM post_short_ids WHERE short_id = ANY(:shortIds) AND long_id IS NOT NULL`,
+                {
+                  shortIds: [...allShortIds],
+                },
+              );
+              const realShortIds = new Set();
+              const shortToLong = {};
+              shortIdRecords.forEach((r) => {
+                shortToLong[r.short_id] = r.long_id;
+                realShortIds.add(r.short_id);
+              });
+
               await trx.raw(
                 `create temp table b_data (post_id uuid, ref_post_id uuid, ref_comment_id uuid) on commit drop`,
               );
@@ -135,6 +156,16 @@ process.stdout.write(`\n`);
                 for (const uuid of uuids) {
                   toInsert.push({
                     post_id: uuid,
+                    ref_post_id: row.ref_post_id,
+                    ref_comment_id: row.ref_comment_id,
+                  });
+                }
+
+                const shortIds = row.shortIds.filter((u) => realShortIds.has(u));
+
+                for (const shortId of shortIds) {
+                  toInsert.push({
+                    post_id: shortToLong[shortId],
                     ref_post_id: row.ref_post_id,
                     ref_comment_id: row.ref_comment_id,
                   });

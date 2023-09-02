@@ -91,6 +91,15 @@ declare module 'config' {
       tokenTTL: number;
     };
 
+    shortLinks: {
+      initialLength: {
+        post: number;
+        comment: number;
+      };
+      stopWords: string[];
+      maxAttempts: number;
+    };
+
     jobManager: {
       pollInterval: number;
       jobLockTime: number;

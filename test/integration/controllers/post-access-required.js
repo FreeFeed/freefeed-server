@@ -11,7 +11,7 @@ import { User, Post } from '../../../app/models';
 describe('postAccessRequired', () => {
   beforeEach(() => cleanDB($pg_database));
 
-  const handler = (ctx, map) => postAccessRequired(map)(ctx, noop);
+  const handler = (ctx) => postAccessRequired()(ctx, noop);
 
   describe("Luna, Mars and Luna's post", () => {
     let luna, mars, post, ctx;
@@ -38,30 +38,9 @@ describe('postAccessRequired', () => {
       await expect(handler(ctx), 'to be rejected with', { status: 500 });
     });
 
-    it('should not allow to view inexistent post', async () => {
+    it('should not allow to view nonexistent post', async () => {
       ctx.params.postId = '00000000-0000-0000-C000-000000000046';
       await expect(handler(ctx), 'to be rejected with', { status: 404 });
-    });
-
-    it('should allow to view post with custom route parameter', async () => {
-      ctx.params.postId2 = ctx.params.postId;
-      Reflect.deleteProperty(ctx.params, 'postId');
-      await expect(handler(ctx, { postId2: 'post2' }), 'to be fulfilled');
-      expect(ctx.state, 'to satisfy', { post2: { id: post.id } });
-    });
-
-    it('should allow to view two posts', async () => {
-      ctx.params.postId2 = ctx.params.postId;
-      await expect(handler(ctx, { postId: 'post', postId2: 'post2' }), 'to be fulfilled');
-      expect(ctx.state, 'to satisfy', { post2: { id: post.id }, post: { id: post.id } });
-    });
-
-    it('should not allow to view two posts if one of them is not exists', async () => {
-      ctx.params.postId2 = ctx.params.postId;
-      ctx.params.postId = '00000000-0000-0000-C000-000000000046';
-      await expect(handler(ctx, { postId: 'post', postId2: 'post2' }), 'to be rejected with', {
-        status: 404,
-      });
     });
 
     it('should allow anonymous to view post', async () => {

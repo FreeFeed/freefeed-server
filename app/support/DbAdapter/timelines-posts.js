@@ -300,6 +300,7 @@ const timelinesPostsTrait = (superClass) =>
         'comments_count',
         'likes_count',
         'friendfeed_url',
+        'short_id',
       ).map((k) => pgFormat('p.%I', k));
       const attFields = Object.keys(ATTACHMENT_FIELDS).map((k) => pgFormat('%I', k));
       const commentFields = Object.keys(COMMENT_FIELDS).map((k) => pgFormat('%I', k));
@@ -327,9 +328,10 @@ const timelinesPostsTrait = (superClass) =>
       const [friendsIds, postsData, attData, destData] = await Promise.all([
         viewerId ? this.getUserFriendIds(viewerId) : [],
         this.database
-          .select('a.old_url as friendfeed_url', ...postFields)
+          .select('a.old_url as friendfeed_url', 's.short_id', ...postFields)
           .from('posts as p')
           .leftJoin('archive_post_names as a', 'p.uid', 'a.post_id')
+          .leftJoin('post_short_ids as s', 'p.uid', 's.long_id')
           .whereIn('p.uid', uniqPostsIds),
         this.database
           .select(...attFields)

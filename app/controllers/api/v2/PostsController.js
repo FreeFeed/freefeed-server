@@ -13,9 +13,10 @@ import {
 import { ForbiddenException } from '../../../support/exceptions';
 
 import { getPostsByIdsInputSchema } from './data-schemes/posts';
+import { getCommonParams } from './TimelinesController';
 
 export const show = compose([
-  postAccessRequired(),
+  postAccessRequired(true),
   monitored('posts.show-v2'),
   async (ctx) => {
     const { user: viewer, post } = ctx.state;
@@ -30,7 +31,13 @@ export const show = compose([
 export const opengraph = compose([
   monitored('posts.opengraph-v2'),
   async (ctx) => {
-    const post = await dbAdapter.getPostById(ctx.params.postId);
+    let { postId } = ctx.params;
+
+    if (postId && postId.length < 36) {
+      postId = (await dbAdapter.getPostLongId(postId)) ?? postId;
+    }
+
+    const post = await dbAdapter.getPostById(postId);
 
     // OpenGraph is available for public posts that are not protected
     if (!post || post.isProtected === '1') {
@@ -137,5 +144,28 @@ export const leave = compose([
     }
 
     ctx.body = {};
+  },
+]);
+
+/**
+ * Returns feed of posts that reference the given post
+ */
+export const getReferringPosts = compose([
+  monitored('posts.referring'),
+  postAccessRequired(true),
+  async (ctx) => {
+    const { post, user } = ctx.state;
+
+    const params = getCommonParams(ctx);
+    params.limit++;
+
+    const foundPostsIds = await dbAdapter.getReferringPosts(post.id, user?.id, params);
+    const isLastPage = foundPostsIds.length <= params.limit - 1;
+
+    if (!isLastPage) {
+      foundPostsIds.length = params.limit - 1;
+    }
+
+    ctx.body = await serializeFeed(foundPostsIds, user?.id, null, { isLastPage });
   },
 ]);

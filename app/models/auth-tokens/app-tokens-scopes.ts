@@ -91,6 +91,7 @@ export const appTokensScopes = [
       'GET /vN/timelines-rss/:username',
       'GET /vN/posts/:postId',
       'GET /vN/posts/:postId/translated-body',
+      'GET /vN/posts/:postId/backlinks',
       'GET /vN/archives/post-by-old-name/:name',
       'GET /vN/allGroups',
       'GET /vN/comments/:commentId/likes',
