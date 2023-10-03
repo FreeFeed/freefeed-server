@@ -5,9 +5,9 @@ import { zipObject } from 'lodash';
 
 import cleanDB from '../../dbCleaner';
 import { User } from '../../../app/models';
-import { checkDestNames } from '../../../app/controllers/api/v1/PostsController';
+import { getDestinationFeeds } from '../../../app/controllers/api/v1/PostsController';
 
-describe('checkDestNames function', () => {
+describe('getDestinationFeeds function', () => {
   const userNames = ['luna', 'mars', 'venus', 'jupiter'];
   let users = {};
 
@@ -34,22 +34,22 @@ describe('checkDestNames function', () => {
     const directFeedIds = await Promise.all(
       [users.luna, users.mars, users.venus].map((u) => u.getDirectsTimelineId()),
     );
-    const feedIds = await checkDestNames(['mars', 'venus'], users.luna);
-    await expect(feedIds.sort(), 'to satisfy', directFeedIds.sort());
+    const feeds = await getDestinationFeeds(users.luna, ['mars', 'venus'], null);
+    await expect(feeds.map((f) => f.id).sort(), 'to satisfy', directFeedIds.sort());
   });
 
   it('should not allow to Luna to send direct to Jupiter', async () => {
-    const call = checkDestNames(['mars', 'venus', 'jupiter'], users.luna);
+    const call = getDestinationFeeds(users.luna, ['mars', 'venus', 'jupiter'], null);
     await expect(call, 'to be rejected with', /jupiter/);
   });
 
   it('should not allow to Luna to send direct to Saturn', async () => {
-    const call = checkDestNames(['mars', 'venus', 'saturn'], users.luna);
+    const call = getDestinationFeeds(users.luna, ['mars', 'venus', 'saturn'], null);
     await expect(call, 'to be rejected with', /saturn/);
   });
 
   it('should not allow to Jupiter to send direct to Luna and Mars', async () => {
-    const call = checkDestNames(['luna', 'mars', 'venus'], users.jupiter);
+    const call = getDestinationFeeds(users.jupiter, ['luna', 'mars', 'venus'], null);
     await expect(call, 'to be rejected with', /luna/).and('to be rejected with', /mars/);
   });
 });

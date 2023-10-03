@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [2.15.0] - Not released
+### Changed
+- When editing a post, access rights to existing destination feeds of the post
+  are no longer checked. This change allows the author of the post to always be
+  able to edit it if he has access. Here are some examples of situations
+  affected by this change:
+  - The author wrote a post in a public group and his own feed. The group became
+    private, and the author lost access to it, but he still has access to his
+    post. He should be able to edit his post.
+  - The author sent a direct message, but the recipient deleted his account. The
+    author can no longer send direct messages to him, but he should still be
+    able to edit the existing direct message. This case is particularly
+    important because the author of the direct message cannot delete recipients
+    himself.
 
 ## [2.14.0] - 2023-09-02
 ### Added

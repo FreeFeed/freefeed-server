@@ -1,4 +1,4 @@
-import _, { difference, differenceBy } from 'lodash';
+import _, { difference, differenceBy, uniqBy } from 'lodash';
 import monitor from 'monitor-dog';
 import compose from 'koa-compose';
 
@@ -33,8 +33,8 @@ export default class PostsController {
         post: { body, attachments },
       } = ctx.request.body;
 
-      const destNames = typeof feeds === 'string' ? [feeds] : feeds;
-      const timelineIds = await checkDestNames(destNames, author);
+      const feedNames = typeof feeds === 'string' ? [feeds] : feeds;
+      const destinationFeeds = await getDestinationFeeds(author, feedNames, null);
 
       if (attachments) {
         const attObjects = await dbAdapter.getAttachmentsByIds(attachments);
@@ -53,7 +53,7 @@ export default class PostsController {
         body,
         attachments,
         commentsDisabled: commentsDisabled ? '1' : '0',
-        timelineIds,
+        timelineIds: destinationFeeds.map((f) => f.id),
       });
 
       try {
@@ -77,44 +77,16 @@ export default class PostsController {
     async (ctx) => {
       const { user, post } = ctx.state;
 
-      if (post.userId != user.id) {
+      if (post.userId !== user.id) {
         throw new ForbiddenException("You can't update another user's post");
       }
 
-      const { body, attachments, feeds } = ctx.request.body.post;
+      const { body, attachments, feeds: feedNames } = ctx.request.body.post;
 
-      let { destinationFeedIds } = post;
-
-      if (feeds) {
-        const destUids = await checkDestNames(feeds, user);
-        const [destFeeds, isDirect] = await Promise.all([
-          dbAdapter.getTimelinesByIds(destUids),
-          post.isStrictlyDirect(),
-        ]);
-
-        if (destFeeds.length === 0) {
-          if (isDirect) {
-            // Trying to update direct to ourselves
-            destFeeds.push(await user.getDirectsTimeline());
-          } else {
-            throw new ValidationException('The "feeds" list must contain at least one feed');
-          }
-        }
-
-        destinationFeedIds = destFeeds.map((f) => f.intId);
-
-        if (isDirect) {
-          if (!destFeeds[0].isDirects()) {
-            throw new ForbiddenException('You can not update direct post to regular one');
-          }
-
-          if (_.difference(post.destinationFeedIds, destinationFeedIds).length != 0) {
-            throw new ForbiddenException('You can not remove any receivers from direct post');
-          }
-        } else if (destFeeds[0].isDirects()) {
-          throw new ForbiddenException('You can not update regular post to direct one');
-        }
-      }
+      const existingFeeds = await post.getPostedTo();
+      const destinationFeeds = feedNames
+        ? await getDestinationFeeds(user, feedNames, existingFeeds)
+        : existingFeeds;
 
       if (attachments) {
         const attObjects = await dbAdapter.getAttachmentsByIds(attachments);
@@ -129,7 +101,11 @@ export default class PostsController {
       }
 
       try {
-        await post.update({ body, attachments, destinationFeedIds });
+        await post.update({
+          body,
+          attachments,
+          destinationFeedIds: destinationFeeds.map((f) => f.intId),
+        });
       } catch (e) {
         throw new BadRequestException(`Can not create post: ${e.message}`);
       }
@@ -362,20 +338,19 @@ export default class PostsController {
 }
 
 /**
- * Check post destination names against the given post author
- * and return ids of destination timelines on success. Throws
- * HTTP errors if any error happens.
+ * Returns the destination feeds for a new or updated post. This function checks
+ * the correctness and permissions for the given feed names and throws HTTP
+ * errors if necessary.
  *
- * @param {string[]} destNames
- * @param {User} author
- * @returns {Promise<string[]>}
+ * @param {User} postAuthor - The author of the post.
+ * @param {string[]} feedNames - An array of feed names of new or updated post.
+ * @param {Timeline[]|null} existingFeeds - Use null to indicate that it is a
+   new post. Provide an array of existing feeds if it is an updated post.
+ * @returns {Promise<Timeline[]>}
  */
-export async function checkDestNames(destNames, author) {
-  destNames = _.uniq(destNames.map((u) => u.toLowerCase()));
-  const destUsers = await dbAdapter.getFeedOwnersByUsernames(destNames);
-  const destUserNames = destUsers.map((u) => u.username);
-
-  const missNames = _.difference(destNames, destUserNames);
+export async function getDestinationFeeds(postAuthor, feedNames, existingFeeds) {
+  const owners = await Promise.all(feedNames.map((name) => dbAdapter.getFeedOwnerByUsername(name)));
+  const missNames = feedNames.filter((_unused, i) => !owners[i]);
 
   if (missNames.length === 1) {
     throw new NotFoundException(`Account '${missNames[0]}' was not found`);
@@ -383,37 +358,57 @@ export async function checkDestNames(destNames, author) {
     throw new NotFoundException(`Some of destinations was not found: ${missNames.join(', ')}`);
   }
 
-  // Checking if this will be a regular post or a direct message.
-  // Mixed posts ("public directs") are prohibited.
-  const isMixed = destUsers
-    .map((u) => u.isGroup() || u.id === author.id)
-    .some((v, i, arr) => v !== arr[0]);
+  const feeds = await Promise.all(
+    uniqBy(owners, 'id').map((acc) => {
+      const feedName = acc.id === postAuthor.id || acc.isGroup() ? 'Posts' : 'Directs';
+      return acc.getGenericTimeline(feedName);
+    }),
+  );
 
-  if (isMixed) {
-    throw new ForbiddenException(`You can not create "public directs"`);
+  const isDirect = (existingFeeds ?? feeds).every((f) => f.isDirects());
+
+  if (isDirect) {
+    feeds.push(await postAuthor.getDirectsTimeline());
   }
 
-  const destFeeds = await Promise.all(destUsers.map((u) => u.getFeedsToPost(author)));
-  const deniedNames = destFeeds
-    .map((x, i) => (x.length === 0 ? destUsers[i].username : ''))
-    .filter(Boolean);
+  /** @type {Timeline[]} */
+  const feedsToAppend = differenceBy(feeds, existingFeeds ?? [], 'id');
+  /** @type {Timeline[]} */
+  const feedsToRemove = differenceBy(existingFeeds ?? [], feeds, 'id');
 
-  if (deniedNames.length > 0) {
-    if (destUsers.length === 1) {
-      const [destUser] = destUsers;
-
-      if (destUser.isUser()) {
-        throw new ForbiddenException(`You can not send private messages to '${destUser.username}'`);
-      }
-
-      throw new ForbiddenException(`You can not post to the '${destUser.username}' group`);
+  if (isDirect) {
+    if (feedsToRemove.length > 0) {
+      throw new ForbiddenException('You can not remove any receivers from direct post');
     }
 
+    if (feedsToAppend.some((f) => !f.isDirects())) {
+      throw new ForbiddenException('You can not update direct post to regular one');
+    }
+  } else {
+    if (feeds.length === 0) {
+      throw new ValidationException('The "feeds" list must contain at least one feed');
+    }
+
+    if (feedsToAppend.some((f) => f.isDirects())) {
+      throw new ForbiddenException('You can not update regular post to direct one');
+    }
+  }
+
+  // We should only check permissions for feeds that are being added. The feeds
+  // in which a post has already been published should not block changes even if
+  // the author of the post has lost access to them.
+  const rights = await Promise.all(feedsToAppend.map((f) => f.userCanPost(postAuthor)));
+  const problemFeeds = feedsToAppend.filter((_unused, i) => !rights[i]);
+
+  if (problemFeeds.length > 0) {
+    const problemNames = await Promise.all(
+      problemFeeds.map(async (f) => (await f.getUser()).username),
+    );
+
     throw new ForbiddenException(
-      `You can not post to some of destinations: ${deniedNames.join(', ')}`,
+      `You can not post to some of destinations: ${problemNames.join(', ')}`,
     );
   }
 
-  const timelineIds = _.uniq(_.flatten(destFeeds).map((f) => f.id));
-  return timelineIds;
+  return feeds;
 }
