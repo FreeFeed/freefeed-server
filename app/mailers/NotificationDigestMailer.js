@@ -70,8 +70,8 @@ const notificationTemplates = {
     const eventTime = eventData.createdAt.format('HH:MM');
     return `
       ${postAuthorLink} mentioned you in the ${postLink}${
-      groupLink ? ` [in ${groupLink}]` : ''
-    }<br />
+        groupLink ? ` [in ${groupLink}]` : ''
+      }<br />
       ${eventTime}
     `;
   },
@@ -88,8 +88,8 @@ const notificationTemplates = {
     const eventTime = eventData.createdAt.format('HH:MM');
     return `
       ${commentAuthorLink} mentioned you in a ${commentLink} to the ${postLink}${
-      groupLink ? ` [in ${groupLink}]` : ''
-    }<br />
+        groupLink ? ` [in ${groupLink}]` : ''
+      }<br />
       ${eventTime}
     `;
   },
@@ -101,8 +101,8 @@ const notificationTemplates = {
     const backlinkLink = makeBacklinkLink(eventData);
     return `
       ${postAuthorLink} mentioned your ${backlinkLink} in the ${postLink}${
-      groupLink ? ` [in ${groupLink}]` : ''
-    }<br />
+        groupLink ? ` [in ${groupLink}]` : ''
+      }<br />
       ${eventTime}
     `;
   },
@@ -120,8 +120,8 @@ const notificationTemplates = {
     const backlinkLink = makeBacklinkLink(eventData);
     return `
       ${commentAuthorLink} mentioned your ${backlinkLink} in a ${commentLink} to the ${postLink}${
-      groupLink ? ` [in ${groupLink}]` : ''
-    }<br />
+        groupLink ? ` [in ${groupLink}]` : ''
+      }<br />
       ${eventTime}
     `;
   },
@@ -138,8 +138,8 @@ const notificationTemplates = {
     const eventTime = eventData.createdAt.format('HH:MM');
     return `
       ${commentAuthorLink} ${commentLink} to you in the  ${postLink}${
-      groupLink ? ` [in ${groupLink}]` : ''
-    }<br />
+        groupLink ? ` [in ${groupLink}]` : ''
+      }<br />
       ${eventTime}
     `;
   },

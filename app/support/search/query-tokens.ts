@@ -54,7 +54,11 @@ export class ScopeStart implements Token {
  * Condition is the some post/comment non-textual filter.
  */
 export class Condition implements Token {
-  constructor(public exclude: boolean, public condition: string, public args: string[]) {}
+  constructor(
+    public exclude: boolean,
+    public condition: string,
+    public args: string[],
+  ) {}
 
   getComplexity() {
     return 0.5 * this.args.length;
@@ -66,7 +70,11 @@ export class Condition implements Token {
  * quoted phrase. It is an atomic piece of query and have no internal elements.
  */
 export class Text implements Token {
-  constructor(public exclude: boolean, public phrase: boolean, public text: string) {}
+  constructor(
+    public exclude: boolean,
+    public phrase: boolean,
+    public text: string,
+  ) {}
 
   getComplexity() {
     return this.phrase ? this.text.split(/\s+/).length : 1;
@@ -161,7 +169,10 @@ export class SeqTexts implements Token {
  * InScope contains the subquery that have a specific local scope.
  */
 export class InScope implements Token {
-  constructor(public scope: Scope, public text: AnyText) {}
+  constructor(
+    public scope: Scope,
+    public text: AnyText,
+  ) {}
 
   getComplexity() {
     return this.text.getComplexity();

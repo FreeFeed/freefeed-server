@@ -518,9 +518,8 @@ describe('Privates', () => {
         lunaLikesFeedViewedByLuna.should.have.property('subscribers');
         lunaLikesFeedViewedByLuna.should.have.property('admins');
 
-        const lunaCommentsFeedViewedByAnonymous = await funcTestHelper.getUserCommentsFeed(
-          lunaContext,
-        );
+        const lunaCommentsFeedViewedByAnonymous =
+          await funcTestHelper.getUserCommentsFeed(lunaContext);
         lunaCommentsFeedViewedByAnonymous.timelines.subscribers.should.eql([]);
         lunaCommentsFeedViewedByAnonymous.subscribers.should.eql([]);
         lunaCommentsFeedViewedByAnonymous.admins.should.eql([]);
