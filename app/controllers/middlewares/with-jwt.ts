@@ -17,7 +17,7 @@ export async function withJWT(ctx: Context, next: Next) {
   } else {
     // The legacy X-Authentication-Token header
     jwtToken =
-      ctx.headers['x-authentication-token'] || ctx.request.body.authToken || ctx.query.authToken;
+      ctx.headers['x-authentication-token'] || ctx.request.body?.authToken || ctx.query.authToken;
   }
 
   if (!jwtToken) {
