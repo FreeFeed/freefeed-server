@@ -253,6 +253,49 @@ export function addModel(dbAdapter) {
       return !this.isVirtual();
     }
 
+    /**
+     * @param {import('../models').User} writer
+     * @returns {Promise<boolean>}
+     */
+    async userCanPost(writer) {
+      if (!this.isDirects() && !this.isPosts()) {
+        return false;
+      }
+
+      if (this.userId === writer.id) {
+        return true;
+      }
+
+      const owner = await this.getUser();
+
+      if (this.isDirects()) {
+        return await owner.acceptsDirectsFrom(writer);
+      }
+
+      // Groups access logic
+
+      const isSubscribed = await dbAdapter.isUserSubscribedToTimeline(writer.id, this.id);
+
+      if (owner.isPrivate === '1' && !isSubscribed) {
+        return false;
+      }
+
+      const [admins, blocked] = await Promise.all([
+        owner.getActiveAdministrators(),
+        dbAdapter.groupIdsBlockedUser(writer.id, [owner.id]),
+      ]);
+
+      if (
+        blocked.length > 0 ||
+        admins.length === 0 ||
+        (owner.isRestricted === '1' && !admins.some((a) => a.id === writer.id))
+      ) {
+        return false;
+      }
+
+      return true;
+    }
+
     async canShow(readerId) {
       if (this.userId === readerId) {
         return true; // owner can read her posts

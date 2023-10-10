@@ -226,38 +226,6 @@ export function addModel(dbAdapter) {
     }
 
     /**
-     * Checks if the specified user can post to the timeline of this group
-     * and returns array of destination timelines or empty array if
-     * user can not post to this group.
-     *
-     * @param {User} postingUser
-     * @returns {Promise<Timeline[]>}
-     */
-    async getFeedsToPost(postingUser) {
-      const timeline = await dbAdapter.getUserNamedFeed(this.id, 'Posts');
-      const isSubscribed = await dbAdapter.isUserSubscribedToTimeline(postingUser.id, timeline.id);
-
-      if (this.isPrivate === '1' && !isSubscribed) {
-        return [];
-      }
-
-      const [admins, blocked] = await Promise.all([
-        this.getActiveAdministrators(),
-        dbAdapter.groupIdsBlockedUser(postingUser.id, [this.id]),
-      ]);
-
-      if (
-        blocked.length > 0 ||
-        admins.length === 0 ||
-        (this.isRestricted === '1' && !admins.some((a) => a.id === postingUser.id))
-      ) {
-        return [];
-      }
-
-      return [timeline];
-    }
-
-    /**
      * Blocks user in the group. adminId is the id of the admin who blocking the
      * user. This method doesn't perform any access checks, it even doesn't
      * check if the admin is actually a group administrator. Returns true if the
