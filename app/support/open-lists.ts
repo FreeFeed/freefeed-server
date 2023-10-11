@@ -8,7 +8,10 @@ type ListLike<T> = List<T> | T[] | { items: T[]; inclusive: boolean };
  * 2. All items EXCEPT of these (when 'inclusive' is false).
  */
 export class List<T> {
-  constructor(public items: T[] = [], public inclusive: boolean = true) {}
+  constructor(
+    public items: T[] = [],
+    public inclusive: boolean = true,
+  ) {}
 
   isEmpty() {
     return this.inclusive && this.items.length === 0;

@@ -7,7 +7,7 @@ import { show as showPost } from '../v2/PostsController';
 import { downloadURL } from '../../../support/download-url';
 
 import { bookmarkletCreateInputSchema } from './data-schemes';
-import { checkDestNames } from './PostsController';
+import { getDestinationFeeds } from './PostsController';
 
 export const create = compose([
   authRequired(),
@@ -29,7 +29,7 @@ export const create = compose([
       destNames.push(author.username);
     }
 
-    const timelineIds = await checkDestNames(destNames, author);
+    const timelines = await getDestinationFeeds(author, destNames, null);
 
     // Attachments
     if (images.length === 0 && image !== '') {
@@ -51,7 +51,7 @@ export const create = compose([
       userId: author.id,
       body,
       attachments,
-      timelineIds,
+      timelineIds: timelines.map((f) => f.id),
     });
     await post.create();
 

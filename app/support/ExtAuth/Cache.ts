@@ -12,7 +12,10 @@ const KEY_LENGTH = 16; // bytes
 export class Cache {
   private readonly cache: MCache;
 
-  constructor(private readonly keyPrefix: string, private readonly ttl: number) {
+  constructor(
+    private readonly keyPrefix: string,
+    private readonly ttl: number,
+  ) {
     this.cache = cacheManager.caching({
       store: redisStore,
       host: config.redis.host,

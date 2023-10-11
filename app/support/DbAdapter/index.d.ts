@@ -124,6 +124,7 @@ export class DbAdapter {
   existsNormEmail(email: string): Promise<boolean>;
   getUserIdsWhoBannedUser(id: UUID): Promise<UUID[]>;
   getFeedOwnerById(id: UUID): Promise<User | Group | null>;
+  getFeedOwnerByUsername(name: string): Promise<User | Group | null>;
   getFeedOwnersByUsernames(names: string[]): Promise<(User | Group)[]>;
   getFeedOwnersByIds(ids: UUID[]): Promise<Nullable<User | Group>[]>;
   someUsersArePublic(userIds: UUID[], anonymousFriendly: boolean): Promise<boolean>;

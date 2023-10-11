@@ -1092,7 +1092,7 @@ export function addModel(dbAdapter) {
      * this user.
      *
      * @param {User|null} postingUser
-     * @returns {boolean}
+     * @returns {Promise<boolean>}
      */
     async acceptsDirectsFrom(postingUser) {
       if (!postingUser || this.id === postingUser.id) {
@@ -1120,30 +1120,6 @@ export function addModel(dbAdapter) {
       }
 
       return false;
-    }
-
-    /**
-     * Checks if the specified user can post to the timeline of this user
-     * returns array of destination (Directs) timelines
-     * or empty array if user can not post to this user.
-     *
-     * @param {User} postingUser
-     * @returns {Timeline[]}
-     */
-    async getFeedsToPost(postingUser) {
-      if (this.id === postingUser.id) {
-        // Users always can post to own timeline
-        return [await dbAdapter.getUserNamedFeed(this.id, 'Posts')];
-      }
-
-      if (!(await this.acceptsDirectsFrom(postingUser))) {
-        return [];
-      }
-
-      return await Promise.all([
-        dbAdapter.getUserNamedFeed(this.id, 'Directs'),
-        dbAdapter.getUserNamedFeed(postingUser.id, 'Directs'),
-      ]);
     }
 
     async updateLastActivityAt() {

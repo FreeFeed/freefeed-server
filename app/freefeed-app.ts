@@ -51,6 +51,12 @@ class FreefeedApp extends Application<DefaultState, AppContext> {
         formidable: { maxFileSize: config.attachments.fileSizeLimit },
       }),
     );
+    this.use((ctx, next) => {
+      // Compatibility fix with koa-body 4.*: use `{}` as default value of body
+      // when it is empty.
+      ctx.request.body ??= {};
+      return next();
+    });
     this.use(passport.initialize());
     this.use(originMiddleware);
     this.use(apiVersionMiddleware);
