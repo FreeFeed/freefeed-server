@@ -408,4 +408,11 @@ export class DbAdapter {
   registerTranslationUsage(options: TranslationRegisterOptions): Promise<void>;
   getTranslationUsage(options: TranslationUsageOptions): Promise<number>;
   cleanOldTranslationUsageData(now?: ISO8601DateTimeString | 'now'): Promise<void>;
+
+  getCommentEventsStatusForPosts(
+    viewerId: UUID | null,
+    postIds: UUID[],
+  ): Promise<Map<UUID, boolean>>;
+
+  setCommentEventsStatusForPost(postId: UUID, userId: UUID, isEnabled: boolean): Promise<void>;
 }
