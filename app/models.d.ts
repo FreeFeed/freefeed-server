@@ -41,6 +41,9 @@ export class User {
   invitationId: number | null;
   goneStatus: keyof typeof GONE_NAMES | null;
   goneStatusName: string;
+  constructor(params: unknown);
+  create(): Promise<this>;
+  update(params: unknown): Promise<void>;
   setGoneStatus(status: keyof typeof GONE_NAMES | null): Promise<void>;
   ban(usernames: string): Promise<1>;
   unban(usernames: string): Promise<1>;
@@ -134,7 +137,12 @@ export class Post {
   userId: UUID;
   body: string;
   destinationFeedIds: number[];
-  constructor(params: { userId: UUID; body: string; timelineIds: UUID[] });
+  constructor(params: {
+    userId: UUID;
+    body: string;
+    timelineIds: UUID[];
+    commentsDisabled?: '0' | '1';
+  });
   create(): Promise<this>;
   destroy(destroyedBy?: User): Promise<void>;
   removeLike(user: User): Promise<boolean>;

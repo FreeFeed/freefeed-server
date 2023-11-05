@@ -228,6 +228,7 @@ const postBasic = {
   omittedCommentLikes: expect.it('to be a number'),
   omittedOwnCommentLikes: expect.it('to be a number'),
   backlinksCount: expect.it('to be a number'),
+  notifyOfAllComments: expect.it('to be a boolean'),
 };
 
 const commentBasic = {

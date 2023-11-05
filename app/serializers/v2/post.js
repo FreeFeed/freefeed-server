@@ -79,12 +79,9 @@ export async function serializeFeed(
 ) {
   const canViewTimeline = timeline ? await timeline.canShow(viewerId) : true;
 
-  let hiddenCommentTypes = [];
+  const viewer = viewerId ? await dbAdapter.getUserById(viewerId) : null;
 
-  if (viewerId) {
-    const viewer = await dbAdapter.getUserById(viewerId);
-    hiddenCommentTypes = viewer.getHiddenCommentTypes();
-  }
+  const hiddenCommentTypes = viewer?.getHiddenCommentTypes() ?? [];
 
   const allUserIds = new Set();
   const allPosts = [];
@@ -102,6 +99,9 @@ export async function serializeFeed(
     foldComments,
     foldLikes,
   });
+
+  const { notifyOfCommentsOnMyPosts = false } = viewer?.preferences ?? {};
+  const commentEventsStatus = await dbAdapter.getCommentEventsStatusForPosts(viewerId, postIds);
 
   for (const {
     post,
@@ -122,6 +122,7 @@ export async function serializeFeed(
       omittedComments,
       omittedLikes,
       backlinksCount,
+      notifyOfAllComments: false,
     };
 
     if (post.feedIntIds.includes(hidesFeedId)) {
@@ -130,6 +131,12 @@ export async function serializeFeed(
 
     if (post.feedIntIds.includes(savesFeedId)) {
       sPost.isSaved = true; // present only if true
+    }
+
+    if (commentEventsStatus.has(post.id)) {
+      sPost.notifyOfAllComments = commentEventsStatus.get(post.id);
+    } else if (notifyOfCommentsOnMyPosts && post.userId === viewerId) {
+      sPost.notifyOfAllComments = true;
     }
 
     allPosts.push(sPost);
