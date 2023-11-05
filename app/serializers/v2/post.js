@@ -135,6 +135,8 @@ export async function serializeFeed(
 
     if (commentEventsStatus.has(post.id)) {
       sPost.notifyOfAllComments = commentEventsStatus.get(post.id);
+    } else if (destinations.some((d) => d.name === 'Directs' && d.user === viewerId)) {
+      sPost.notifyOfAllComments = true;
     } else if (notifyOfCommentsOnMyPosts && post.userId === viewerId) {
       sPost.notifyOfAllComments = true;
     }
