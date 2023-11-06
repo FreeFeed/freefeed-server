@@ -958,6 +958,40 @@ export function addModel(dbAdapter) {
 
       return true;
     }
+
+    /**
+     * Get IDs of all listeners of 'post_comment' event in this post
+     *
+     * @returns {Promise<import('../support/types').UUID[]>}
+     */
+    async getCommentsListeners() {
+      const listeners = new Set();
+      const [destinations, author, listenersMap] = await Promise.all([
+        this.getPostedTo(),
+        this.getCreatedBy(),
+        dbAdapter.getCommentEventsListenersForPost(this.id),
+      ]);
+
+      const directRecipients = destinations.filter((d) => d.isDirects()).map((d) => d.userId);
+
+      for (const id of directRecipients) {
+        listeners.add(id);
+      }
+
+      if (author.preferences.notifyOfCommentsOnMyPosts) {
+        listeners.add(author.id);
+      }
+
+      for (const [id, enabled] of listenersMap.entries()) {
+        if (enabled) {
+          listeners.add(id);
+        } else {
+          listeners.delete(id);
+        }
+      }
+
+      return [...listeners];
+    }
   }
 
   return Post;

@@ -27,6 +27,21 @@ export default function postCommentEventsTrait(superClass: typeof DbAdapter): ty
       return result;
     }
 
+    async getCommentEventsListenersForPost(postId: UUID): Promise<Map<UUID, boolean>> {
+      const rows = await this.database.getAll(
+        `select user_id, is_enabled from user_post_events where post_id = :postId`,
+        { postId },
+      );
+
+      const result = new Map();
+
+      for (const row of rows) {
+        result.set(row.user_id, row.is_enabled);
+      }
+
+      return result;
+    }
+
     async setCommentEventsStatusForPost(
       postId: UUID,
       userId: UUID,

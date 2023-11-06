@@ -413,6 +413,6 @@ export class DbAdapter {
     viewerId: UUID | null,
     postIds: UUID[],
   ): Promise<Map<UUID, boolean>>;
-
+  getCommentEventsListenersForPost(postId: UUID): Promise<Map<UUID, boolean>>;
   setCommentEventsStatusForPost(postId: UUID, userId: UUID, isEnabled: boolean): Promise<void>;
 }

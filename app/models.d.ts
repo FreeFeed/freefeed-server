@@ -108,6 +108,7 @@ export class User {
     subscribers: number;
     subscriptions: number;
   }>;
+  notifyOfAllCommentsOfPost(post: Post, enabled: boolean): Promise<void>;
 }
 
 export class Group {
@@ -154,6 +155,7 @@ export class Post {
   usersCanSee(): Promise<List<UUID>>;
   removeDirectRecipient(user: User): Promise<boolean>;
   isVisibleFor(viewer: Nullable<User>): Promise<boolean>;
+  getCommentsListeners(): Promise<UUID[]>;
 }
 
 export class Timeline {
