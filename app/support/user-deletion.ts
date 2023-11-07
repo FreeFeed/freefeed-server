@@ -28,6 +28,7 @@ const debug = createDebug('freefeed:user-gone');
 // 16. [x] sent_emails_log records
 // 17. [x] Statistics (posts, likes, subscriptions = 0, update comments count)
 // 18. [x] User's attachments
+// 19. [x] Subscriptions for individual posts comments
 
 /**
  * Delete user data. User must be in GONE_DELETION status, when all data is
@@ -51,6 +52,7 @@ export const deleteAllUserData = combineTasks(
   deleteSentEmailsLog,
   resetUserStatistics,
   deleteAttachments,
+  deletePostCommentsSubscriptions,
   // This ↓ must be the last task
   setDeletedStatus,
 );
@@ -368,6 +370,10 @@ export async function deleteAttachments(userId: UUID, runUntil: Date) {
     // eslint-disable-next-line no-await-in-loop
     await delay(batchPauseMs);
   } while (new Date() < runUntil);
+}
+
+export async function deletePostCommentsSubscriptions(userId: UUID) {
+  await dbAdapter.cleanCommentEventsSubscriptions(userId);
 }
 
 // Helpers

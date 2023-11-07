@@ -54,5 +54,9 @@ export default function postCommentEventsTrait(superClass: typeof DbAdapter): ty
         { userId, postId, isEnabled },
       );
     }
+
+    async cleanCommentEventsSubscriptions(userId: UUID): Promise<void> {
+      await this.database.raw(`delete from user_post_events where user_id = :userId`, { userId });
+    }
   };
 }
