@@ -17,3 +17,16 @@ export const getPostsByIdsInputSchema = {
     },
   },
 };
+
+export const notifyOfAllCommentsInputSchema = {
+  $schema: 'http://json-schema.org/schema#',
+
+  definitions,
+
+  type: 'object',
+  required: ['enabled'],
+
+  properties: {
+    enabled: { type: 'boolean' },
+  },
+};

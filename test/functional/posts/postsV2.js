@@ -27,6 +27,7 @@ import {
   sendRequestToSubscribe,
   acceptRequestToSubscribe,
   banUser,
+  createTestUser,
 } from '../functional_test_helper';
 import { postsByIdsResponse } from '../schemaV2-helper';
 
@@ -530,6 +531,45 @@ describe('TimelinesControllerV2', () => {
             posts: postIds.map((id) => ({ id })),
           });
         });
+      });
+    });
+  });
+
+  describe('Enable/disable post comments events', () => {
+    let luna, postId;
+
+    beforeEach(async () => {
+      luna = await createTestUser('luna');
+      postId = (await createAndReturnPost(luna, 'post')).id;
+    });
+
+    it(`should set 'notifyOfAllComments' to true`, async () => {
+      const resp = await performJSONRequest(
+        'POST',
+        `/v2/posts/${postId}/notifyOfAllComments`,
+        { enabled: true },
+        authHeaders(luna),
+      );
+      expect(resp, 'to satisfy', {
+        posts: { id: postId, notifyOfAllComments: true },
+      });
+    });
+
+    it(`should set 'notifyOfAllComments' to false`, async () => {
+      await performJSONRequest(
+        'POST',
+        `/v2/posts/${postId}/notifyOfAllComments`,
+        { enabled: true },
+        authHeaders(luna),
+      );
+      const resp = await performJSONRequest(
+        'POST',
+        `/v2/posts/${postId}/notifyOfAllComments`,
+        { enabled: false },
+        authHeaders(luna),
+      );
+      expect(resp, 'to satisfy', {
+        posts: { id: postId, notifyOfAllComments: false },
       });
     });
   });
