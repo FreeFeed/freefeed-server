@@ -5,7 +5,7 @@ import path from 'path';
 
 import unexpected from 'unexpected';
 import unexpectedDate from 'unexpected-date';
-import { Blob, fileFrom, FormData } from 'node-fetch';
+import { Blob, fileFrom } from 'node-fetch';
 
 import cleanDB from '../dbCleaner';
 import { dbAdapter } from '../../app/models';
