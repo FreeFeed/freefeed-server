@@ -305,7 +305,7 @@ describe('Attachments', () => {
       });
     });
 
-    describe(`With {useImgProxy:true`, () => {
+    describe(`With {useImgProxy:true}`, () => {
       withModifiedAppConfig({ attachments: { useImgProxy: true } });
 
       it(`should create WebP attachment with .webp?format=jpg thumbnails`, async () => {
