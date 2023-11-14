@@ -5,8 +5,6 @@ import { URL } from 'url';
 import { pipeline, finished } from 'stream/promises';
 
 import meter from 'stream-meter';
-// import { wait as waitStream, pipeline } from 'promise-streams';
-import fetch from 'node-fetch';
 import mediaType from 'media-type';
 import { parse as bytesParse } from 'bytes';
 import config from 'config';
@@ -51,9 +49,13 @@ export async function downloadURL(url: string) {
   }
 
   try {
-    const stream = createWriteStream(filePath, { flags: 'w' });
-    await pipeline(response.body, meter(fileSizeLimit), stream);
-    await finished(stream); // wait for the file to be written and closed
+    // FIXIT when the node typing will be fixed
+    // see https://stackoverflow.com/a/66629140
+    // @ts-expect-error
+    const inStream = response.body as NodeJS.ReadableStream;
+    const outStream = createWriteStream(filePath, { flags: 'w' });
+    await pipeline(inStream, meter(fileSizeLimit), outStream);
+    await finished(outStream); // wait for the file to be written and closed
 
     const stats = await fs.stat(filePath);
 

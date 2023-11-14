@@ -2,7 +2,6 @@
 /* global $pg_database */
 
 import unexpected from 'unexpected';
-import fetch from 'node-fetch';
 import { v4 as uuidv4 } from 'uuid';
 
 import cleanDB from '../dbCleaner';

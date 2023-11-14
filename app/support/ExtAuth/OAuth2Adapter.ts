@@ -1,7 +1,6 @@
 import { encode as qsEncode } from 'querystring';
 
 import { get as _get } from 'lodash';
-import fetch, { type RequestInit } from 'node-fetch';
 
 import { Cache } from './Cache';
 import { Adapter, AuthStartParams, AuthFinishParams, Profile } from './Adapter';
@@ -219,7 +218,7 @@ type GeneralErrorResponse = {
   error: string | { message: string };
 };
 
-async function fetchJSON<R extends object>(url: string, params?: RequestInit) {
+async function fetchJSON<R extends object>(url: string, params?: NodeJS.fetch.RequestInit) {
   const response = await fetch(url, params);
   let respBody: R | GeneralErrorResponse = {
     error: response.ok ? 'Unknown error' : `HTTP error ${response.status}`,

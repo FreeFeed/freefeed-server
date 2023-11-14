@@ -4,7 +4,6 @@ import { promises as fs } from 'fs';
 import path from 'path';
 
 import config from 'config';
-import fetch from 'node-fetch';
 import expect from 'unexpected';
 
 import { getSingleton } from '../../app/app';
