@@ -26,6 +26,7 @@ import {
   sendRequestToSubscribe,
   acceptRequestToSubscribe,
   banUser,
+  createTestUser,
 } from '../functional_test_helper';
 import { postsByIdsResponse } from '../schemaV2-helper';
 
@@ -66,28 +67,28 @@ describe('TimelinesControllerV2', () => {
         };
 
         describe('Folded comments', () => {
-          it('should return post whith 1 comment without folding', async () =>
+          it('should return post with 1 comment without folding', async () =>
             await expectFolding(1, 1, 0));
-          it('should return post whith 2 comments without folding', async () =>
+          it('should return post with 2 comments without folding', async () =>
             await expectFolding(2, 2, 0));
-          it('should return post whith 3 comments without folding', async () =>
+          it('should return post with 3 comments without folding', async () =>
             await expectFolding(3, 3, 0));
-          it('should return post whith 4 comments with folding', async () =>
+          it('should return post with 4 comments with folding', async () =>
             await expectFolding(4, 2, 2));
-          it('should return post whith 5 comments with folding', async () =>
+          it('should return post with 5 comments with folding', async () =>
             await expectFolding(5, 2, 3));
         });
 
         describe('Unfolded comments', () => {
-          it('should return post whith 1 comment without folding', async () =>
+          it('should return post with 1 comment without folding', async () =>
             await expectFolding(1, 1, 0, true));
-          it('should return post whith 2 comments without folding', async () =>
+          it('should return post with 2 comments without folding', async () =>
             await expectFolding(2, 2, 0, true));
-          it('should return post whith 3 comments without folding', async () =>
+          it('should return post with 3 comments without folding', async () =>
             await expectFolding(3, 3, 0, true));
-          it('should return post whith 4 comments without folding', async () =>
+          it('should return post with 4 comments without folding', async () =>
             await expectFolding(4, 4, 0, true));
-          it('should return post whith 5 comments without folding', async () =>
+          it('should return post with 5 comments without folding', async () =>
             await expectFolding(5, 5, 0, true));
         });
       });
@@ -112,28 +113,28 @@ describe('TimelinesControllerV2', () => {
         };
 
         describe('Folded likes', () => {
-          it('should return post whith 1 like without folding', async () =>
+          it('should return post with 1 like without folding', async () =>
             await expectFolding(1, 1, 0));
-          it('should return post whith 2 likes without folding', async () =>
+          it('should return post with 2 likes without folding', async () =>
             await expectFolding(2, 2, 0));
-          it('should return post whith 3 likes without folding', async () =>
+          it('should return post with 3 likes without folding', async () =>
             await expectFolding(3, 3, 0));
-          it('should return post whith 4 likes without folding', async () =>
+          it('should return post with 4 likes without folding', async () =>
             await expectFolding(4, 4, 0));
-          it('should return post whith 5 likes with folding', async () =>
+          it('should return post with 5 likes with folding', async () =>
             await expectFolding(5, 3, 2));
         });
 
         describe('Unfolded likes', () => {
-          it('should return post whith 1 like without folding', async () =>
+          it('should return post with 1 like without folding', async () =>
             await expectFolding(1, 1, 0, true));
-          it('should return post whith 2 likes without folding', async () =>
+          it('should return post with 2 likes without folding', async () =>
             await expectFolding(2, 2, 0, true));
-          it('should return post whith 3 likes without folding', async () =>
+          it('should return post with 3 likes without folding', async () =>
             await expectFolding(3, 3, 0, true));
-          it('should return post whith 4 likes without folding', async () =>
+          it('should return post with 4 likes without folding', async () =>
             await expectFolding(4, 4, 0, true));
-          it('should return post whith 5 likes without folding', async () =>
+          it('should return post with 5 likes without folding', async () =>
             await expectFolding(5, 5, 0, true));
         });
 
@@ -529,6 +530,45 @@ describe('TimelinesControllerV2', () => {
             posts: postIds.map((id) => ({ id })),
           });
         });
+      });
+    });
+  });
+
+  describe('Enable/disable post comments events', () => {
+    let luna, postId;
+
+    beforeEach(async () => {
+      luna = await createTestUser('luna');
+      postId = (await createAndReturnPost(luna, 'post')).id;
+    });
+
+    it(`should set 'notifyOfAllComments' to true`, async () => {
+      const resp = await performJSONRequest(
+        'POST',
+        `/v2/posts/${postId}/notifyOfAllComments`,
+        { enabled: true },
+        authHeaders(luna),
+      );
+      expect(resp, 'to satisfy', {
+        posts: { id: postId, notifyOfAllComments: true },
+      });
+    });
+
+    it(`should set 'notifyOfAllComments' to false`, async () => {
+      await performJSONRequest(
+        'POST',
+        `/v2/posts/${postId}/notifyOfAllComments`,
+        { enabled: true },
+        authHeaders(luna),
+      );
+      const resp = await performJSONRequest(
+        'POST',
+        `/v2/posts/${postId}/notifyOfAllComments`,
+        { enabled: false },
+        authHeaders(luna),
+      );
+      expect(resp, 'to satisfy', {
+        posts: { id: postId, notifyOfAllComments: false },
       });
     });
   });

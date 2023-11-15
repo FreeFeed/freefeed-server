@@ -2,35 +2,41 @@ import _ from 'lodash';
 import compose from 'koa-compose';
 
 import { dbAdapter } from '../../../models';
-import { ALLOWED_EVENT_TYPES } from '../../../support/EventTypes';
+import { ALLOWED_EVENT_TYPES, EVENT_TYPES as ET } from '../../../support/EventTypes';
 import { serializeEvents } from '../../../serializers/v2/event';
 import { authRequired } from '../../middlewares';
 import { NotFoundException } from '../../../support/exceptions';
 
 const EVENT_GROUPS = {
-  mentions: ['mention_in_post', 'mention_in_comment', 'mention_comment_to'],
-  bans: ['banned_user', 'unbanned_user', 'bans_in_group_disabled', 'bans_in_group_enabled'],
+  mentions: [ET.MENTION_IN_POST, ET.MENTION_IN_COMMENT, ET.MENTION_COMMENT_TO],
+  comments: [
+    ET.POST_COMMENT,
+    ET.DIRECT_COMMENT_CREATED,
+    ET.MENTION_IN_COMMENT,
+    ET.MENTION_COMMENT_TO,
+  ],
+  bans: [ET.USER_BANNED, ET.USER_UNBANNED, ET.BANS_IN_GROUP_DISABLED, ET.BANS_IN_GROUP_ENABLED],
   subscriptions: [
-    'user_subscribed',
-    'subscription_requested',
-    'subscription_request_revoked',
-    'subscription_request_approved',
-    'subscription_request_rejected',
+    ET.USER_SUBSCRIBED,
+    ET.SUBSCRIPTION_REQUESTED,
+    ET.SUBSCRIPTION_REQUEST_REVOKED,
+    ET.SUBSCRIPTION_REQUEST_APPROVED,
+    ET.SUBSCRIPTION_REQUEST_REJECTED,
   ],
   groups: [
-    'group_created',
-    'group_subscribed',
-    'group_unsubscribed',
-    'group_subscription_requested',
-    'group_subscription_request_revoked',
-    'group_subscription_approved',
-    'managed_group_subscription_approved',
-    'group_subscription_rejected',
-    'managed_group_subscription_rejected',
-    'group_admin_promoted',
-    'group_admin_demoted',
+    ET.GROUP_CREATED,
+    ET.GROUP_SUBSCRIBED,
+    ET.GROUP_UNSUBSCRIBED,
+    ET.GROUP_SUBSCRIPTION_REQUEST,
+    ET.GROUP_REQUEST_REVOKED,
+    ET.GROUP_SUBSCRIPTION_APPROVED,
+    ET.MANAGED_GROUP_SUBSCRIPTION_APPROVED,
+    ET.GROUP_SUBSCRIPTION_REJECTED,
+    ET.MANAGED_GROUP_SUBSCRIPTION_REJECTED,
+    ET.GROUP_ADMIN_PROMOTED,
+    ET.GROUP_ADMIN_DEMOTED,
   ],
-  directs: ['direct', 'direct_comment'],
+  directs: [ET.DIRECT_CREATED, ET.DIRECT_COMMENT_CREATED],
 };
 const DEFAULT_EVENTS_LIMIT = 30;
 

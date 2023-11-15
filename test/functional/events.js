@@ -1966,6 +1966,9 @@ describe('EventsController', () => {
         await dbAdapter
           .database('events')
           .insert({ user_id: lunaUserModel.intId, event_type: 'direct_comment' });
+        await dbAdapter
+          .database('events')
+          .insert({ user_id: lunaUserModel.intId, event_type: 'post_comment' });
       });
 
       it('should filter events by type', async () => {
@@ -1975,6 +1978,16 @@ describe('EventsController', () => {
             { event_type: 'mention_comment_to' },
             { event_type: 'mention_in_comment' },
             { event_type: 'mention_in_post' },
+          ],
+        });
+
+        res = await getUserEvents(luna, ['comments']);
+        expect(res, 'to satisfy', {
+          Notifications: [
+            { event_type: 'post_comment' },
+            { event_type: 'direct_comment' },
+            { event_type: 'mention_comment_to' },
+            { event_type: 'mention_in_comment' },
           ],
         });
 

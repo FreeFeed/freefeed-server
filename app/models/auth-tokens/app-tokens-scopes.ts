@@ -134,6 +134,7 @@ export const appTokensScopes = [
       'GET /vN/notifications/:notifId',
       'POST /vN/users/markAllNotificationsAsRead',
       'GET /vN/users/getUnreadNotificationsNumber',
+      'POST /vN/posts/:postId/notifyOfAllComments',
     ],
   },
   {
@@ -158,6 +159,7 @@ export const appTokensScopes = [
       'POST /vN/comments/:commentId/like',
       'POST /vN/comments/:commentId/unlike',
       'POST /vN/posts/:postId/leave',
+      'POST /vN/posts/:postId/notifyOfAllComments',
     ],
   },
   {

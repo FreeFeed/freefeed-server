@@ -17,6 +17,8 @@ type OnPostFeedsChangedParams = {
   removedFeeds?: Timeline[];
 };
 
+type EventData = { userId: UUID; event: T_EVENT_TYPE };
+
 export class EventService {
   static async onUserBanned(
     initiatorIntId: number,
@@ -227,31 +229,66 @@ export class EventService {
     await processBacklinks(post, prevBody);
   }
 
+  static async onPostCommentsListened(user: User, post: Post, enabled: boolean) {
+    const [postAuthor, destFeeds] = await Promise.all([post.getCreatedBy(), post.getPostedTo()]);
+    let groupIntId: number | null = null;
+
+    if (destFeeds.length === 1) {
+      const feedOwner = await destFeeds[0].getUser();
+
+      if (feedOwner.isGroup()) {
+        groupIntId = feedOwner.intId;
+      }
+    }
+
+    await createEvent(
+      user.intId,
+      enabled ? EVENT_TYPES.POST_COMMENTS_SUBSCRIBE : EVENT_TYPES.POST_COMMENTS_UNSUBSCRIBE,
+      user.intId,
+      user.intId,
+      groupIntId,
+      post.id,
+      null,
+      postAuthor.intId,
+    );
+  }
+
   static async onCommentChanged(comment: Comment, wasCreated = false, { prevBody = '' } = {}) {
-    const [post, mentionEvents] = await Promise.all([
-      comment.getPost(),
-      getMentionEvents(
-        comment.body,
-        comment.userId,
-        EVENT_TYPES.MENTION_IN_COMMENT,
-        EVENT_TYPES.MENTION_COMMENT_TO,
-      ),
+    const post = await comment.getPost();
+
+    const [
+      mentionEvents,
+      postCommentEvents,
+      directEvents,
+      // skip result
+    ] = await Promise.all([
+      getMentionInCommentEvents(comment.body),
+      wasCreated ? getPostCommentEvents(post) : [],
+      wasCreated ? getDirectCommentEvents(post) : [],
       processBacklinks(comment, prevBody),
     ]);
-    const directEvents = wasCreated
-      ? await getDirectEvents(post, comment.userId, EVENT_TYPES.DIRECT_COMMENT_CREATED)
-      : [];
 
-    if (mentionEvents.length === 0 && directEvents.length === 0) {
+    const eventsToSend = uniqBy(
+      // Order these event types by priority. If there is a 'mention' for the some
+      // user, then the other types for the same user should not be sent.
+      [...mentionEvents, ...directEvents, ...postCommentEvents],
+      'userId',
+    )
+      // Comment author should not be notified
+      .filter((e) => e.userId !== comment.userId);
+
+    if (eventsToSend.length === 0) {
       return;
     }
 
-    const [postAuthor, commentAuthor, commentAuthorBanners, destFeeds] = await Promise.all([
-      dbAdapter.getUserById(post.userId),
-      comment.userId ? dbAdapter.getUserById(comment.userId) : null,
-      dbAdapter.getUserIdsWhoBannedUser(comment.userId!),
-      post.getPostedTo(),
-    ]);
+    const [postAuthor, commentAuthor, commentAuthorBanners, destFeeds, affectedUsers] =
+      await Promise.all([
+        dbAdapter.getUserById(post.userId),
+        comment.userId ? dbAdapter.getUserById(comment.userId) : null,
+        dbAdapter.getUserIdsWhoBannedUser(comment.userId!),
+        post.getPostedTo(),
+        dbAdapter.getFeedOwnersByIds(eventsToSend.map((e) => e.userId)) as Promise<User[]>,
+      ]);
 
     let postGroupIntId: number | null = null;
 
@@ -264,31 +301,29 @@ export class EventService {
     }
 
     // Leave users who has post and comment access
-    let affectedUsers = _.uniqBy(
-      [...mentionEvents, ...directEvents].map(({ user }) => user),
-      'id',
-    );
     // Only users who can see this post
-    affectedUsers = await post.onlyUsersCanSeePost(affectedUsers);
+    let targetUsers = await post.onlyUsersCanSeePost(affectedUsers);
     // Only users who can see this comment
-    affectedUsers = affectedUsers.filter((u) => !commentAuthorBanners.includes(u.id));
+    targetUsers = targetUsers.filter((u) => !commentAuthorBanners.includes(u.id));
 
     // Create events
     await Promise.all(
-      [...mentionEvents, ...directEvents]
-        .filter(({ user }) => affectedUsers.some((u) => u.id === user.id))
-        .map(({ event, user }) =>
-          createEvent(
-            user.intId,
-            event,
-            commentAuthor!.intId,
-            user.intId,
-            postGroupIntId,
-            post.id,
-            comment.id,
-            postAuthor!.intId,
-          ),
+      (
+        eventsToSend
+          .map((e) => ({ event: e.event, user: targetUsers.find((u) => u.id === e.userId) }))
+          .filter((e) => e.user) as { event: T_EVENT_TYPE; user: User }[]
+      ).map(({ event, user }) =>
+        createEvent(
+          user.intId,
+          event,
+          commentAuthor!.intId,
+          user.intId,
+          postGroupIntId,
+          post.id,
+          comment.id,
+          postAuthor!.intId,
         ),
+      ),
     );
   }
 
@@ -689,29 +724,36 @@ export class EventService {
   }
 }
 
-async function getMentionEvents(
-  text: string,
-  authorId: Nullable<UUID>,
-  eventType: T_EVENT_TYPE,
-  firstMentionEventType = eventType,
-) {
-  const mentions = _.uniqBy(extractMentionsWithOffsets(text), 'username');
-  const mentionedUsers = (await dbAdapter.getFeedOwnersByUsernames(mentions.map((u) => u.username)))
-    // Only users (not groups) and not an event author
-    .filter((u) => u.isUser() && u.id !== authorId) as User[];
-  return mentions
-    .map(({ username, offset }) => ({
-      event: offset === 0 ? firstMentionEventType : eventType,
-      user: mentionedUsers.find((u) => u.username === username),
-    }))
-    .filter(({ user }) => !!user) as { user: User; event: T_EVENT_TYPE }[];
+async function getPostCommentEvents(post: Post) {
+  const userIds = await post.getCommentsListeners();
+  return userIds.map((userId) => ({ event: EVENT_TYPES.POST_COMMENT, userId }));
 }
 
-async function getDirectEvents(post: Post, authorId: Nullable<UUID>, eventType: T_EVENT_TYPE) {
-  const destFeeds = await post.getPostedTo();
-  const directFeeds = destFeeds.filter((f) => f.isDirects() && f.userId !== authorId);
-  const directReceivers = await dbAdapter.getUsersByIds(directFeeds.map((f) => f.userId));
-  return directReceivers.map((user) => ({ event: eventType, user }));
+async function getMentionInCommentEvents(text: string): Promise<EventData[]> {
+  const mentions = _.uniqBy(extractMentionsWithOffsets(text), 'username');
+  const mentionedUsers = (await dbAdapter.getFeedOwnersByUsernames(mentions.map((u) => u.username)))
+    // Only users (not groups)
+    .filter((u) => u.isUser()) as User[];
+  return mentions
+    .map(({ username, offset }) => ({
+      event: offset === 0 ? EVENT_TYPES.MENTION_COMMENT_TO : EVENT_TYPES.MENTION_IN_COMMENT,
+      userId: mentionedUsers.find((u) => u.username === username)?.id,
+    }))
+    .filter((e) => e.userId) as EventData[];
+}
+
+async function getDirectCommentEvents(post: Post): Promise<EventData[]> {
+  const [destFeeds, listenersMap] = await Promise.all([
+    post.getPostedTo(),
+    dbAdapter.getCommentEventsListenersForPost(post.id),
+  ]);
+  return (
+    destFeeds
+      .filter((f) => f.isDirects())
+      .map((f) => ({ event: EVENT_TYPES.DIRECT_COMMENT_CREATED, userId: f.userId }))
+      // Don't count recipients who are explicitly unsubscribed
+      .filter((e) => listenersMap.get(e.userId) !== false)
+  );
 }
 
 async function processBacklinks(srcEntity: Post | Comment, prevBody = '') {

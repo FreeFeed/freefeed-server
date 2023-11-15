@@ -5,6 +5,7 @@ import {
   getByIds,
   leave,
   getReferringPosts,
+  notifyOfAllComments,
 } from '../../../controllers/api/v2/PostsController';
 import { getTranslatedBody } from '../../../controllers/api/v2/TranslationController';
 
@@ -17,4 +18,5 @@ export default function addRoutes(app) {
   // We use POST here because this method can accept many post IDs
   app.post('/posts/byIds', getByIds);
   app.post('/posts/:postId/leave', leave);
+  app.post('/posts/:postId/notifyOfAllComments', notifyOfAllComments);
 }

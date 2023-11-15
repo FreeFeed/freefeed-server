@@ -6,6 +6,35 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [2.16.0] - Not released
+### Added
+- Users can now subscribe to all comments of particular posts or of all their
+  own posts.
+  - To subscribe/unsubscribe to the particular post (from any user), one can use
+    new `POST /v2/posts/:postId/notifyOfAllComments` API method with body 
+    `{ "enabled": true/false }`.
+  - To subscribe to all user's own posts, they can set
+    `notifyOfCommentsOnMyPosts` flag to _true_ in user's preferences.
+  - The current status of the subscription can be checked with the new boolean
+    `notifyOfAllComments` field of the serialized post.
+  - The reply/mention events are always created and cannot be muted with this
+    mechanism.
+  - All comments to the direct message are creates notifications by default to
+    all message recipients. This behavior is not changed, but now any of
+    recipients can disable it using the API method described above.
+  - There are three new event types with this feature:
+    - 'post_comment' - a new comment was created in the regular post (direct
+      messages produces a 'direct_comment' event);
+    - 'post_comments_subscribe' - user subscribed to all comments of the post;
+    - 'post_comments_unsubscribe' - user unsubscribed from all comments of the
+      post.
+
+### Fixed
+- Previously, a single comment could trigger multiple events for the same user.
+  For example, a comment on a direct message mentioning the direct recipient
+  triggered two event events: 'direct_comment' and 'mention_in_comment'. This
+  has now been fixed: a single comment always triggers only one event, and the
+  reply/mention event takes precedence.
+
 ### Changed
 - Dropped support for Node.JS < 18.
 
