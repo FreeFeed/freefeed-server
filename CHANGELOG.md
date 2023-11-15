@@ -35,6 +35,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   has now been fixed: a single comment always triggers only one event, and the
   reply/mention event takes precedence.
 
+### Changed
+- Dropped support for Node.JS < 18.
+
 ## [2.15.0] - 2023-10-11
 ### Changed
 - When editing a post, access rights to existing destination feeds of the post

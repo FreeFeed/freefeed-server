@@ -1,6 +1,5 @@
 /* eslint-env node, mocha */
 /* global $pg_database, $should */
-import fetch from 'node-fetch';
 import jwt from 'jsonwebtoken';
 import _ from 'lodash';
 import { mkdirp } from 'mkdirp';

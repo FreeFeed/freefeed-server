@@ -1,6 +1,5 @@
 /* eslint-env node, mocha */
 /* global $database, $pg_database */
-import fetch from 'node-fetch';
 import expect from 'unexpected';
 import config from 'config';
 import jwt from 'jsonwebtoken';
