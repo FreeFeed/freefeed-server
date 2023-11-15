@@ -1,7 +1,6 @@
 /* eslint-env node, mocha */
 /* global $pg_database */
 import _ from 'lodash';
-import fetch from 'node-fetch';
 import unexpected from 'unexpected';
 
 import cleanDB from '../dbCleaner';

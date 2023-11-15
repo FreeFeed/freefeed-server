@@ -1,5 +1,3 @@
-import fetch from 'node-fetch';
-
 import { TranslationResult } from './types';
 
 export async function translate(
