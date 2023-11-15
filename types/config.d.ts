@@ -116,6 +116,7 @@ declare module 'config' {
         sendWeeklyBestOfDigest: boolean;
         acceptDirectsFrom: string;
         sanitizeMediaMetadata: boolean;
+        notifyOfCommentsOnMyPosts: boolean;
       };
       overrides: {
         [k: string]:

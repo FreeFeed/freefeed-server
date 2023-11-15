@@ -48,6 +48,10 @@ const schema = {
       title: 'Remove sensitive information (GPS, serial numbers, etc.) from media files',
       type: 'boolean',
     },
+    notifyOfCommentsOnMyPosts: {
+      title: 'Notify of all comments on my posts',
+      type: 'boolean',
+    },
   },
   additionalProperties: false,
 };

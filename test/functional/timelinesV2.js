@@ -1,6 +1,5 @@
 /* eslint-env node, mocha */
 /* global $pg_database */
-import fetch from 'node-fetch';
 import expect from 'unexpected';
 import _ from 'lodash';
 

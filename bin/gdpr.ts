@@ -5,7 +5,6 @@ import path from 'path';
 import util from 'util';
 import url from 'url';
 
-import fetch from 'node-fetch';
 import chunk from 'lodash/chunk';
 
 import { DataProvider } from '../app/export/gdpr';
@@ -73,8 +72,8 @@ async function main(username: string) {
       }
 
       const downloadResult = await fetch(downloadUrl);
-      const buffer = await downloadResult.buffer();
-      await fs.writeFile(filePath, buffer);
+      const buffer = await downloadResult.arrayBuffer();
+      await fs.writeFile(filePath, new Uint8Array(buffer));
       process.stdout.write(`-> ${filePath}\n`);
     });
 

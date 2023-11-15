@@ -1328,5 +1328,16 @@ export function addModel(dbAdapter) {
     setInvitesDisabled(isDisabled) {
       return dbAdapter.setInvitesDisabledForUser(this.id, isDisabled);
     }
+
+    /**
+     * Notify of all comments of post (receive the 'post_comment' events)
+     * @param {Post} post
+     * @param {boolean} enabled
+     * @returns {Promise<void>}
+     */
+    async notifyOfAllCommentsOfPost(post, enabled) {
+      await dbAdapter.setCommentEventsStatusForPost(post.id, this.id, enabled);
+      await EventService.onPostCommentsListened(this, post, enabled);
+    }
   };
 }
