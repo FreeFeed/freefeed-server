@@ -178,7 +178,7 @@ export const notifyOfAllComments = compose([
     const { post, user } = ctx.state;
     const { enabled } = ctx.request.body;
 
-    await dbAdapter.setCommentEventsStatusForPost(post.id, user.id, enabled);
+    await user.notifyOfAllCommentsOfPost(post, enabled);
     ctx.body = await serializeSinglePost(post.id, user.id);
   },
 ]);

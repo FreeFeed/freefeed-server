@@ -1872,6 +1872,45 @@ describe('EventsController', () => {
       expect(res.users, 'to have an item satisfying', { id: mars.user.id });
     });
 
+    it('should return post_comments_(un)subscribe events', async () => {
+      const post = await createAndReturnPost(luna, 'hello');
+      await performJSONRequest(
+        'POST',
+        `/v2/posts/${post.id}/notifyOfAllComments`,
+        { enabled: true },
+        authHeaders(luna),
+      );
+      await performJSONRequest(
+        'POST',
+        `/v2/posts/${post.id}/notifyOfAllComments`,
+        { enabled: false },
+        authHeaders(luna),
+      );
+      const res = await getUserEvents(luna);
+      expect(res, 'to satisfy', {
+        Notifications: [
+          {
+            eventId: expect.it('to be UUID'),
+            event_type: 'post_comments_unsubscribe',
+            created_user_id: luna.user.id,
+            affected_user_id: luna.user.id,
+          },
+          {
+            eventId: expect.it('to be UUID'),
+            event_type: 'post_comments_subscribe',
+            created_user_id: luna.user.id,
+            affected_user_id: luna.user.id,
+          },
+          {
+            eventId: expect.it('to be UUID'),
+            event_type: 'user_subscribed',
+            created_user_id: mars.user.id,
+            affected_user_id: luna.user.id,
+          },
+        ],
+      });
+    });
+
     it('response should include user and group payload', async () => {
       const dubhe = await createGroupAsync(luna, 'dubhe');
       await subscribeToAsync(mars, dubhe);
