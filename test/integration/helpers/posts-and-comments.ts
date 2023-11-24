@@ -6,8 +6,11 @@ export async function createPost(
   body: string,
   destinations: (User | Group)[] = [author],
 ): Promise<Post> {
+  const isRegularPost = destinations.every((d) => d.isGroup() || d.id === author.id);
   const timelineIds = (await Promise.all(
-    destinations.map((d) => d.getPostsTimelineId()),
+    destinations.map((d) =>
+      isRegularPost || d instanceof Group ? d.getPostsTimelineId() : d.getDirectsTimelineId(),
+    ),
   )) as UUID[];
   const post = new Post({ userId: author.id, body, timelineIds });
   await post.create();

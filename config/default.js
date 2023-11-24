@@ -388,6 +388,8 @@ config.userPreferences = {
     acceptDirectsFrom: 'friends',
     // Remove sensitive information (GPS, serial numbers, etc.) from media files
     sanitizeMediaMetadata: true,
+    // Notify of all comments on my posts
+    notifyOfCommentsOnMyPosts: false,
   },
   /**
    *  Here you can override the default values depending on the 'createdAt' time

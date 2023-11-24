@@ -12,7 +12,7 @@ import {
 } from '../../middlewares';
 import { ForbiddenException } from '../../../support/exceptions';
 
-import { getPostsByIdsInputSchema } from './data-schemes/posts';
+import { getPostsByIdsInputSchema, notifyOfAllCommentsInputSchema } from './data-schemes/posts';
 import { getCommonParams } from './TimelinesController';
 
 export const show = compose([
@@ -167,5 +167,18 @@ export const getReferringPosts = compose([
     }
 
     ctx.body = await serializeFeed(foundPostsIds, user?.id, null, { isLastPage });
+  },
+]);
+
+export const notifyOfAllComments = compose([
+  monitored('posts.notifyOfAllComments'),
+  postAccessRequired(),
+  inputSchemaRequired(notifyOfAllCommentsInputSchema),
+  async (ctx) => {
+    const { post, user } = ctx.state;
+    const { enabled } = ctx.request.body;
+
+    await user.notifyOfAllCommentsOfPost(post, enabled);
+    ctx.body = await serializeSinglePost(post.id, user.id);
   },
 ]);

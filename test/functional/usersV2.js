@@ -1,7 +1,6 @@
 /* eslint-env node, mocha */
 /* global $pg_database */
 import unexpected from 'unexpected';
-import fetch from 'node-fetch';
 import request from 'superagent';
 import config from 'config';
 import { sortBy, uniq } from 'lodash';

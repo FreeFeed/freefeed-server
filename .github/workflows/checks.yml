@@ -9,7 +9,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node-version: [16, 18, 20]
+        node-version: [18, 20]
         postgres-version: ["13.10", "14.7", "15.2"]
         redis-version: [6, 7]
 
