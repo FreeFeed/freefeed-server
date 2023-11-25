@@ -167,6 +167,21 @@ const notificationTemplates = {
       ${eventTime}
     `;
   },
+  post_comment: (eventData) => {
+    const postAuthorLink = makeUserLink(eventData.postAuthor);
+    const postLink = makePostLink(eventData.postId, eventData.postAuthor, false);
+    const commentLink = makeCommentLink(
+      eventData.postId,
+      eventData.commentId,
+      eventData.postAuthor,
+      'comment',
+    );
+    const eventTime = eventData.createdAt.format('HH:MM');
+    return `
+      New ${commentLink} was posted to a ${postLink} from ${postAuthorLink}<br />
+      ${eventTime}
+    `;
+  },
   subscription_requested: (eventData) => {
     const subscriberLink = makeUserLink(eventData.creator);
     const eventTime = eventData.createdAt.format('HH:MM');
