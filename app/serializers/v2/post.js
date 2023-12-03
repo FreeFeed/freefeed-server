@@ -100,8 +100,16 @@ export async function serializeFeed(
     foldLikes,
   });
 
-  const { notifyOfCommentsOnMyPosts = false } = viewer?.preferences ?? {};
+  const { notifyOfCommentsOnMyPosts = false, notifyOfCommentsOnCommentedPosts = false } =
+    viewer?.preferences ?? {};
   const commentEventsStatus = await dbAdapter.getCommentEventsStatusForPosts(viewerId, postIds);
+
+  let commentedPostIds = [];
+
+  if (notifyOfCommentsOnCommentedPosts) {
+    const feedIntId = await viewer.getCommentsTimelineIntId();
+    commentedPostIds = await dbAdapter.getPostsPresentsInTimeline(postIds, feedIntId);
+  }
 
   for (const {
     post,
@@ -138,6 +146,8 @@ export async function serializeFeed(
     } else if (destinations.some((d) => d.name === 'Directs' && d.user === viewerId)) {
       sPost.notifyOfAllComments = true;
     } else if (notifyOfCommentsOnMyPosts && post.userId === viewerId) {
+      sPost.notifyOfAllComments = true;
+    } else if (commentedPostIds.includes(post.id)) {
       sPost.notifyOfAllComments = true;
     }
 

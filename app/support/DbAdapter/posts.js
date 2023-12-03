@@ -250,6 +250,18 @@ const postsTrait = (superClass) =>
     }
 
     /**
+     * Returns only ids of posts that presents in the given timeline
+     * @param {UUID[]} postIds - ids of posts
+     * @param {number} feedIntId - integer id of timeline
+     */
+    async getPostsPresentsInTimeline(postIds, feedIntId) {
+      return await this.database.getCol(
+        `select uid from posts where uid = any(:postIds) and feed_ids && :timelineIds::int[]`,
+        { postIds, timelineIds: [feedIntId] },
+      );
+    }
+
+    /**
      * Returns integer ids of private feeds that user can view
      * @param {String} userId   - UID of user
      * @return {Promise<Number[]>} - ids of feeds

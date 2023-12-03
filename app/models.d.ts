@@ -201,6 +201,7 @@ export class Comment {
   hideType: 0 | 1 | 2 | 3;
   postId: UUID;
   seqNumber: number;
+  constructor(params: { userId: UUID; body: string; postId: UUID });
   create(): Promise<void>;
   destroy(destroyedBy?: User): Promise<boolean>;
   getPost(): Promise<Post>;
