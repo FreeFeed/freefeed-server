@@ -117,6 +117,7 @@ declare module 'config' {
         acceptDirectsFrom: string;
         sanitizeMediaMetadata: boolean;
         notifyOfCommentsOnMyPosts: boolean;
+        notifyOfCommentsOnCommentedPosts: boolean;
       };
       overrides: {
         [k: string]:
