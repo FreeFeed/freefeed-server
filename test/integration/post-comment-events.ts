@@ -100,6 +100,31 @@ describe(`'post_comment' event emitting`, () => {
       });
     });
 
+    describe('Luna want to receive notifications about commented posts', () => {
+      beforeEach(async () => {
+        await luna.update({ preferences: { notifyOfCommentsOnCommentedPosts: true } });
+      });
+
+      it(`should not create notification when there are no comments of Luna`, async () => {
+        const post = await createPost(mars, 'Hello, world!');
+        await createComment(mars, post, 'Comment from Mars');
+
+        await expectUserEventsToBe(luna, []);
+        await expectUserEventsToBe(mars, []);
+      });
+
+      it(`should create notification about comment of Mars after comment of Luna`, async () => {
+        const post = await createPost(mars, 'Hello, world!');
+        await createComment(luna, post, 'Comment from Luna');
+        await createComment(mars, post, 'Comment from Mars');
+
+        await expectUserEventsToBe(luna, [
+          { event_type: ET.POST_COMMENT, created_by_user_id: mars.intId },
+        ]);
+        await expectUserEventsToBe(mars, []);
+      });
+    });
+
     describe('Direct message comments', () => {
       let post: Post;
       beforeEach(async () => {

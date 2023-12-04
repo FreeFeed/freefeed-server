@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [2.17.0] - Not released
+### Added
+- Users can now subscribe to all comments of posts commented by them. For this
+  purpose one can set the `notifyOfCommentsOnCommentedPosts` flag to _true_ in
+  their preferences.
 
 ## [2.16.1] - 2023-11-25
 ### Fixed
