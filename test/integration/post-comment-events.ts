@@ -100,28 +100,41 @@ describe(`'post_comment' event emitting`, () => {
       });
     });
 
-    describe('Luna want to receive notifications about commented posts', () => {
-      beforeEach(async () => {
-        await luna.update({ preferences: { notifyOfCommentsOnCommentedPosts: true } });
+    describe('Notifications about commented posts', () => {
+      describe("Luna doesn't want to receive notifications about commented posts", () => {
+        it(`should not create notification about comment of Mars after comment of Luna`, async () => {
+          const post = await createPost(mars, 'Hello, world!');
+          await createComment(luna, post, 'Comment from Luna');
+          await createComment(mars, post, 'Comment from Mars');
+
+          await expectUserEventsToBe(luna, []);
+          await expectUserEventsToBe(mars, []);
+        });
       });
 
-      it(`should not create notification when there are no comments of Luna`, async () => {
-        const post = await createPost(mars, 'Hello, world!');
-        await createComment(mars, post, 'Comment from Mars');
+      describe('Luna want to receive notifications about commented posts', () => {
+        beforeEach(async () => {
+          await luna.update({ preferences: { notifyOfCommentsOnCommentedPosts: true } });
+        });
 
-        await expectUserEventsToBe(luna, []);
-        await expectUserEventsToBe(mars, []);
-      });
+        it(`should not create notification when there are no comments of Luna`, async () => {
+          const post = await createPost(mars, 'Hello, world!');
+          await createComment(mars, post, 'Comment from Mars');
 
-      it(`should create notification about comment of Mars after comment of Luna`, async () => {
-        const post = await createPost(mars, 'Hello, world!');
-        await createComment(luna, post, 'Comment from Luna');
-        await createComment(mars, post, 'Comment from Mars');
+          await expectUserEventsToBe(luna, []);
+          await expectUserEventsToBe(mars, []);
+        });
 
-        await expectUserEventsToBe(luna, [
-          { event_type: ET.POST_COMMENT, created_by_user_id: mars.intId },
-        ]);
-        await expectUserEventsToBe(mars, []);
+        it(`should create notification about comment of Mars after comment of Luna`, async () => {
+          const post = await createPost(mars, 'Hello, world!');
+          await createComment(luna, post, 'Comment from Luna');
+          await createComment(mars, post, 'Comment from Mars');
+
+          await expectUserEventsToBe(luna, [
+            { event_type: ET.POST_COMMENT, created_by_user_id: mars.intId },
+          ]);
+          await expectUserEventsToBe(mars, []);
+        });
       });
     });
 
