@@ -390,6 +390,8 @@ config.userPreferences = {
     sanitizeMediaMetadata: true,
     // Notify of all comments on my posts
     notifyOfCommentsOnMyPosts: false,
+    // Notify of all comments on posts commented by me
+    notifyOfCommentsOnCommentedPosts: false,
   },
   /**
    *  Here you can override the default values depending on the 'createdAt' time

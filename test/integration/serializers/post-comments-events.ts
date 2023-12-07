@@ -4,7 +4,7 @@
 import expect from 'unexpected';
 
 import cleanDB from '../../dbCleaner';
-import { User, dbAdapter, Post } from '../../../app/models';
+import { User, dbAdapter, Post, Comment } from '../../../app/models';
 import { UUID } from '../../../app/support/types';
 import { serializeFeed } from '../../../app/serializers/v2/post';
 
@@ -98,6 +98,43 @@ describe(`'notifyOfAllComments' field in serialized posts`, () => {
           expect(serResult.posts, 'to satisfy', [
             { notifyOfAllComments: false },
             { notifyOfAllComments: true },
+            { notifyOfAllComments: true },
+            { notifyOfAllComments: false },
+          ]);
+        });
+      });
+    });
+
+    describe(`Luna subscribes to commented posts`, () => {
+      beforeEach(async () => {
+        await luna.update({ preferences: { notifyOfCommentsOnCommentedPosts: true } });
+      });
+
+      it(`should return 'notifyOfAllComments' of all false`, async () => {
+        const serResult = await serializeFeed(postIds, luna.id);
+        expect(serResult.posts, 'to satisfy', [
+          { notifyOfAllComments: false },
+          { notifyOfAllComments: false },
+          { notifyOfAllComments: false },
+          { notifyOfAllComments: false },
+        ]);
+      });
+
+      describe(`Luna comments the first post of Mars`, () => {
+        beforeEach(async () => {
+          const comment = new Comment({
+            body: 'Comment body',
+            userId: luna.id,
+            postId: postIds[2],
+          });
+          await comment.create();
+        });
+
+        it(`should return 'notifyOfAllComments' of false-false-true-false`, async () => {
+          const serResult = await serializeFeed(postIds, luna.id);
+          expect(serResult.posts, 'to satisfy', [
+            { notifyOfAllComments: false },
+            { notifyOfAllComments: false },
             { notifyOfAllComments: true },
             { notifyOfAllComments: false },
           ]);
