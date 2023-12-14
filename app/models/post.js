@@ -1001,6 +1001,32 @@ export function addModel(dbAdapter) {
 
       return [...listeners];
     }
+
+    /**
+     * Returns collection of properties that represents user-specific state of
+     * this post (how this post looks for this user). For now, the following
+     * properties are supported:
+     *
+     * - subscribedToComments
+     * - saved
+     * - hidden
+     *
+     * @typedef { {subscribedToComments: boolean, saved: boolean, hidden:
+     * boolean} } State
+     * @param {User} user
+     * @returns {Promise<State>}
+     */
+    async getUserSpecificProps(user) {
+      const [subscribers, feeds] = await Promise.all([
+        this.getCommentsListeners(),
+        this.getTimelines(),
+      ]);
+      return {
+        subscribedToComments: subscribers.includes(user.id),
+        saved: feeds.some((f) => f.userId === user.id && f.isSaves()),
+        hidden: feeds.some((f) => f.userId === user.id && f.isHides()),
+      };
+    }
   }
 
   return Post;

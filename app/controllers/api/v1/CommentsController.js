@@ -20,6 +20,7 @@ import {
   monitored,
   commentAccessRequired,
 } from '../../middlewares';
+import { postMayUpdateForUser } from '../../middlewares/post-may-update-for-user';
 
 import { commentCreateInputSchema, commentUpdateInputSchema } from './data-schemes';
 import { getCommentsByIdsInputSchema } from './data-schemes/comments';
@@ -33,6 +34,7 @@ export const create = compose([
     await next();
   },
   postAccessRequired(),
+  postMayUpdateForUser(),
   monitored('comments.create'),
   async (ctx) => {
     const { user: author, post } = ctx.state;
@@ -83,6 +85,7 @@ export const destroy = compose([
   authRequired(),
   // Post owner or group admin can delete hidden comments
   commentAccessRequired({ mustBeVisible: false }),
+  postMayUpdateForUser((s) => s.comment.getCreatedBy()),
   monitored('comments.destroy'),
   async (ctx) => {
     const { user, post, comment } = ctx.state;

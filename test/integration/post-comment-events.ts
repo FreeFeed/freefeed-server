@@ -135,6 +135,20 @@ describe(`'post_comment' event emitting`, () => {
           ]);
           await expectUserEventsToBe(mars, []);
         });
+
+        it(`should stop create notifications after deleting comment of Luna`, async () => {
+          const post = await createPost(mars, 'Hello, world!');
+          const lunaComment = await createComment(luna, post, 'Comment from Luna');
+          await createComment(mars, post, 'Comment from Mars #1');
+          await lunaComment.destroy(luna);
+          await createComment(mars, post, 'Comment from Mars #2');
+
+          await expectUserEventsToBe(luna, [
+            // Should be just one comment event
+            { event_type: ET.POST_COMMENT, created_by_user_id: mars.intId },
+          ]);
+          await expectUserEventsToBe(mars, []);
+        });
       });
     });
 

@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   purpose one can set the `notifyOfCommentsOnCommentedPosts` flag to _true_ in
   their preferences.
 
+### Changed
+- The 'post:update' realtime event can now be fired to a comment author when
+  comment is created or deleted. It happens when the action changes the user's
+  subscription to comments state (the 'notifyOfAllComments' field of the
+  serialized post).
+
 ## [2.16.1] - 2023-11-25
 ### Fixed
 - Handle 'post_comment' event in notifications digest.
