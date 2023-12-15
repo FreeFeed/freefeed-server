@@ -156,7 +156,6 @@ exports.up = function (knex) {
       table.uuid('uid').defaultTo(knex.raw('gen_random_uuid()')).notNullable().unique();
       table.text('name').notNullable();
       table.uuid('user_id').notNullable();
-      // TODO: foreign key user_id (fix tests)
       table.timestamp('created_at').defaultTo(knex.fn.now()).notNullable();
       table.timestamp('updated_at').defaultTo(knex.fn.now()).notNullable();
 
@@ -192,7 +191,6 @@ exports.up = function (knex) {
     knex.schema.createTable('likes', function (table) {
       table.increments().notNullable().primary();
       table.uuid('post_id').notNullable();
-      // TODO: foreign key post_id (fix tests)
       table
         .uuid('user_id')
         .notNullable()
