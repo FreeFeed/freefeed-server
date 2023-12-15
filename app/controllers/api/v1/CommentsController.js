@@ -85,7 +85,10 @@ export const destroy = compose([
   authRequired(),
   // Post owner or group admin can delete hidden comments
   commentAccessRequired({ mustBeVisible: false }),
-  postMayUpdateForUser((s) => s.comment.getCreatedBy()),
+  postMayUpdateForUser(({ comment }) =>
+    // Re-fetch comment creator because it may be set to null in commentAccessRequired
+    dbAdapter.getCommentById(comment.id).then((c) => c.getCreatedBy()),
+  ),
   monitored('comments.destroy'),
   async (ctx) => {
     const { user, post, comment } = ctx.state;

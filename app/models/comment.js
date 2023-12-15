@@ -188,6 +188,9 @@ export function addModel(dbAdapter) {
       if (this.hideType === Comment.VISIBLE) {
         return;
       }
+
+      this.body = Comment.hiddenBody(this.hideType);
+      this.userId = null;
     }
 
     /**
