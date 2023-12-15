@@ -148,13 +148,16 @@ export function addModel(dbAdapter) {
 
       // Determine initial file extension
       // (it might be overridden later when we know MIME type from its contents)
-      // TODO: extract to config
-      const supportedExtensions = /\.(jpe?g|png|gif|mp3|m4a|ogg|wav|txt|pdf|docx?|pptx?|xlsx?)$/i;
+      const { supportedExtensions } = config.media;
+      this.fileExtension = '';
 
       if (this.fileName && this.fileName.match(supportedExtensions) !== null) {
-        this.fileExtension = this.fileName.match(supportedExtensions)[1].toLowerCase();
-      } else {
-        this.fileExtension = '';
+        const m = /\.([^.]+)$/.exec(this.fileName);
+        const ext = m[1].toLowerCase();
+
+        if (supportedExtensions.includes(ext)) {
+          this.fileExtension = ext;
+        }
       }
 
       await this.handleMedia();
