@@ -410,7 +410,7 @@ export function addModel(dbAdapter) {
       }
 
       await dbAdapter.createUserTimelines(this.id, User.feedNames);
-      timer.stop(); // @todo finally {}
+      timer.stop();
       monitor.increment('users.creates');
 
       return this;

@@ -66,16 +66,9 @@ export default class Post extends React.Component {
 
     const canonicalPostURI = canonicalURI(props);
 
-    const authorOrGroupsRecipients = props.recipients
-      .filter((r) => r.id === props.createdBy.id || r.type === 'group')
-      .map((r) => {
-        // TODO Remove it when we'll have guaranty of isPrivate => isProtected
-        if (r.isPrivate === '1') {
-          r.isProtected = '1';
-        }
-
-        return r;
-      });
+    const authorOrGroupsRecipients = props.recipients.filter(
+      (r) => r.id === props.createdBy.id || r.type === 'group',
+    );
     const isPublic = authorOrGroupsRecipients.some((r) => r.isProtected === '0');
     const isProtected = !isPublic && authorOrGroupsRecipients.some((r) => r.isPrivate === '0');
     const isPrivate = !isPublic && !isProtected;

@@ -169,7 +169,6 @@ describe('User', () => {
   });
 
   describe('#validEmail()', () => {
-    // @todo Provide fixtures to validate various email formats
     it('should validate syntactically correct email', (done) => {
       const user = new User({
         username: 'Luna',
