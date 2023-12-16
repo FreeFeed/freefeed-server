@@ -173,14 +173,14 @@ exports.up = function (knex) {
         .references('uid')
         .inTable('users')
         .onUpdate('cascade')
-        .onDelete('cascade'); // Todo: add constraint(type=='group')
+        .onDelete('cascade');
       table
         .uuid('user_id')
         .notNullable()
         .references('uid')
         .inTable('users')
         .onUpdate('cascade')
-        .onDelete('cascade'); // Todo: add constraint(type=='user')
+        .onDelete('cascade');
       table.timestamp('created_at').defaultTo(knex.fn.now()).notNullable();
 
       table.index('created_at', 'group_admins_created_at_idx', 'btree');
