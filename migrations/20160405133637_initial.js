@@ -134,7 +134,6 @@ exports.up = function (knex) {
       table.uuid('uid').defaultTo(knex.raw('gen_random_uuid()')).notNullable().unique();
       table.text('body');
       table.uuid('post_id').notNullable();
-      // TODO: foreign key post_id (fix tests)
       table
         .uuid('user_id')
         .notNullable()
