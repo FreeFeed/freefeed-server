@@ -134,8 +134,11 @@ describe('GroupsController', () => {
           group: { username: userName, screenName },
           authToken: context.authToken,
         })
-        .end(() => {
-          // TODO[yole] check that the user is an administrator
+        .end((err, res) => {
+          res.status.should.eql(200);
+          res.body.should.not.be.empty;
+          res.body.admins.length.should.eql(1);
+          res.body.admins[0].username.should.eql(context.user.username);
           done();
         });
     });

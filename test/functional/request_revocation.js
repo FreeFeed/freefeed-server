@@ -93,8 +93,6 @@ describe('RequestRevocation', () => {
         .end((err, res) => {
           res.should.not.be.empty;
           res.status.should.eql(200);
-          // TODO: check lunaContext.whoami (pendingRequests)
-          // TODO: check zeusContext.whoami (pendingRequests)
           done();
         });
     });
@@ -106,8 +104,6 @@ describe('RequestRevocation', () => {
         .end((err, res) => {
           res.should.not.be.empty;
           res.status.should.eql(200);
-          // TODO: check lunaContext.whoami (pendingRequests)
-          // TODO: check zeusContext.whoami (pendingRequests)
           done();
         });
     });

@@ -1,7 +1,5 @@
 /* eslint-env node, mocha */
 /* global $pg_database, $should */
-import { v4 as uuidv4 } from 'uuid';
-
 import cleanDB from '../../dbCleaner';
 import { dbAdapter, Timeline, User } from '../../../app/models';
 
@@ -9,11 +7,17 @@ describe('Timeline', () => {
   beforeEach(() => cleanDB($pg_database));
 
   describe('#create()', () => {
+    let luna;
+
+    beforeEach(async () => {
+      luna = new User({ username: 'Luna', password: 'password' });
+      await luna.create();
+    });
+
     it('should create without error', (done) => {
-      const userId = uuidv4();
       const timeline = new Timeline({
         name: 'name',
-        userId,
+        userId: luna.id,
       });
 
       timeline
@@ -38,9 +42,8 @@ describe('Timeline', () => {
     });
 
     it('should ignore whitespaces in name', (done) => {
-      const userId = uuidv4();
       const name = '   name    ';
-      const timeline = new Timeline({ name, userId });
+      const timeline = new Timeline({ name, userId: luna.id });
 
       timeline
         .create()
@@ -59,10 +62,9 @@ describe('Timeline', () => {
     });
 
     it('should not create with empty name', (done) => {
-      const userId = uuidv4();
       const timeline = new Timeline({
         name: '',
-        userId,
+        userId: luna.id,
       });
 
       timeline.create().catch((e) => {
@@ -73,11 +75,17 @@ describe('Timeline', () => {
   });
 
   describe('#findById()', () => {
+    let luna;
+
+    beforeEach(async () => {
+      luna = new User({ username: 'Luna', password: 'password' });
+      await luna.create();
+    });
+
     it('should find timeline with a valid id', (done) => {
-      const userId = uuidv4();
       const timeline = new Timeline({
         name: 'name',
-        userId,
+        userId: luna.id,
       });
 
       timeline

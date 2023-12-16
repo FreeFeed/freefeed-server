@@ -49,7 +49,7 @@ export async function downloadURL(url: string) {
   }
 
   try {
-    // FIXIT when the node typing will be fixed
+    // We use 'as' here because of weird Node's typing
     // see https://stackoverflow.com/a/66629140
     // @ts-expect-error
     const inStream = response.body as NodeJS.ReadableStream;

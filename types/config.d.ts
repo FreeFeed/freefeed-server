@@ -17,6 +17,7 @@ declare module 'config' {
     trustProxyHeaders: boolean;
     proxyIpHeader: string;
     logResponseTime: boolean;
+    media: { supportedExtensions: string[] };
     attachments: {
       url: string;
       path: string;
