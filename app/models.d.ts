@@ -132,6 +132,12 @@ export class Group {
   unblockUser(userId: UUID, adminId: UUID): Promise<boolean>;
 }
 
+type PostUserState = {
+  subscribedToComments: boolean;
+  saved: boolean;
+  hidden: boolean;
+};
+
 export class Post {
   id: UUID;
   intId: number;
@@ -156,6 +162,7 @@ export class Post {
   removeDirectRecipient(user: User): Promise<boolean>;
   isVisibleFor(viewer: Nullable<User>): Promise<boolean>;
   getCommentsListeners(): Promise<UUID[]>;
+  getUserSpecificProps(user: User): Promise<PostUserState>;
 }
 
 export class Timeline {
@@ -201,6 +208,7 @@ export class Comment {
   hideType: 0 | 1 | 2 | 3;
   postId: UUID;
   seqNumber: number;
+  constructor(params: { userId: UUID; body: string; postId: UUID });
   create(): Promise<void>;
   destroy(destroyedBy?: User): Promise<boolean>;
   getPost(): Promise<Post>;

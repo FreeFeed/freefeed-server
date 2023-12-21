@@ -17,6 +17,7 @@ declare module 'config' {
     trustProxyHeaders: boolean;
     proxyIpHeader: string;
     logResponseTime: boolean;
+    media: { supportedExtensions: string[] };
     attachments: {
       url: string;
       path: string;
@@ -117,6 +118,7 @@ declare module 'config' {
         acceptDirectsFrom: string;
         sanitizeMediaMetadata: boolean;
         notifyOfCommentsOnMyPosts: boolean;
+        notifyOfCommentsOnCommentedPosts: boolean;
       };
       overrides: {
         [k: string]:

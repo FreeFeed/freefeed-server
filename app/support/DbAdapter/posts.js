@@ -163,8 +163,6 @@ const postsTrait = (superClass) =>
 
     async deletePost(postId) {
       await this.database('posts').where({ uid: postId }).delete();
-
-      // TODO: delete post local bumps
       return await Promise.all([this._deletePostLikes(postId), this._deletePostComments(postId)]);
     }
 
@@ -247,6 +245,18 @@ const postsTrait = (superClass) =>
       const res = await this.database('posts').where('uid', postId);
       const [postData] = res;
       return postData.feed_ids.includes(timelineId);
+    }
+
+    /**
+     * Returns only ids of posts that presents in the given timeline
+     * @param {UUID[]} postIds - ids of posts
+     * @param {number} feedIntId - integer id of timeline
+     */
+    async getPostsPresentsInTimeline(postIds, feedIntId) {
+      return await this.database.getCol(
+        `select uid from posts where uid = any(:postIds) and feed_ids && :timelineIds::int[]`,
+        { postIds, timelineIds: [feedIntId] },
+      );
     }
 
     /**

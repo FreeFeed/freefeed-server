@@ -133,6 +133,24 @@ config.media = {
     'application/pdf',
     'text/plain',
   ],
+  supportedExtensions: [
+    'jpg',
+    'jpeg',
+    'png',
+    'gif',
+    'mp3',
+    'm4a',
+    'ogg',
+    'wav',
+    'txt',
+    'pdf',
+    'doc',
+    'docx',
+    'ppt',
+    'pptx',
+    'xls',
+    'xlsx',
+  ],
 };
 config.attachments = {
   url: defer((cfg) => cfg.media.url),
@@ -390,6 +408,8 @@ config.userPreferences = {
     sanitizeMediaMetadata: true,
     // Notify of all comments on my posts
     notifyOfCommentsOnMyPosts: false,
+    // Notify of all comments on posts commented by me
+    notifyOfCommentsOnCommentedPosts: false,
   },
   /**
    *  Here you can override the default values depending on the 'createdAt' time

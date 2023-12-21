@@ -193,6 +193,7 @@ export class DbAdapter {
   getPostsByIntIds(ids: number[]): Promise<Post[]>;
   filterSuspendedPosts(ids: UUID[]): Promise<UUID[]>;
   withdrawPostFromDestFeed(feedIntId: number, postUUID: UUID): Promise<boolean>;
+  getPostsPresentsInTimeline(postIds: UUID[], feedIntId: number): Promise<UUID[]>;
 
   // Likes
   unlikePost(postId: UUID, userId: UUID): Promise<boolean>;

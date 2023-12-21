@@ -52,6 +52,10 @@ const schema = {
       title: 'Notify of all comments on my posts',
       type: 'boolean',
     },
+    notifyOfCommentsOnCommentedPosts: {
+      title: 'Notify of all comments on posts commented by me',
+      type: 'boolean',
+    },
   },
   additionalProperties: false,
 };

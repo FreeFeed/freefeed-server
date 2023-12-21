@@ -966,20 +966,29 @@ export function addModel(dbAdapter) {
      */
     async getCommentsListeners() {
       const listeners = new Set();
-      const [destinations, author, listenersMap] = await Promise.all([
-        this.getPostedTo(),
+      const [feeds, author, listenersMap] = await Promise.all([
+        this.getTimelines(),
         this.getCreatedBy(),
         dbAdapter.getCommentEventsListenersForPost(this.id),
       ]);
 
-      const directRecipients = destinations.filter((d) => d.isDirects()).map((d) => d.userId);
+      const directRecipientIds = feeds.filter((f) => f.isDirects()).map((f) => f.userId);
+      const commenterIds = feeds.filter((f) => f.isComments()).map((f) => f.userId);
 
-      for (const id of directRecipients) {
+      for (const id of directRecipientIds) {
         listeners.add(id);
       }
 
       if (author.preferences.notifyOfCommentsOnMyPosts) {
         listeners.add(author.id);
+      }
+
+      const commentators = await dbAdapter.getUsersByIds(commenterIds);
+
+      for (const commentator of commentators) {
+        if (commentator.preferences.notifyOfCommentsOnCommentedPosts) {
+          listeners.add(commentator.id);
+        }
       }
 
       for (const [id, enabled] of listenersMap.entries()) {
@@ -991,6 +1000,32 @@ export function addModel(dbAdapter) {
       }
 
       return [...listeners];
+    }
+
+    /**
+     * Returns collection of properties that represents user-specific state of
+     * this post (how this post looks for this user). For now, the following
+     * properties are supported:
+     *
+     * - subscribedToComments
+     * - saved
+     * - hidden
+     *
+     * @typedef { {subscribedToComments: boolean, saved: boolean, hidden:
+     * boolean} } State
+     * @param {User} user
+     * @returns {Promise<State>}
+     */
+    async getUserSpecificProps(user) {
+      const [subscribers, feeds] = await Promise.all([
+        this.getCommentsListeners(),
+        this.getTimelines(),
+      ]);
+      return {
+        subscribedToComments: subscribers.includes(user.id),
+        saved: feeds.some((f) => f.userId === user.id && f.isSaves()),
+        hidden: feeds.some((f) => f.userId === user.id && f.isHides()),
+      };
     }
   }
 
