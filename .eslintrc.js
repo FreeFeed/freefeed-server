@@ -26,7 +26,8 @@ module.exports = {
     ecmaFeatures: { jsx: true },
   },
   'globals': {
-    'NodeJS': true
+    'NodeJS': true,
+    'RequestInit': true
   },
   rules: {
     'prettier/prettier': [
