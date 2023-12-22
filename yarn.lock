@@ -1267,12 +1267,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@koa/cors@npm:~4.0.0":
-  version: 4.0.0
-  resolution: "@koa/cors@npm:4.0.0"
+"@koa/cors@npm:~5.0.0":
+  version: 5.0.0
+  resolution: "@koa/cors@npm:5.0.0"
   dependencies:
     vary: "npm:^1.1.2"
-  checksum: 53caa512e7aacf8d4ad0d9eb427fa84bdfd6fccb9a060b317d77acf352941ad7935bbc0b4569c0c73d9cdef0b3fce83b7e00190548f31076366dd8e60d7e1198
+  checksum: 49e5f3b861590bd81aa3663a2f0658234a9b378840bb54a2947b3c5f2067f9d966b6fa2e9049fdc7c74c787456d1885bacd0b7ee1f134274d28282c7df99c3fd
   languageName: node
   linkType: hard
 
@@ -6105,7 +6105,7 @@ __metadata:
   dependencies:
     "@aws-sdk/client-s3": "npm:~3.478.0"
     "@babel/core": "npm:~7.23.6"
-    "@koa/cors": "npm:~4.0.0"
+    "@koa/cors": "npm:~5.0.0"
     "@koa/router": "npm:~12.0.1"
     "@types/bytes": "npm:~3.1.4"
     "@types/cache-manager": "npm:~3.4.3"
