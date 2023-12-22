@@ -56,7 +56,7 @@
     "email-validator": "~2.0.4",
     "exiftool-vendored": "~24.2.0",
     "ff-url-finder": "~2.3.7",
-    "file-type": "~16.5.4",
+    "file-type": "~18.7.0",
     "gifsicle": "~7.0.1",
     "gm": "~1.25.0",
     "grapheme-breaker": "0.3.2",

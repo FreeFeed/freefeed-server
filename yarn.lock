@@ -5862,7 +5862,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"file-type@npm:^16.5.4, file-type@npm:~16.5.4":
+"file-type@npm:^16.5.4":
   version: 16.5.4
   resolution: "file-type@npm:16.5.4"
   dependencies:
@@ -5898,6 +5898,17 @@ __metadata:
   version: 8.1.0
   resolution: "file-type@npm:8.1.0"
   checksum: e46080a093bc1ac345c3d3e9e2bcb5ab8ef2d9866916e17d623bca823cc2d1288469e54e18758b2aebf4d0c27972d336305791415f961676d6fa0696a5889153
+  languageName: node
+  linkType: hard
+
+"file-type@npm:~18.7.0":
+  version: 18.7.0
+  resolution: "file-type@npm:18.7.0"
+  dependencies:
+    readable-web-to-node-stream: "npm:^3.0.2"
+    strtok3: "npm:^7.0.0"
+    token-types: "npm:^5.0.1"
+  checksum: bd06a5a5b2ba13892e8690f01eaacdad1136e0cd8fcc92a2c558a76c0192e8b95e7dddebd3c996f1124ca009ec2f7562537682f361df519e4a369b55b40926a7
   languageName: node
   linkType: hard
 
@@ -6146,7 +6157,7 @@ __metadata:
     eslint-plugin-you-dont-need-lodash-underscore: "npm:~6.13.0"
     exiftool-vendored: "npm:~24.2.0"
     ff-url-finder: "npm:~2.3.7"
-    file-type: "npm:~16.5.4"
+    file-type: "npm:~18.7.0"
     gifsicle: "npm:~7.0.1"
     gm: "npm:~1.25.0"
     grapheme-breaker: "npm:0.3.2"
@@ -9961,6 +9972,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"peek-readable@npm:^5.0.0":
+  version: 5.0.0
+  resolution: "peek-readable@npm:5.0.0"
+  checksum: 060aece3a907a157b4839aa923b61b664b59cac7296dc8d8e0ddcc39065a4f1e328dd2f171c8a49e869aabc6e076a1be59f939183fb0ababc81f3c870006d672
+  languageName: node
+  linkType: hard
+
 "pend@npm:~1.2.0":
   version: 1.2.0
   resolution: "pend@npm:1.2.0"
@@ -10561,7 +10579,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"readable-web-to-node-stream@npm:^3.0.0":
+"readable-web-to-node-stream@npm:^3.0.0, readable-web-to-node-stream@npm:^3.0.2":
   version: 3.0.2
   resolution: "readable-web-to-node-stream@npm:3.0.2"
   dependencies:
@@ -11708,6 +11726,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"strtok3@npm:^7.0.0":
+  version: 7.0.0
+  resolution: "strtok3@npm:7.0.0"
+  dependencies:
+    "@tokenizer/token": "npm:^0.3.0"
+    peek-readable: "npm:^5.0.0"
+  checksum: 63a72b10a302719242bfd31ca53955a06bb091dfec46ef14ca10c4b17ab15780ed8365cd5b270cfbde92d571f677539957add436e4bf9cccdf9977b40d762583
+  languageName: node
+  linkType: hard
+
 "superagent@npm:~8.1.2":
   version: 8.1.2
   resolution: "superagent@npm:8.1.2"
@@ -11955,6 +11983,16 @@ __metadata:
     "@tokenizer/token": "npm:^0.3.0"
     ieee754: "npm:^1.2.1"
   checksum: e9a4a139deba9515770cd7ac36a8f53f953b9d035d309e88a66d706760dba0df420753f2b8bdee6b9f3cbff8d66b24e69571e8dea27baa7b378229ab1bcca399
+  languageName: node
+  linkType: hard
+
+"token-types@npm:^5.0.1":
+  version: 5.0.1
+  resolution: "token-types@npm:5.0.1"
+  dependencies:
+    "@tokenizer/token": "npm:^0.3.0"
+    ieee754: "npm:^1.2.1"
+  checksum: cb671b2b52271362816d22b7a076082b0da033cd7807992b81ae53cfd8541bd013ac29e455c3c7a8bb4f88aa1c5315a12353c3599b7f568df238d3c1723f9d8d
   languageName: node
   linkType: hard
 
