@@ -150,7 +150,7 @@
     "eslint-plugin-babel": "~5.3.1",
     "eslint-plugin-import": "~2.29.1",
     "eslint-plugin-lodash": "~7.4.0",
-    "eslint-plugin-prettier": "~5.1.0",
+    "eslint-plugin-prettier": "~5.1.1",
     "eslint-plugin-promise": "~6.1.1",
     "eslint-plugin-you-dont-need-lodash-underscore": "~6.13.0",
     "mailparser": "~3.6.5",
