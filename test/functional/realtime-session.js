@@ -1,4 +1,4 @@
-import SocketIO from 'socket.io-client';
+import socketIO from 'socket.io-client';
 
 import { API_VERSION_ACTUAL } from '../../app/api-versions';
 
@@ -22,7 +22,7 @@ export default class Session {
       ...extraOptions,
     };
     return new Promise((resolve, reject) => {
-      const socket = SocketIO.connect(`http://localhost:${port}/`, options);
+      const socket = socketIO(`http://localhost:${port}/`, options);
       socket.on('error', reject);
       socket.on('connect_error', reject);
       socket.on('connect', () => resolve(new Session(socket, name)));

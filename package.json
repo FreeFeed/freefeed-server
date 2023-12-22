@@ -163,7 +163,7 @@
     "prettier": "~3.1.1",
     "s3rver": "~3.7.1",
     "sinon": "~17.0.1",
-    "socket.io-client": "~2.3.1",
+    "socket.io-client": "~4.7.2",
     "source-map-support": "~0.5.21",
     "superagent": "~8.1.2",
     "typescript": "~5.3.3",
