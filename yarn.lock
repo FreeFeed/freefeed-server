@@ -6153,7 +6153,7 @@ __metadata:
     humps: "npm:~2.0.1"
     ioredis: "npm:~5.3.2"
     jsonwebtoken: "npm:~9.0.2"
-    juice: "npm:~9.1.0"
+    juice: "npm:~10.0.0"
     knex: "npm:~3.1.0"
     koa: "npm:~2.14.2"
     koa-body: "npm:~6.0.1"
@@ -7821,9 +7821,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"juice@npm:~9.1.0":
-  version: 9.1.0
-  resolution: "juice@npm:9.1.0"
+"juice@npm:~10.0.0":
+  version: 10.0.0
+  resolution: "juice@npm:10.0.0"
   dependencies:
     cheerio: "npm:^1.0.0-rc.12"
     commander: "npm:^6.1.0"
@@ -7832,7 +7832,7 @@ __metadata:
     web-resource-inliner: "npm:^6.0.1"
   bin:
     juice: bin/juice
-  checksum: 46bf872a122e152ca02e389ee8de8ad3e17634dc6bfd55064e1acf24ce4aec89ccc2520785eb725be89c7c04427d3e5f95715e3da9dca6bfa806dbcd3ed7ddd7
+  checksum: 55461554aa564d945460ed9ba6257813cca95c33202449beb37868d14e2dbb46b31d5e4b2eeaefb7e7390d7d7504d0de32668fcbfdcb7e579a732ee954738631
   languageName: node
   linkType: hard
 
