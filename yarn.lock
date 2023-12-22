@@ -6184,7 +6184,7 @@ __metadata:
     s3rver: "npm:~3.7.1"
     sbd: "npm:~1.0.19"
     sinon: "npm:~15.2.0"
-    social-text-tokenizer: "npm:~2.5.0"
+    social-text-tokenizer: "npm:~3.0.0"
     socket.io: "npm:~2.4.1"
     socket.io-client: "npm:~2.3.1"
     socket.io-redis: "npm:~5.4.0"
@@ -11174,14 +11174,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"social-text-tokenizer@npm:~2.5.0":
-  version: 2.5.0
-  resolution: "social-text-tokenizer@npm:2.5.0"
+"social-text-tokenizer@npm:~3.0.0":
+  version: 3.0.0
+  resolution: "social-text-tokenizer@npm:3.0.0"
   dependencies:
     lodash.escaperegexp: "npm:^4.1.2"
     punycode: "npm:^2.3.0"
-    tslib: "npm:^2.5.0"
-  checksum: c492cdf994cd99e59c2bca71873527dcc319c9fe2cb738ccfa81d8f4bf9eca6f154d73697d1c1c5529dc1aaa6d572cda2c5accb52debc196de76a1342c18f54a
+    tslib: "npm:^2.6.2"
+  checksum: 9f8e9feb3be4494858eeb53d65feee82f9c052004764c14f535de07d354c53fbc1113df28bd8cadfd3da3ee5420d10d996493093163b1dc9b3386b3a6116ebe1
   languageName: node
   linkType: hard
 

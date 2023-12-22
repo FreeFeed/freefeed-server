@@ -1,4 +1,4 @@
-import { Mention } from 'social-text-tokenizer';
+import { MENTION } from 'social-text-tokenizer';
 
 import { tokenize } from './tokenize-text';
 
@@ -13,7 +13,7 @@ export function extractMentionsWithOffsets(text: string) {
   return (
     tokenize(text)
       // Valid usernames are from 3 to 25 chars plus '@'
-      .filter((t) => t instanceof Mention && t.text.length >= 4 && t.text.length <= 26)
+      .filter((t) => t.type === MENTION && t.text.length >= 4 && t.text.length <= 26)
       .map((t) => ({ username: t.text.substring(1).toLowerCase(), offset: t.offset }))
   );
 }

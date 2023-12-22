@@ -1,43 +1,28 @@
-import {
-  withText,
-  combine,
-  hashTags,
-  emails,
-  mentions,
-  links,
-  arrows,
-  Token,
-} from 'social-text-tokenizer';
-// The CJS version of social-text-tokenizer has not .d.ts yet, so expecting error
-// @ts-expect-error
-import byRegexp, { makeToken } from 'social-text-tokenizer/cjs/lib/byRegexp';
+import { emails, mentions, links, arrows, hashtags, withTexts } from 'social-text-tokenizer';
+import { reTokenizer, makeToken } from 'social-text-tokenizer/utils';
 
 import { uuidRe } from './backlinks';
 
-export class HTMLTag extends Token {
-  public closing = false;
-  public content = '';
+export const UUID_TOKEN = 'UUID';
+export const HTML_TAG_TOKEN = 'HTML_TAG';
+
+export function htmlTagContent(text: string): string {
+  return text.replace(/<\/?(.+?)>/g, '$1').trim();
 }
 
-const htmlTags = byRegexp(/<(\/)?(.+?)>/g, (offset: number, text: string, m: RegExpExecArray) => {
-  const t = new HTMLTag(offset, text);
-  t.closing = !!m[1];
-  t.content = m[2].trim();
-  return t;
-});
+export function isHtmlTagClosing(text: string): boolean {
+  return /<\//.test(text);
+}
 
-export class UUIDString extends Token {}
+const htmlTags = reTokenizer(/<\/?.+?>/g, makeToken(HTML_TAG_TOKEN));
+const uuidStrings = reTokenizer(uuidRe, makeToken(UUID_TOKEN));
 
-const uuidStrings = byRegexp(uuidRe, makeToken(UUIDString));
-
-export const tokenize = withText(
-  combine(
-    hashTags(),
-    emails(),
-    mentions(),
-    links({ tldList: ['рф', 'com', 'net', 'org', 'edu', 'place'] }),
-    arrows(),
-    htmlTags,
-    uuidStrings,
-  ),
+export const tokenize = withTexts(
+  hashtags(),
+  emails(),
+  mentions(),
+  links({ tldList: ['рф', 'com', 'net', 'org', 'edu', 'place'] }),
+  arrows(),
+  htmlTags,
+  uuidStrings,
 );

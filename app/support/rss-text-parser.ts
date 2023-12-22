@@ -2,8 +2,9 @@ import { escape as urlEscape } from 'querystring';
 
 import { escape as htmlEscape } from 'lodash';
 import { sentences } from 'sbd';
-import { HashTag, Email, Mention, Link } from 'social-text-tokenizer';
+import { HASHTAG, EMAIL, MENTION, LINK } from 'social-text-tokenizer';
 import config from 'config';
+import { emailHref, linkHref, prettyEmail, prettyLink } from 'social-text-tokenizer/prettifiers';
 
 import { tokenize } from './tokenize-text';
 
@@ -68,24 +69,28 @@ export function textToHTML(text: string) {
 function linkify(text: string) {
   return tokenize(text)
     .map((token) => {
-      if (token instanceof HashTag) {
+      if (token.type === HASHTAG) {
         return `<a href="${config.host}/search?qs=${urlEscape(token.text)}">${htmlEscape(
           token.text,
         )}</a>`;
       }
 
-      if (token instanceof Email) {
-        return `<a href="mailto:${urlEscape(token.text)}">${htmlEscape(token.pretty)}</a>`;
+      if (token.type === EMAIL) {
+        return `<a href="${htmlEscape(emailHref(token.text))}">${htmlEscape(
+          prettyEmail(token.text),
+        )}</a>`;
       }
 
-      if (token instanceof Mention) {
+      if (token.type === MENTION) {
         return `<a href="${config.host}/${urlEscape(
-          token.text.substr(1).toLowerCase(),
+          token.text.substring(1).toLowerCase(),
         )}">${htmlEscape(token.text)}</a>`;
       }
 
-      if (token instanceof Link) {
-        return `<a href="${htmlEscape(token.href)}">${htmlEscape(token.pretty)}</a>`;
+      if (token.type === LINK) {
+        return `<a href="${htmlEscape(linkHref(token.text))}">${htmlEscape(
+          prettyLink(token.text),
+        )}</a>`;
       }
 
       return htmlEscape(token.text);

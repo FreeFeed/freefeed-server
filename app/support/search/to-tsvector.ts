@@ -1,8 +1,9 @@
 import pgFormat from 'pg-format';
-import { HashTag, Mention, Link } from 'social-text-tokenizer';
 import config from 'config';
+import { HASHTAG, LINK, MENTION } from 'social-text-tokenizer';
+import { prettyLink } from 'social-text-tokenizer/prettifiers';
 
-import { HTMLTag, tokenize, UUIDString } from '../tokenize-text';
+import { HTML_TAG_TOKEN, UUID_TOKEN, htmlTagContent, tokenize } from '../tokenize-text';
 import { extractUUIDs } from '../backlinks';
 
 import { normalizeText, linkToText } from './norm';
@@ -13,10 +14,10 @@ const ftsCfg = config.postgres.textSearchConfigName;
 export function toTSVector(text: string) {
   const vectors = tokenize(normalizeText(text || ''))
     .map((token) => {
-      if (token instanceof HashTag || token instanceof Mention) {
+      if (token.type === HASHTAG || token.type === MENTION) {
         // Mentions and hashtags should be found by exact @/#-query or by regular word query
         const exactText =
-          token instanceof HashTag
+          token.type === HASHTAG
             ? token.text.replace(/[_-]/g, '') // join parts of hashtag to ignore separators
             : token.text;
         return pgFormat(
@@ -27,12 +28,16 @@ export function toTSVector(text: string) {
         );
       }
 
-      if (token instanceof Link) {
+      if (token.type === LINK) {
         // UUIDs in URL
-        const uuidVectors = extractUUIDs(normalizeText(token.pretty)).map((u, i) =>
+        const uuidVectors = extractUUIDs(normalizeText(prettyLink(token.text))).map((u, i) =>
           pgFormat('%L::tsvector', `'${u.toLowerCase()}':${i + 1}`),
         );
-        const textVector = pgFormat(`to_tsvector_with_exact(%L, %L)`, ftsCfg, linkToText(token));
+        const textVector = pgFormat(
+          `to_tsvector_with_exact(%L, %L)`,
+          ftsCfg,
+          linkToText(token.text),
+        );
 
         if (uuidVectors.length === 0) {
           return textVector;
@@ -41,11 +46,12 @@ export function toTSVector(text: string) {
         return `(${[textVector, ...uuidVectors].join(" || ' ' || ")})::tsvector`;
       }
 
-      if (token instanceof HTMLTag) {
-        return token.content && pgFormat('to_tsvector_with_exact(%L, %L)', ftsCfg, token.content);
+      if (token.type === HTML_TAG_TOKEN) {
+        const content = htmlTagContent(token.text);
+        return content && pgFormat('to_tsvector_with_exact(%L, %L)', ftsCfg, content);
       }
 
-      if (token instanceof UUIDString) {
+      if (token.type === UUID_TOKEN) {
         return pgFormat('%L::tsvector', `'${token.text.toLowerCase()}':1`);
       }
 
