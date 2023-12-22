@@ -1,8 +1,9 @@
 import crypto from 'crypto';
 
-import cacheManager, { Cache as MCache } from 'cache-manager';
-import redisStore from 'cache-manager-ioredis';
-import config from 'config';
+import { createCache, Cache as TCache } from 'cache-manager';
+import { ioRedisStore } from '@tirke/node-cache-manager-ioredis';
+
+import { connect as redisConnect } from '../../setup/database';
 
 const KEY_LENGTH = 16; // bytes
 
@@ -10,19 +11,13 @@ const KEY_LENGTH = 16; // bytes
  * Wrapper for the redis-based cache with auto-generated and auto-prefixed keys
  */
 export class Cache {
-  private readonly cache: MCache;
+  private readonly cache: TCache;
 
   constructor(
     private readonly keyPrefix: string,
     private readonly ttl: number,
   ) {
-    this.cache = cacheManager.caching({
-      store: redisStore,
-      host: config.redis.host,
-      port: config.redis.port,
-      db: config.database,
-      ttl,
-    });
+    this.cache = createCache(ioRedisStore({ redisInstance: redisConnect() }), { ttl });
   }
 
   async put<T>(data: T) {

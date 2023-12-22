@@ -2031,6 +2031,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@tirke/node-cache-manager-ioredis@npm:~3.4.0":
+  version: 3.4.0
+  resolution: "@tirke/node-cache-manager-ioredis@npm:3.4.0"
+  dependencies:
+    ioredis: "npm:^5.2.2"
+  checksum: 695ea104d3a1cd0120aa1e2a368e49f8c8b7c1855d6593b6c471a8602c4f8768851b2ee9eb2c7511db04763dd59c72b2c73c15f997d75c7efa98335ee3247277
+  languageName: node
+  linkType: hard
+
 "@tokenizer/token@npm:^0.3.0":
   version: 0.3.0
   resolution: "@tokenizer/token@npm:0.3.0"
@@ -2064,27 +2073,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/cache-manager-ioredis@npm:~2.0.6":
-  version: 2.0.6
-  resolution: "@types/cache-manager-ioredis@npm:2.0.6"
-  dependencies:
-    "@types/cache-manager": "npm:*"
-    "@types/ioredis": "npm:^4.28.10"
-  checksum: 36a3561eb2e304470782022fc50807bb8a3ac07d0884aea30524192f2b8a095bb7f8ba37b671c295be6ce1c08f46bcc2c04f62ae9b2e73bc907edd6554ac448a
-  languageName: node
-  linkType: hard
-
-"@types/cache-manager@npm:*":
+"@types/cache-manager@npm:~4.0.6":
   version: 4.0.6
   resolution: "@types/cache-manager@npm:4.0.6"
   checksum: 3cf78d7ec98a03f651ceb31cc7fbd56f25476c90892d3b19a60c645e8fdd6fe7df99b14afde3fcaec407ab8bb5c8e77332dded77b335cad0fc4b06fbf2df5d62
-  languageName: node
-  linkType: hard
-
-"@types/cache-manager@npm:~3.4.3":
-  version: 3.4.3
-  resolution: "@types/cache-manager@npm:3.4.3"
-  checksum: 653330e336ab358ef7888d9f58532caf2a42b94a6c90fe8de711d753a086aefbbcda71264cbc15d4e8675852115b0313dd9901ef6c18437fe738cfa777c57a1c
   languageName: node
   linkType: hard
 
@@ -2195,15 +2187,6 @@ __metadata:
   version: 2.0.6
   resolution: "@types/humps@npm:2.0.6"
   checksum: 99842f1adc1f02d37ab862b7de1595677141e63f9bf85aa3bea302a3688687d49231613cab1494b9fbf0bd7a09d6bc10516dcf7eb8ba9b598b91fc996a2703c0
-  languageName: node
-  linkType: hard
-
-"@types/ioredis@npm:^4.28.10":
-  version: 4.28.10
-  resolution: "@types/ioredis@npm:4.28.10"
-  dependencies:
-    "@types/node": "npm:*"
-  checksum: ff680fef6750721c465ee9d6060d3229e49e5b217d68503c4972c4b869b8f84b91cbd9b7d5195a40fb0bff6ab9a4f5e24a2cc17a368ddb0bfe2dfd4eb5fc1872
   languageName: node
   linkType: hard
 
@@ -3131,13 +3114,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"async@npm:3.2.3":
-  version: 3.2.3
-  resolution: "async@npm:3.2.3"
-  checksum: 109780c846f05109dde14412d916ae4ed6daf6f9aad0c4aa1dcf0d4da775a3a9e35e0e06e4e06ad9fed66f99ca15549da16f2f243c56103b346e9d3bcd9c943f
-  languageName: node
-  linkType: hard
-
 "async@npm:^3.2.3":
   version: 3.2.5
   resolution: "async@npm:3.2.5"
@@ -3556,23 +3532,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"cache-manager-ioredis@npm:~2.1.0":
-  version: 2.1.0
-  resolution: "cache-manager-ioredis@npm:2.1.0"
+"cache-manager@npm:~5.3.2":
+  version: 5.3.2
+  resolution: "cache-manager@npm:5.3.2"
   dependencies:
-    ioredis: "npm:^4.14.1"
-  checksum: 219fad7a5b894a34f26936b3ef41de9328bde5edcc0fca29a2aecfcc2a330836455e80b097b3ac0dd22091efe15ddd45d615e10f71e8c118876c138d7aac67f2
-  languageName: node
-  linkType: hard
-
-"cache-manager@npm:~3.6.3":
-  version: 3.6.3
-  resolution: "cache-manager@npm:3.6.3"
-  dependencies:
-    async: "npm:3.2.3"
     lodash.clonedeep: "npm:^4.5.0"
-    lru-cache: "npm:6.0.0"
-  checksum: 83e45031e964b94dab47a7af0adbab1c21a3a0f05efe1fc964207d429eb2cf5c77849fc61e04e5eaa8a29ae147ebc031199371d1a898b1dc28b2149648a03ddd
+    lru-cache: "npm:^10.1.0"
+    promise-coalesce: "npm:^1.1.2"
+  checksum: c6ab2eb9447009c4b47aed09fdc8c5b675499c720482f24ae5a0c50e3caa1621c3abd1c17cc21c2c05026e477ef097e8f3a7cce0816a0fd968913cd71ff12443
   languageName: node
   linkType: hard
 
@@ -4541,7 +4508,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"denque@npm:^1.1.0, denque@npm:^1.5.0":
+"denque@npm:^1.5.0":
   version: 1.5.1
   resolution: "denque@npm:1.5.1"
   checksum: 9e6fc1a63e1c9ded38325290302fef40e5ad28471ad8c66d68eaea623ef847bd25fc75a7c3f47396206dc967922615999066470a364e1786f2758d61337872b7
@@ -6107,9 +6074,9 @@ __metadata:
     "@babel/core": "npm:~7.23.6"
     "@koa/cors": "npm:~5.0.0"
     "@koa/router": "npm:~12.0.1"
+    "@tirke/node-cache-manager-ioredis": "npm:~3.4.0"
     "@types/bytes": "npm:~3.1.4"
-    "@types/cache-manager": "npm:~3.4.3"
-    "@types/cache-manager-ioredis": "npm:~2.0.6"
+    "@types/cache-manager": "npm:~4.0.6"
     "@types/debug": "npm:~4.1.12"
     "@types/humps": "npm:~2.0.6"
     "@types/jsonwebtoken": "npm:~9.0.5"
@@ -6139,8 +6106,7 @@ __metadata:
     await-lock: "npm:~2.2.2"
     bcrypt: "npm:~5.1.1"
     bytes: "npm:~3.1.2"
-    cache-manager: "npm:~3.6.3"
-    cache-manager-ioredis: "npm:~2.1.0"
+    cache-manager: "npm:~5.3.2"
     chai: "npm:4.3.10"
     chai-fs: "npm:~2.0.0"
     classnames: "npm:~2.3.2"
@@ -7186,26 +7152,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ioredis@npm:^4.14.1":
-  version: 4.28.5
-  resolution: "ioredis@npm:4.28.5"
-  dependencies:
-    cluster-key-slot: "npm:^1.1.0"
-    debug: "npm:^4.3.1"
-    denque: "npm:^1.1.0"
-    lodash.defaults: "npm:^4.2.0"
-    lodash.flatten: "npm:^4.4.0"
-    lodash.isarguments: "npm:^3.1.0"
-    p-map: "npm:^2.1.0"
-    redis-commands: "npm:1.7.0"
-    redis-errors: "npm:^1.2.0"
-    redis-parser: "npm:^3.0.0"
-    standard-as-callback: "npm:^2.1.0"
-  checksum: 6fd12957d2906f83d8aa662ba78d084df16dc7c1a0e6e18c512302ac94339dcd5936d2e7cd6f89e9e7b511e3cf96617ca2fdea63aa4679bfdf48aa2be441ad76
-  languageName: node
-  linkType: hard
-
-"ioredis@npm:~5.3.2":
+"ioredis@npm:^5.2.2, ioredis@npm:~5.3.2":
   version: 5.3.2
   resolution: "ioredis@npm:5.3.2"
   dependencies:
@@ -8283,13 +8230,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lodash.flatten@npm:^4.4.0":
-  version: 4.4.0
-  resolution: "lodash.flatten@npm:4.4.0"
-  checksum: 97e8f0d6b61fe4723c02ad0c6e67e51784c4a2c48f56ef283483e556ad01594cf9cec9c773e177bbbdbdb5d19e99b09d2487cb6b6e5dc405c2693e93b125bd3a
-  languageName: node
-  linkType: hard
-
 "lodash.flattendeep@npm:^4.4.0":
   version: 4.4.0
   resolution: "lodash.flattendeep@npm:4.4.0"
@@ -8432,16 +8372,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lru-cache@npm:6.0.0, lru-cache@npm:^6.0.0":
-  version: 6.0.0
-  resolution: "lru-cache@npm:6.0.0"
-  dependencies:
-    yallist: "npm:^4.0.0"
-  checksum: cb53e582785c48187d7a188d3379c181b5ca2a9c78d2bce3e7dee36f32761d1c42983da3fe12b55cb74e1779fa94cdc2e5367c028a9b35317184ede0c07a30a9
-  languageName: node
-  linkType: hard
-
-"lru-cache@npm:^10.0.1, lru-cache@npm:^9.1.1 || ^10.0.0":
+"lru-cache@npm:^10.0.1, lru-cache@npm:^10.1.0, lru-cache@npm:^9.1.1 || ^10.0.0":
   version: 10.1.0
   resolution: "lru-cache@npm:10.1.0"
   checksum: 778bc8b2626daccd75f24c4b4d10632496e21ba064b126f526c626fbdbc5b28c472013fccd45d7646b9e1ef052444824854aed617b59cd570d01a8b7d651fc1e
@@ -8464,6 +8395,15 @@ __metadata:
   dependencies:
     yallist: "npm:^3.0.2"
   checksum: 89b2ef2ef45f543011e38737b8a8622a2f8998cddf0e5437174ef8f1f70a8b9d14a918ab3e232cb3ba343b7abddffa667f0b59075b2b80e6b4d63c3de6127482
+  languageName: node
+  linkType: hard
+
+"lru-cache@npm:^6.0.0":
+  version: 6.0.0
+  resolution: "lru-cache@npm:6.0.0"
+  dependencies:
+    yallist: "npm:^4.0.0"
+  checksum: cb53e582785c48187d7a188d3379c181b5ca2a9c78d2bce3e7dee36f32761d1c42983da3fe12b55cb74e1779fa94cdc2e5367c028a9b35317184ede0c07a30a9
   languageName: node
   linkType: hard
 
@@ -9707,13 +9647,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"p-map@npm:^2.1.0":
-  version: 2.1.0
-  resolution: "p-map@npm:2.1.0"
-  checksum: 735dae87badd4737a2dd582b6d8f93e49a1b79eabbc9815a4d63a528d5e3523e978e127a21d784cccb637010e32103a40d2aaa3ab23ae60250b1a820ca752043
-  languageName: node
-  linkType: hard
-
 "p-map@npm:^3.0.0":
   version: 3.0.0
   resolution: "p-map@npm:3.0.0"
@@ -10381,6 +10314,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"promise-coalesce@npm:^1.1.2":
+  version: 1.1.2
+  resolution: "promise-coalesce@npm:1.1.2"
+  checksum: 9bcdc954a645b30ccb094ae76e36212af2ee7ecc6b9fc67634d7d4f490d082c1efc39590737d957a32f6df93e7c5f51ca232549095e9e2d7291c0482d1bb1557
+  languageName: node
+  linkType: hard
+
 "promise-retry@npm:^2.0.1":
   version: 2.0.1
   resolution: "promise-retry@npm:2.0.1"
@@ -10650,7 +10590,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"redis-commands@npm:1.7.0, redis-commands@npm:^1.7.0":
+"redis-commands@npm:^1.7.0":
   version: 1.7.0
   resolution: "redis-commands@npm:1.7.0"
   checksum: c78b46d8d6e811f422961878538c57048a451ab56760d3f1657a7c8f29aaae42cc23890f75655556a59ec67611022e18cb443d2976e6c55036934bfe783aa60e
