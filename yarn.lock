@@ -1442,12 +1442,21 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@sinonjs/fake-timers@npm:^10.0.2, @sinonjs/fake-timers@npm:^10.3.0":
+"@sinonjs/fake-timers@npm:^10.0.2":
   version: 10.3.0
   resolution: "@sinonjs/fake-timers@npm:10.3.0"
   dependencies:
     "@sinonjs/commons": "npm:^3.0.0"
   checksum: 2e2fb6cc57f227912814085b7b01fede050cd4746ea8d49a1e44d5a0e56a804663b0340ae2f11af7559ea9bf4d087a11f2f646197a660ea3cb04e19efc04aa63
+  languageName: node
+  linkType: hard
+
+"@sinonjs/fake-timers@npm:^11.2.2":
+  version: 11.2.2
+  resolution: "@sinonjs/fake-timers@npm:11.2.2"
+  dependencies:
+    "@sinonjs/commons": "npm:^3.0.0"
+  checksum: a4218efa6fdafda622d02d4c0a6ab7df3641cb038bb0b14f0a3ee56f50c95aab4f1ab2d7798ce928b40c6fc1839465a558c9393a77e4dca879e1b2f8d60d8136
   languageName: node
   linkType: hard
 
@@ -6190,7 +6199,7 @@ __metadata:
     react-dom: "npm:~16.13.1"
     s3rver: "npm:~3.7.1"
     sbd: "npm:~1.0.19"
-    sinon: "npm:~15.2.0"
+    sinon: "npm:~17.0.1"
     social-text-tokenizer: "npm:~3.0.0"
     socket.io: "npm:~2.4.1"
     socket.io-client: "npm:~2.3.1"
@@ -6200,7 +6209,7 @@ __metadata:
     superagent: "npm:~8.1.2"
     ts-json-check: "npm:~2.0.3"
     typescript: "npm:~5.3.3"
-    unexpected: "npm:~13.1.0"
+    unexpected: "npm:~13.2.1"
     unexpected-date: "npm:~2.0.0"
     unexpected-map: "npm:~3.1.0"
     unexpected-moment: "npm:~3.3.0"
@@ -9002,7 +9011,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"nise@npm:^5.1.4":
+"nise@npm:^5.1.5":
   version: 5.1.5
   resolution: "nise@npm:5.1.5"
   dependencies:
@@ -11115,17 +11124,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"sinon@npm:~15.2.0":
-  version: 15.2.0
-  resolution: "sinon@npm:15.2.0"
+"sinon@npm:~17.0.1":
+  version: 17.0.1
+  resolution: "sinon@npm:17.0.1"
   dependencies:
     "@sinonjs/commons": "npm:^3.0.0"
-    "@sinonjs/fake-timers": "npm:^10.3.0"
+    "@sinonjs/fake-timers": "npm:^11.2.2"
     "@sinonjs/samsam": "npm:^8.0.0"
     diff: "npm:^5.1.0"
-    nise: "npm:^5.1.4"
+    nise: "npm:^5.1.5"
     supports-color: "npm:^7.2.0"
-  checksum: c5eff6020f3cd7ffaed536fa3cd57428555e30d0f0892414304c7531e7355574d7162e62725b10d0f6bccf6f6e9fd33ecc5a8624080c2b6029a324e209df0f2b
+  checksum: 63e678bd58a959ebf69ddadb5410e9c31bd161b848b9dbec5f34f7e1485a8681810cd27d37bde072b68915b41b498f30bb5fb890c73e7a51dc281d1b1d573cfb
   languageName: node
   linkType: hard
 
@@ -12282,9 +12291,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"unexpected@npm:~13.1.0":
-  version: 13.1.0
-  resolution: "unexpected@npm:13.1.0"
+"unexpected@npm:~13.2.1":
+  version: 13.2.1
+  resolution: "unexpected@npm:13.2.1"
   dependencies:
     array-changes: "npm:3.0.1"
     array-changes-async: "npm:3.0.1"
@@ -12294,7 +12303,7 @@ __metadata:
     magicpen: "npm:^6.2.4"
     ukkonen: "npm:^2.1.0"
     unexpected-bluebird: "npm:2.9.34-longstack2"
-  checksum: ac2184017a43d6bfe0f232e0ce322bfa9d24b2d2c8f9a2f835e9f423998628ec11d267af7056b8a0df07456e5a446601bbc1b47e04f0b181b88436eaf9227428
+  checksum: 3cb3889db4486deef0412f9ff008e401246a2abbd4ded017d6ede99bb61c87d8b73619d85f55014791fe7477b227b60824302daa8efd8f66d8e3e313e725c752
   languageName: node
   linkType: hard
 
