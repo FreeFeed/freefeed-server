@@ -2042,6 +2042,26 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@socket.io/component-emitter@npm:~3.1.0":
+  version: 3.1.0
+  resolution: "@socket.io/component-emitter@npm:3.1.0"
+  checksum: b838ccccf74c36fa7d3ed89a7efb5858cba1a84db4d08250c2fc44d8235140f10d31875bde71517d8503cb3fb08fcd34d3b7a3d0d89058ca3f74f7c816f0fb9c
+  languageName: node
+  linkType: hard
+
+"@socket.io/redis-adapter@npm:~8.2.1":
+  version: 8.2.1
+  resolution: "@socket.io/redis-adapter@npm:8.2.1"
+  dependencies:
+    debug: "npm:~4.3.1"
+    notepack.io: "npm:~3.0.1"
+    uid2: "npm:1.0.0"
+  peerDependencies:
+    socket.io-adapter: ^2.4.0
+  checksum: d256411b629929fd509f2a36d2b883920093ba00de4e643733c6627faa7912b8fc4c709392e7833fb2f976e5c1f37f355d1564d692ff77a6f612a94f4cea466b
+  languageName: node
+  linkType: hard
+
 "@tirke/node-cache-manager-ioredis@npm:~3.4.0":
   version: 3.4.0
   resolution: "@tirke/node-cache-manager-ioredis@npm:3.4.0"
@@ -2117,6 +2137,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/cookie@npm:^0.4.1":
+  version: 0.4.1
+  resolution: "@types/cookie@npm:0.4.1"
+  checksum: f96afe12bd51be1ec61410b0641243d93fa3a494702407c787a4c872b5c8bcd39b224471452055e44a9ce42af1a636e87d161994226eaf4c2be9c30f60418409
+  languageName: node
+  linkType: hard
+
 "@types/cookies@npm:*":
   version: 0.7.10
   resolution: "@types/cookies@npm:0.7.10"
@@ -2126,6 +2153,15 @@ __metadata:
     "@types/keygrip": "npm:*"
     "@types/node": "npm:*"
   checksum: 09f245abbcd9e348ef8a5747a1a7210b21412124cf69add28313f0ac34ad73bc23c03ea8b83aa1708dd1a8e1bbc65bfc167eb9ae8324ecbedc3ec168e2fda2bf
+  languageName: node
+  linkType: hard
+
+"@types/cors@npm:^2.8.12":
+  version: 2.8.17
+  resolution: "@types/cors@npm:2.8.17"
+  dependencies:
+    "@types/node": "npm:*"
+  checksum: 457364c28c89f3d9ed34800e1de5c6eaaf344d1bb39af122f013322a50bc606eb2aa6f63de4e41a7a08ba7ef454473926c94a830636723da45bf786df032696d
   languageName: node
   linkType: hard
 
@@ -2402,7 +2438,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:*, @types/node@npm:~20.10.5":
+"@types/node@npm:*, @types/node@npm:>=10.0.0, @types/node@npm:~20.10.5":
   version: 20.10.5
   resolution: "@types/node@npm:20.10.5"
   dependencies:
@@ -3226,7 +3262,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"base64id@npm:2.0.0":
+"base64id@npm:2.0.0, base64id@npm:~2.0.0":
   version: 2.0.0
   resolution: "base64id@npm:2.0.0"
   checksum: 6919efd237ed44b9988cbfc33eca6f173a10e810ce50292b271a1a421aac7748ef232a64d1e6032b08f19aae48dce6ee8f66c5ae2c9e5066c82b884861d4d453
@@ -4057,13 +4093,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"component-emitter@npm:1.2.1":
-  version: 1.2.1
-  resolution: "component-emitter@npm:1.2.1"
-  checksum: 6c27bd7bba028776464cee6c1686c8e02cb9a576a11df93f1fc211ae3eb2de234ae90952d0b7fb3acc9c92c8baa389fa7389681b2e8689d2ca463e94f3ad30b2
-  languageName: node
-  linkType: hard
-
 "component-emitter@npm:^1.3.0, component-emitter@npm:~1.3.0":
   version: 1.3.1
   resolution: "component-emitter@npm:1.3.1"
@@ -4208,6 +4237,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"cors@npm:~2.8.5":
+  version: 2.8.5
+  resolution: "cors@npm:2.8.5"
+  dependencies:
+    object-assign: "npm:^4"
+    vary: "npm:^1"
+  checksum: 373702b7999409922da80de4a61938aabba6929aea5b6fd9096fefb9e8342f626c0ebd7507b0e8b0b311380744cc985f27edebc0a26e0ddb784b54e1085de761
+  languageName: node
+  linkType: hard
+
 "cross-env@npm:~7.0.3":
   version: 7.0.3
   resolution: "cross-env@npm:7.0.3"
@@ -4313,7 +4352,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"debug@npm:*, debug@npm:4, debug@npm:4.3.4, debug@npm:^4.1.0, debug@npm:^4.1.1, debug@npm:^4.3.1, debug@npm:^4.3.2, debug@npm:^4.3.4, debug@npm:~4.3.4":
+"debug@npm:*, debug@npm:4, debug@npm:4.3.4, debug@npm:^4.1.0, debug@npm:^4.1.1, debug@npm:^4.3.1, debug@npm:^4.3.2, debug@npm:^4.3.4, debug@npm:~4.3.1, debug@npm:~4.3.2, debug@npm:~4.3.4":
   version: 4.3.4
   resolution: "debug@npm:4.3.4"
   dependencies:
@@ -4349,15 +4388,6 @@ __metadata:
   dependencies:
     ms: "npm:2.0.0"
   checksum: 5bff34a352d7b2eaa31886eeaf2ee534b5461ec0548315b2f9f80bd1d2533cab7df1fa52e130ce27bc31c3945fbffb0fc72baacdceb274b95ce853db89254ea4
-  languageName: node
-  linkType: hard
-
-"debug@npm:~4.1.0":
-  version: 4.1.1
-  resolution: "debug@npm:4.1.1"
-  dependencies:
-    ms: "npm:^2.1.1"
-  checksum: 399e98c779ba4e71537497f10caf6390646b69330ff8a455427acce04f1ce8d8cd018e1804fdcca772177666fdcd888dd3672bb8f9986c1d785a6c2b9805f370
   languageName: node
   linkType: hard
 
@@ -4564,13 +4594,6 @@ __metadata:
   version: 1.0.0
   resolution: "delegates@npm:1.0.0"
   checksum: ba05874b91148e1db4bf254750c042bf2215febd23a6d3cda2e64896aef79745fbd4b9996488bd3cafb39ce19dbce0fd6e3b6665275638befffe1c9b312b91b5
-  languageName: node
-  linkType: hard
-
-"denque@npm:^1.5.0":
-  version: 1.5.1
-  resolution: "denque@npm:1.5.1"
-  checksum: 9e6fc1a63e1c9ded38325290302fef40e5ad28471ad8c66d68eaea623ef847bd25fc75a7c3f47396206dc967922615999066470a364e1786f2758d61337872b7
   languageName: node
   linkType: hard
 
@@ -4978,25 +5001,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"engine.io-client@npm:~3.5.0":
-  version: 3.5.3
-  resolution: "engine.io-client@npm:3.5.3"
-  dependencies:
-    component-emitter: "npm:~1.3.0"
-    component-inherit: "npm:0.0.3"
-    debug: "npm:~3.1.0"
-    engine.io-parser: "npm:~2.2.0"
-    has-cors: "npm:1.1.0"
-    indexof: "npm:0.0.1"
-    parseqs: "npm:0.0.6"
-    parseuri: "npm:0.0.6"
-    ws: "npm:~7.4.2"
-    xmlhttprequest-ssl: "npm:~1.6.2"
-    yeast: "npm:0.1.2"
-  checksum: cc7f95567076cf4ecd9f81961628eddca22e97a7091f047a0a598ffac163e6aba0c1b35ded6b81b6781c43348de5ace71835748adc8ea62ac53f1191312c366d
-  languageName: node
-  linkType: hard
-
 "engine.io-parser@npm:~2.2.0":
   version: 2.2.1
   resolution: "engine.io-parser@npm:2.2.1"
@@ -5010,17 +5014,28 @@ __metadata:
   languageName: node
   linkType: hard
 
-"engine.io@npm:~3.5.0":
-  version: 3.5.0
-  resolution: "engine.io@npm:3.5.0"
+"engine.io-parser@npm:~5.2.1":
+  version: 5.2.1
+  resolution: "engine.io-parser@npm:5.2.1"
+  checksum: 9cf3beaaa7e4062c53f23ab85baadf54295c15938e38f439a4c452552e8d0617d2fc1dbe17f2bee41ddea82bf3decd1f2203bfdb0a425d67bdbdeaa2a9b0bc33
+  languageName: node
+  linkType: hard
+
+"engine.io@npm:~6.5.2":
+  version: 6.5.4
+  resolution: "engine.io@npm:6.5.4"
   dependencies:
+    "@types/cookie": "npm:^0.4.1"
+    "@types/cors": "npm:^2.8.12"
+    "@types/node": "npm:>=10.0.0"
     accepts: "npm:~1.3.4"
     base64id: "npm:2.0.0"
     cookie: "npm:~0.4.1"
-    debug: "npm:~4.1.0"
-    engine.io-parser: "npm:~2.2.0"
-    ws: "npm:~7.4.2"
-  checksum: 92db59d7d07d80051d2dd7e8c4e01f26a15de4e6925e4208929edad481010c2af26556a185f53d5a364d27fcacc3ba919f07c82c8f98fc9e25e614eca51ef55d
+    cors: "npm:~2.8.5"
+    debug: "npm:~4.3.1"
+    engine.io-parser: "npm:~5.2.1"
+    ws: "npm:~8.11.0"
+  checksum: 1e90c46d682badf0c0a13c671a78ce3f6590f7e6b74b081804eb6e5103be11806015e3cde7eb7c1657c4866edcf069ea40ef1c66386a6befe30f0f1f30d3b2f2
   languageName: node
   linkType: hard
 
@@ -6144,6 +6159,7 @@ __metadata:
     "@babel/core": "npm:~7.23.6"
     "@koa/cors": "npm:~5.0.0"
     "@koa/router": "npm:~12.0.1"
+    "@socket.io/redis-adapter": "npm:~8.2.1"
     "@tirke/node-cache-manager-ioredis": "npm:~3.4.0"
     "@types/bytes": "npm:~3.1.4"
     "@types/cache-manager": "npm:~4.0.6"
@@ -6257,9 +6273,8 @@ __metadata:
     sbd: "npm:~1.0.19"
     sinon: "npm:~17.0.1"
     social-text-tokenizer: "npm:~3.0.0"
-    socket.io: "npm:~2.4.1"
+    socket.io: "npm:~4.7.2"
     socket.io-client: "npm:~2.3.1"
-    socket.io-redis: "npm:~5.4.0"
     source-map-support: "npm:~0.5.21"
     stream-meter: "npm:~1.0.4"
     superagent: "npm:~8.1.2"
@@ -9300,10 +9315,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"notepack.io@npm:~2.2.0":
-  version: 2.2.0
-  resolution: "notepack.io@npm:2.2.0"
-  checksum: 395e9821c06ebeac8f677e416e186e09e7bb64ad5e7578634eb21842a50d5b1e14ca62816da7431e463fcd5be9c6bfb0c9a6593f6ef92a8861e293025509e309
+"notepack.io@npm:~3.0.1":
+  version: 3.0.1
+  resolution: "notepack.io@npm:3.0.1"
+  checksum: 21ea9e2cfc2ac4a187c684787d3514ea9a770a06d3b4e54893f61680f07979d5ae5d3320319b8f3471ff07aaa52956e27f80782dec9ff99f4e9096c60f2998dc
   languageName: node
   linkType: hard
 
@@ -9430,7 +9445,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"object-assign@npm:^4.0.1, object-assign@npm:^4.1.0, object-assign@npm:^4.1.1":
+"object-assign@npm:^4, object-assign@npm:^4.0.1, object-assign@npm:^4.1.0, object-assign@npm:^4.1.1":
   version: 4.1.1
   resolution: "object-assign@npm:4.1.1"
   checksum: 1f4df9945120325d041ccf7b86f31e8bcc14e73d29171e37a7903050e96b81323784ec59f93f102ec635bcf6fa8034ba3ea0a8c7e69fa202b87ae3b6cec5a414
@@ -10640,13 +10655,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"redis-commands@npm:^1.7.0":
-  version: 1.7.0
-  resolution: "redis-commands@npm:1.7.0"
-  checksum: c78b46d8d6e811f422961878538c57048a451ab56760d3f1657a7c8f29aaae42cc23890f75655556a59ec67611022e18cb443d2976e6c55036934bfe783aa60e
-  languageName: node
-  linkType: hard
-
 "redis-errors@npm:^1.0.0, redis-errors@npm:^1.2.0":
   version: 1.2.0
   resolution: "redis-errors@npm:1.2.0"
@@ -10660,18 +10668,6 @@ __metadata:
   dependencies:
     redis-errors: "npm:^1.0.0"
   checksum: ee16ac4c7b2a60b1f42a2cdaee22b005bd4453eb2d0588b8a4939718997ae269da717434da5d570fe0b05030466eeb3f902a58cf2e8e1ca058bf6c9c596f632f
-  languageName: node
-  linkType: hard
-
-"redis@npm:^3.0.0":
-  version: 3.1.2
-  resolution: "redis@npm:3.1.2"
-  dependencies:
-    denque: "npm:^1.5.0"
-    redis-commands: "npm:^1.7.0"
-    redis-errors: "npm:^1.2.0"
-    redis-parser: "npm:^3.0.0"
-  checksum: 452d4ed65948b101e379c1abcce7682619382c90929a6611baae5f7f1d38134ce20ad65adfbaa569b735274b49db14a2ebb622800e0b45a4d1559e2133c7aabe
   languageName: node
   linkType: hard
 
@@ -11234,29 +11230,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"socket.io-adapter@npm:~1.1.0":
-  version: 1.1.2
-  resolution: "socket.io-adapter@npm:1.1.2"
-  checksum: 73ec8a91ebb30d4c0f6be8d3c96519e8fce8337b9b7aa2c8f4534e9af941e6f06bad5744d611adf2c2e28d29020910e0c7f333e22f83f9f0334ae36b5e6c7925
-  languageName: node
-  linkType: hard
-
-"socket.io-client@npm:2.4.0":
-  version: 2.4.0
-  resolution: "socket.io-client@npm:2.4.0"
+"socket.io-adapter@npm:~2.5.2":
+  version: 2.5.2
+  resolution: "socket.io-adapter@npm:2.5.2"
   dependencies:
-    backo2: "npm:1.0.2"
-    component-bind: "npm:1.0.0"
-    component-emitter: "npm:~1.3.0"
-    debug: "npm:~3.1.0"
-    engine.io-client: "npm:~3.5.0"
-    has-binary2: "npm:~1.0.2"
-    indexof: "npm:0.0.1"
-    parseqs: "npm:0.0.6"
-    parseuri: "npm:0.0.6"
-    socket.io-parser: "npm:~3.3.0"
-    to-array: "npm:0.1.4"
-  checksum: 3ddacdbaddf98ee7bceaf51faed06409ba6183ff6bbc3f58276754627a55bd011f3a89928c06cb6d332c24b2f22c0bde515f6356ae9350e0c1434f18f2d814ac
+    ws: "npm:~8.11.0"
+  checksum: 4272b643f58dd7d64d67bf56420a48046a262701427579e72a76880f15612617036a6c31ad7e4314cf477520aa4bcaf5485043223a75d9e0b653d7c5cc22a328
   languageName: node
   linkType: hard
 
@@ -11290,41 +11269,28 @@ __metadata:
   languageName: node
   linkType: hard
 
-"socket.io-parser@npm:~3.4.0":
-  version: 3.4.3
-  resolution: "socket.io-parser@npm:3.4.3"
+"socket.io-parser@npm:~4.2.4":
+  version: 4.2.4
+  resolution: "socket.io-parser@npm:4.2.4"
   dependencies:
-    component-emitter: "npm:1.2.1"
-    debug: "npm:~4.1.0"
-    isarray: "npm:2.0.1"
-  checksum: 18084c24ee7855e4dd6146892aa367652887192270740272012810cc0006b90ec3f3a37632f584082ced5e534a9d3dc0398a259234131d24e853b5027eefa7f8
+    "@socket.io/component-emitter": "npm:~3.1.0"
+    debug: "npm:~4.3.1"
+  checksum: 9383b30358fde4a801ea4ec5e6860915c0389a091321f1c1f41506618b5cf7cd685d0a31c587467a0c4ee99ef98c2b99fb87911f9dfb329716c43b587f29ca48
   languageName: node
   linkType: hard
 
-"socket.io-redis@npm:~5.4.0":
-  version: 5.4.0
-  resolution: "socket.io-redis@npm:5.4.0"
+"socket.io@npm:~4.7.2":
+  version: 4.7.2
+  resolution: "socket.io@npm:4.7.2"
   dependencies:
-    debug: "npm:~4.1.0"
-    notepack.io: "npm:~2.2.0"
-    redis: "npm:^3.0.0"
-    socket.io-adapter: "npm:~1.1.0"
-    uid2: "npm:0.0.3"
-  checksum: 3a2433e58db29758b653812c7960e406acd10b6dc94103db263d1fd6eb6ff58677098f63a3b58b8a4c1ebb82d77e533724dd04ffbc3a7d3f1897a1fd72118d04
-  languageName: node
-  linkType: hard
-
-"socket.io@npm:~2.4.1":
-  version: 2.4.1
-  resolution: "socket.io@npm:2.4.1"
-  dependencies:
-    debug: "npm:~4.1.0"
-    engine.io: "npm:~3.5.0"
-    has-binary2: "npm:~1.0.2"
-    socket.io-adapter: "npm:~1.1.0"
-    socket.io-client: "npm:2.4.0"
-    socket.io-parser: "npm:~3.4.0"
-  checksum: c49ec2482e90ebee80a4bb87cf199de762e54545cc2c70dda1dd416c1517d65dcf7cf34155ec914a42040634d47b60350c55235c7068f480b35af76e427c4e8b
+    accepts: "npm:~1.3.4"
+    base64id: "npm:~2.0.0"
+    cors: "npm:~2.8.5"
+    debug: "npm:~4.3.2"
+    engine.io: "npm:~6.5.2"
+    socket.io-adapter: "npm:~2.5.2"
+    socket.io-parser: "npm:~4.2.4"
+  checksum: ce43f44e21513d8fcdc1a5e9bb7de4f28cea34536a51d52612ebcedb8634432cf5587976163a0d5fc361d1fe926abce65c5aee17c35dace3766420c2a264953c
   languageName: node
   linkType: hard
 
@@ -12247,10 +12213,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"uid2@npm:0.0.3":
-  version: 0.0.3
-  resolution: "uid2@npm:0.0.3"
-  checksum: b4b1d5b74ec21ccad48f4c91b2e91551020d4d987d3973dbab396537c798b1aba9f2bd64f2347a7dfd70560c19c9df92a163c9375f6dae9aeae9f2903b7f5410
+"uid2@npm:1.0.0":
+  version: 1.0.0
+  resolution: "uid2@npm:1.0.0"
+  checksum: 775721fc4116ab7f42abf47e329ea747106e1c1685b77771ba7c2888a14854d84f767846d4ad899586a633b2e813fcf253b1bed5708b5c1e3f6fe711d78a75f2
   languageName: node
   linkType: hard
 
@@ -12555,7 +12521,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vary@npm:^1.1.2":
+"vary@npm:^1, vary@npm:^1.1.2":
   version: 1.1.2
   resolution: "vary@npm:1.1.2"
   checksum: f15d588d79f3675135ba783c91a4083dcd290a2a5be9fcb6514220a1634e23df116847b1cc51f66bfb0644cf9353b2abb7815ae499bab06e46dd33c1a6bf1f4f
@@ -12787,9 +12753,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ws@npm:~7.4.2":
-  version: 7.4.6
-  resolution: "ws@npm:7.4.6"
+"ws@npm:~8.11.0":
+  version: 8.11.0
+  resolution: "ws@npm:8.11.0"
   peerDependencies:
     bufferutil: ^4.0.1
     utf-8-validate: ^5.0.2
@@ -12798,7 +12764,7 @@ __metadata:
       optional: true
     utf-8-validate:
       optional: true
-  checksum: 4b44b59bbc0549c852fb2f0cdb48e40e122a1b6078aeed3d65557cbeb7d37dda7a4f0027afba2e6a7a695de17701226d02b23bd15c97b0837808c16345c62f8e
+  checksum: b672b312f357afba8568b9dbb9e08b9e8a20845659b35fa6b340dc848efe371379f5e22bb1dc89c4b2940d5e2dc52dd1de85dde41776875fce115a448f94754f
   languageName: node
   linkType: hard
 
@@ -12822,13 +12788,6 @@ __metadata:
   version: 1.5.5
   resolution: "xmlhttprequest-ssl@npm:1.5.5"
   checksum: abbdfd737a005f5dc032cafcc08897d951c54cc7aedd5990edbed985e2ea7c52b21cac8eef9e31d9e8cd047b05d891f2ed05fe70c17f7503db6484c71e85d03e
-  languageName: node
-  linkType: hard
-
-"xmlhttprequest-ssl@npm:~1.6.2":
-  version: 1.6.3
-  resolution: "xmlhttprequest-ssl@npm:1.6.3"
-  checksum: aa0b71d855866eddf71f52f7b512d3696bb15cf539dcf957268eb1265e6cd836fa7cdceefa55554a9cc4928882cd3399a08f1dbc919080b068b2d5ca45986333
   languageName: node
   linkType: hard
 

@@ -1,11 +1,6 @@
-/* eslint babel/semi: "error" */
-import util from 'util';
-
 import Redis from 'ioredis';
 import {
   cloneDeep,
-  compact,
-  flatten,
   intersection,
   isArray,
   isFunction,
@@ -17,7 +12,7 @@ import {
   uniqBy,
 } from 'lodash';
 import IoServer from 'socket.io';
-import redis_adapter from 'socket.io-redis';
+import { createAdapter } from '@socket.io/redis-adapter';
 import createDebug from 'debug';
 import Raven from 'raven';
 import config from 'config';
@@ -37,6 +32,7 @@ import { serializeCommentFull } from './serializers/v2/comment';
 import { serializeUsersByIds } from './serializers/v2/user';
 import { serializeEvents } from './serializers/v2/event';
 import { API_VERSION_ACTUAL, API_VERSION_MINIMAL } from './api-versions';
+import { connect as redisConnection } from './setup/database';
 /** @typedef {import('./support/types').UUID} UUID */
 
 const sentryIsEnabled = 'sentryDsn' in config;
@@ -49,24 +45,14 @@ export default class PubsubListener {
   constructor(server, app) {
     this.app = app;
 
-    const pubClient = new Redis({
-      host: config.redis.host,
-      port: config.redis.port,
-      db: config.database,
-    });
-    const subClient = new Redis({
-      host: config.redis.host,
-      port: config.redis.port,
-      db: config.database,
-    });
+    const pubClient = redisConnection();
+    const subClient = pubClient.duplicate();
 
-    this.io = IoServer(server);
-    this.io.adapter(redis_adapter({ pubClient, subClient }));
-
-    // allow any CORS Origin
-    this.io.origins((_, callback) => {
-      callback(null, true);
+    this.io = IoServer(server, {
+      allowEIO3: true,
+      cors: { origin: '*' },
     });
+    this.io.adapter(createAdapter(pubClient, subClient));
 
     this.io.on('error', (err) => {
       debug('socket.io error', err);
@@ -122,9 +108,6 @@ export default class PubsubListener {
   }
 
   onConnect = (socket) => {
-    socket.joinAsync = util.promisify(socket.join).bind(socket);
-    socket.leaveAsync = util.promisify(socket.leave).bind(socket);
-
     socket.on('error', (e) => {
       debug(`[socket.id=${socket.id}] error`, e);
     });
@@ -190,16 +173,16 @@ export default class PubsubListener {
       });
 
       const channelLists = await Promise.all(channelListsPromises);
-      const roomsToSubscribe = flatten(channelLists);
-      await socket.joinAsync(roomsToSubscribe);
-      debug(`${debugPrefix}: successfully subscribed to ${roomsToSubscribe.join(', ')}`);
+      const roomsToSubscribe = channelLists.flat();
+      socket.join(roomsToSubscribe);
+      debug(`${debugPrefix}: successfully subscribed to ${JSON.stringify(roomsToSubscribe)}`);
 
       const rooms = buildGroupedListOfSubscriptions(socket);
 
       return { rooms };
     });
 
-    onSocketEvent(socket, 'unsubscribe', async (data, debugPrefix) => {
+    onSocketEvent(socket, 'unsubscribe', (data, debugPrefix) => {
       if (!isPlainObject(data)) {
         throw new EventHandlingError('request without data');
       }
@@ -219,12 +202,11 @@ export default class PubsubListener {
         roomsToLeave.push(...channelIds.filter(Boolean).map((id) => `${channelType}:${id}`));
       }
 
-      await Promise.all(
-        roomsToLeave.map(async (room) => {
-          await socket.leaveAsync(room);
-          debug(`${debugPrefix}: successfully unsubscribed from ${room}`);
-        }),
-      );
+      for (const room of roomsToLeave) {
+        socket.leave(room);
+      }
+
+      debug(`${debugPrefix}: successfully unsubscribed from ${JSON.stringify(roomsToLeave)}`);
 
       const rooms = buildGroupedListOfSubscriptions(socket);
       return { rooms };
@@ -287,8 +269,8 @@ export default class PubsubListener {
       return;
     }
 
-    let destSockets = Object.values(this.io.sockets.connected).filter((socket) =>
-      rooms.some((r) => r in socket.rooms),
+    let destSockets = [...this.io.sockets.sockets.values()].filter((socket) =>
+      rooms.some((r) => socket.rooms.has(r)),
     );
 
     if (destSockets.length === 0) {
@@ -307,11 +289,9 @@ export default class PubsubListener {
           // receive a 'post:new' event.
 
           const newUserIds = List.intersection(newUsers, userIds).items;
-          const newUserRooms = flatten(
-            destSockets
-              .filter((s) => newUserIds.includes(s.userId))
-              .map((s) => Object.keys(s.rooms)),
-          );
+          const newUserRooms = destSockets
+            .filter((s) => newUserIds.includes(s.userId))
+            .flatMap((s) => [...s.rooms]);
 
           await this.broadcastMessage(
             intersection(newUserRooms, rooms),
@@ -330,11 +310,9 @@ export default class PubsubListener {
           // receive a 'post:destroy' event.
 
           const removedUserIds = List.intersection(removedUsers, userIds).items;
-          const removedUserRooms = flatten(
-            destSockets
-              .filter((s) => removedUserIds.includes(s.userId))
-              .map((s) => Object.keys(s.rooms)),
-          );
+          const removedUserRooms = destSockets
+            .filter((s) => removedUserIds.includes(s.userId))
+            .flatMap((s) => [...s.rooms]);
 
           await this.broadcastMessage(
             intersection(removedUserRooms, rooms),
@@ -403,7 +381,7 @@ export default class PubsubListener {
           }
         }
 
-        const realtimeChannels = intersection(rooms, Object.values(socket.rooms));
+        const realtimeChannels = intersection(rooms, [...socket.rooms]);
 
         await emitter(socket, type, { ...data, realtimeChannels });
       }),
@@ -794,7 +772,7 @@ export default class PubsubListener {
 
   reAuthorizeSockets() {
     return Promise.all(
-      Object.values(this.io.sockets.connected)
+      [...this.io.sockets.sockets.values()]
         .filter((socket) => !!socket.authToken)
         .map(async (socket) => {
           let userId = null;
@@ -851,38 +829,36 @@ export async function getRoomsOfPost(post) {
     'id',
   );
 
-  const rooms = compact(
-    flatten(
-      allFeeds.map((t) => {
-        if (t.isRiverOfNews()) {
-          const inNarrowMode = riverOfNewsFeedsByModes[HOMEFEED_MODE_FRIENDS_ONLY].some(
-            (f) => f.id === t.id,
-          );
-          const inClassicMode = riverOfNewsFeedsByModes[HOMEFEED_MODE_CLASSIC].some(
-            (f) => f.id === t.id,
-          );
-          return t.isInherent
-            ? [
-                `timeline:${t.id}?homefeed-mode=${HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY}`,
-                inClassicMode && `timeline:${t.id}`, // Default mode for inherent feed
-                inClassicMode && `timeline:${t.id}?homefeed-mode=${HOMEFEED_MODE_CLASSIC}`,
-                inNarrowMode && `timeline:${t.id}?homefeed-mode=${HOMEFEED_MODE_FRIENDS_ONLY}`,
-              ]
-            : [
-                inNarrowMode && `timeline:${t.id}`, // The only available mode for auxiliary feed
-              ];
-        }
+  const rooms = allFeeds
+    .flatMap((t) => {
+      if (t.isRiverOfNews()) {
+        const inNarrowMode = riverOfNewsFeedsByModes[HOMEFEED_MODE_FRIENDS_ONLY].some(
+          (f) => f.id === t.id,
+        );
+        const inClassicMode = riverOfNewsFeedsByModes[HOMEFEED_MODE_CLASSIC].some(
+          (f) => f.id === t.id,
+        );
+        return t.isInherent
+          ? [
+              `timeline:${t.id}?homefeed-mode=${HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY}`,
+              inClassicMode && `timeline:${t.id}`, // Default mode for inherent feed
+              inClassicMode && `timeline:${t.id}?homefeed-mode=${HOMEFEED_MODE_CLASSIC}`,
+              inNarrowMode && `timeline:${t.id}?homefeed-mode=${HOMEFEED_MODE_FRIENDS_ONLY}`,
+            ]
+          : [
+              inNarrowMode && `timeline:${t.id}`, // The only available mode for auxiliary feed
+            ];
+      }
 
-        return `timeline:${t.id}`;
-      }),
-    ),
-  );
+      return `timeline:${t.id}`;
+    })
+    .filter(Boolean);
   rooms.push(`post:${post.id}`);
   return rooms;
 }
 
 function buildGroupedListOfSubscriptions(socket) {
-  return Object.keys(socket.rooms)
+  return [...socket.rooms]
     .map((room) => room.split(':'))
     .filter((pieces) => pieces.length === 2)
     .reduce((result, [channelType, channelId]) => {
