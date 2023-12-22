@@ -1,6 +1,5 @@
 /* eslint-env node, mocha */
 import expect from 'unexpected';
-import { Link } from 'social-text-tokenizer';
 
 import { linkToText, normalizeText } from '../../../../app/support/search/norm';
 
@@ -34,7 +33,7 @@ describe('search:linkToText', () => {
 
   for (const { input, output } of tests) {
     it(`should convert a ${JSON.stringify(input)}`, () => {
-      expect(linkToText(new Link(0, input)), 'to equal', output);
+      expect(linkToText(input), 'to equal', output);
     });
   }
 });
