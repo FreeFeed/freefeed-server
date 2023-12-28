@@ -974,7 +974,7 @@ export async function getCommentLikes(commentId, viewerContext = null) {
 const PromisifiedIO = (host, options, events) => {
   return new Promise((resolve, reject) => {
     try {
-      const client = socketIO(host, options);
+      const client = socketIO.connect(host, options);
 
       client.on('error', reject);
       client.on('connect_error', reject);

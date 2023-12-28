@@ -1,4 +1,5 @@
 import socketIO from 'socket.io-client';
+import socketIOModern from 'socket.io-client-modern';
 
 import { API_VERSION_ACTUAL } from '../../app/api-versions';
 
@@ -22,7 +23,22 @@ export default class Session {
       ...extraOptions,
     };
     return new Promise((resolve, reject) => {
-      const socket = socketIO(`http://localhost:${port}/`, options);
+      const socket = socketIO.connect(`http://localhost:${port}/`, options);
+      socket.on('error', reject);
+      socket.on('connect_error', reject);
+      socket.on('connect', () => resolve(new Session(socket, name)));
+    });
+  }
+
+  static createModern(port, name = '', extraOptions = {}) {
+    const options = {
+      transports: ['websocket'],
+      forceNew: true,
+      query: { apiVersion: API_VERSION_ACTUAL },
+      ...extraOptions,
+    };
+    return new Promise((resolve, reject) => {
+      const socket = socketIOModern(`http://localhost:${port}/`, options);
       socket.on('error', reject);
       socket.on('connect_error', reject);
       socket.on('connect', () => resolve(new Session(socket, name)));
