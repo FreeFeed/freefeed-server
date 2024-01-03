@@ -1,4 +1,4 @@
-import SocketIO from 'socket.io-client';
+import socketIO from 'socket.io-client';
 
 import { API_VERSION_ACTUAL } from '../../app/api-versions';
 import { getSingleton as initApp } from '../../app/app';
@@ -21,7 +21,7 @@ class Session {
       query: { token: userContext.authToken, apiVersion: API_VERSION_ACTUAL },
     };
     return new Promise((resolve, reject) => {
-      const socket = SocketIO.connect(`http://localhost:${port}/`, options);
+      const socket = socketIO.connect(`http://localhost:${port}/`, options);
       socket.on('error', reject);
       socket.on('connect_error', reject);
       socket.on('connect', () => resolve(new Session(socket)));

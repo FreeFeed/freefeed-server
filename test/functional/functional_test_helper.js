@@ -6,7 +6,7 @@ import util from 'util';
 import { fileFrom } from 'node-fetch';
 import request from 'superagent';
 import _, { merge } from 'lodash';
-import SocketIO from 'socket.io-client';
+import socketIO from 'socket.io-client';
 import expect from 'unexpected';
 import Application from 'koa';
 
@@ -974,7 +974,7 @@ export async function getCommentLikes(commentId, viewerContext = null) {
 const PromisifiedIO = (host, options, events) => {
   return new Promise((resolve, reject) => {
     try {
-      const client = SocketIO.connect(host, options);
+      const client = socketIO.connect(host, options);
 
       client.on('error', reject);
       client.on('connect_error', reject);
