@@ -50,7 +50,7 @@ export default class PubsubListener {
 
     this.io = IoServer(server, {
       allowEIO3: true,
-      cors: { origin: true },
+      cors: { origin: true, credentials: true },
     });
     this.io.adapter(createAdapter(pubClient, subClient));
 
