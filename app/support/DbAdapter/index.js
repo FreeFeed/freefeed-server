@@ -1,8 +1,10 @@
 import _ from 'lodash';
 import NodeCache from 'node-cache';
-import cacheManager from 'cache-manager';
-import redisStore from 'cache-manager-ioredis';
+import { ioRedisStore } from '@tirke/node-cache-manager-ioredis';
 import config from 'config';
+import { createCache, memoryStore } from 'cache-manager';
+
+import { connect as redisConnect } from '../../setup/database';
 
 import usersTrait from './users';
 import usersCacheTrait from './users-cache';
@@ -51,14 +53,11 @@ class DbAdapterBase {
 
     const CACHE_TTL = 60 * 60 * 24; // 24 hours
 
-    this.memoryCache = cacheManager.caching({ store: 'memory', max: 5000, ttl: CACHE_TTL });
-    this.cache = cacheManager.caching({
-      store: redisStore,
-      host: config.redis.host,
-      port: config.redis.port,
-      db: config.database,
-      ttl: CACHE_TTL,
+    this.memoryCache = createCache(memoryStore(), {
+      max: 5000,
+      ttl: CACHE_TTL * 1000 /* milliseconds*/,
     });
+    this.cache = createCache(ioRedisStore({ redisInstance: redisConnect() }), { ttl: CACHE_TTL });
 
     this.searchQueriesTimeout = config.performance.searchQueriesTimeout;
     this._pgVersion = null;

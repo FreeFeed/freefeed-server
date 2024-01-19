@@ -128,7 +128,7 @@ describe(`User's 'gone' status`, () => {
       expect(capturedMail, 'to satisfy', { envelope: { to: ['luna@lovegood.good'] } });
       const parsedMail = await simpleParser(capturedMail.response);
       expect(parsedMail, 'to satisfy', {
-        to: { text: 'luna <luna@lovegood.good>' },
+        to: { text: '"luna" <luna@lovegood.good>' },
         subject: 'Your account has been suspended',
       });
     });
@@ -171,7 +171,7 @@ describe(`User's 'gone' status`, () => {
       expect(capturedMail, 'to satisfy', { envelope: { to: ['luna@lovegood.good'] } });
       const parsedMail = await simpleParser(capturedMail.response);
       expect(parsedMail, 'to satisfy', {
-        to: { text: 'luna <luna@lovegood.good>' },
+        to: { text: '"luna" <luna@lovegood.good>' },
         subject: 'Your account data will be deleted in a few days',
       });
     });
@@ -206,7 +206,7 @@ describe(`User's 'gone' status`, () => {
       expect(capturedMail, 'to satisfy', { envelope: { to: ['luna@lovegood.good'] } });
       const parsedMail = await simpleParser(capturedMail.response);
       expect(parsedMail, 'to satisfy', {
-        to: { text: 'luna <luna@lovegood.good>' },
+        to: { text: '"luna" <luna@lovegood.good>' },
         subject: 'Your account has been deleted',
       });
     });

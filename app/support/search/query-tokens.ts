@@ -1,7 +1,7 @@
 import XRegExp from 'xregexp';
 import pgFormat from 'pg-format';
-import { Link, HashTag, Mention } from 'social-text-tokenizer';
 import config from 'config';
+import { HASHTAG, LINK, MENTION } from 'social-text-tokenizer';
 
 import { tokenize } from '../tokenize-text';
 
@@ -86,12 +86,11 @@ export class Text implements Token {
     if (this.phrase) {
       const queries = tokenize(this.text)
         .map((token) => {
-          if (token instanceof HashTag || token instanceof Mention) {
-            const exactText =
-              token instanceof HashTag ? token.text.replace(/[_-]/g, '') : token.text;
+          if (token.type === HASHTAG || token.type === MENTION) {
+            const exactText = token.type === HASHTAG ? token.text.replace(/[_-]/g, '') : token.text;
             return pgFormat(`%L::tsquery`, exactText);
-          } else if (token instanceof Link) {
-            return exactPhraseToTSQuery(linkToText(token));
+          } else if (token.type === LINK) {
+            return exactPhraseToTSQuery(linkToText(token.text));
           }
 
           return exactPhraseToTSQuery(token.text);
@@ -117,8 +116,12 @@ export class Text implements Token {
 
     const [firstToken] = tokenize(this.text);
 
-    if (firstToken instanceof Link) {
-      return prefix + pgFormat('phraseto_tsquery(%L, %L)', ftsCfg, linkToText(firstToken));
+    if (!firstToken) {
+      return "''";
+    }
+
+    if (firstToken.type === LINK) {
+      return prefix + pgFormat('phraseto_tsquery(%L, %L)', ftsCfg, linkToText(firstToken.text));
     }
 
     // Prefix search

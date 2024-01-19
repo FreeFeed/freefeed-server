@@ -2,7 +2,7 @@ import util from 'util';
 
 import createDebug from 'debug';
 import { juiceResources } from 'juice';
-import ReactDOMServer from 'react-dom/server';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { render as renderEJS } from 'ejs';
 import config from 'config';
 
@@ -13,7 +13,7 @@ import { fa } from '../views/emails/best-of-digest/assets/font-awesome-base64';
 const juiceResourcesAsync = util.promisify(juiceResources);
 
 export function renderSummaryBody(data) {
-  const body = ReactDOMServer.renderToStaticMarkup(SummaryEmail(data));
+  const body = renderToStaticMarkup(SummaryEmail(data));
   return juiceResourcesAsync(body, {});
 }
 

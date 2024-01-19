@@ -1,5 +1,5 @@
 import XRegExp from 'xregexp';
-import { Link } from 'social-text-tokenizer';
+import { prettyLink } from 'social-text-tokenizer/prettifiers';
 
 const marksCharsRe = XRegExp(`[\\pM]`, 'g');
 const notAlNum = XRegExp(`[^\\pL\\pN]+`, 'g');
@@ -31,6 +31,6 @@ export function normalizeText(text: string) {
   );
 }
 
-export function linkToText(link: Link) {
-  return normalizeText(link.pretty).replace(notAlNum, ' ').replace(/^www /, '');
+export function linkToText(linkText: string) {
+  return normalizeText(prettyLink(linkText)).replace(notAlNum, ' ').replace(/^www /, '');
 }

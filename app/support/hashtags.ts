@@ -1,5 +1,5 @@
 import { uniq } from 'lodash';
-import { HashTag } from 'social-text-tokenizer';
+import { HASHTAG } from 'social-text-tokenizer';
 
 import { tokenize } from './tokenize-text';
 
@@ -13,7 +13,7 @@ export function extractHashtags(text: string) {
 
   return uniq(
     tokenize(text)
-      .filter((t) => t instanceof HashTag)
-      .map((t) => t.text.substr(1)),
+      .filter((t) => t.type === HASHTAG)
+      .map((t) => t.text.substring(1)),
   );
 }
