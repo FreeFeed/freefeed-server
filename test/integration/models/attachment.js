@@ -6,7 +6,7 @@ import util from 'util';
 
 import { mkdirp } from 'mkdirp';
 import gm from 'gm';
-import chai from 'chai';
+import { expect, use as chaiUse } from 'chai';
 import chaiFS from 'chai-fs';
 import _ from 'lodash';
 import config from 'config';
@@ -17,9 +17,8 @@ import { filesMustExist } from '../helpers/attachments';
 
 import { fakeS3 } from './fake-s3';
 
-chai.use(chaiFS);
+chaiUse(chaiFS);
 
-const { expect } = chai;
 const { readFile, writeFile, stat } = fsPromises;
 
 describe('Attachment', () => {
