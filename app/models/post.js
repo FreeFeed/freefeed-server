@@ -314,11 +314,13 @@ export function addModel(dbAdapter) {
       const uuids = await dbAdapter.getPostLongIds(getUpdatedShortIds(this.body));
       uuids.push(...getUpdatedUUIDs(this.body));
 
-      const [realtimeRooms, comments, groups, notifyBacklinked] = await Promise.all([
+      const [realtimeRooms, comments, groups, notifyBacklinked, onlyForUsers] = await Promise.all([
         getRoomsOfPost(this),
         this.getComments(),
         this.getGroupsPostedTo(),
         notifyBacklinkedLater(this, pubSub, uuids),
+        // We need to save the post viewers before destroying the post
+        this.usersCanSee(),
       ]);
 
       // remove all comments
@@ -328,7 +330,7 @@ export function addModel(dbAdapter) {
       await dbAdapter.deletePost(this.id);
 
       await Promise.all([
-        pubSub.destroyPost(this.id, realtimeRooms),
+        pubSub.destroyPost(this.id, realtimeRooms, onlyForUsers),
         destroyedBy ? EventService.onPostDestroyed(this, destroyedBy, { groups }) : null,
         notifyBacklinked(),
       ]);
@@ -873,7 +875,7 @@ export function addModel(dbAdapter) {
      * Returns ids of all users who can see this post.
      * Ids are returned as (possible open) list defined in support/open-lists.js
      *
-     * @returns {Promise<List>}
+     * @returns {Promise<List<import('../support/types').UUID>>}
      */
     async usersCanSee() {
       return await dbAdapter.getUsersWhoCanSeePost({
