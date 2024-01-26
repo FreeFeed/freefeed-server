@@ -263,6 +263,7 @@ export default class PubsubListener {
       // Only for the POST_UPDATED events: the new and removed post viewers IDs
       newUsers = List.empty(),
       removedUsers = List.empty(),
+      keptUsers = List.empty(),
     } = {},
   ) {
     if (rooms.length === 0) {
@@ -323,6 +324,8 @@ export default class PubsubListener {
 
           userIds = List.difference(userIds, removedUserIds).items;
         }
+
+        emitter = this._onlyUsersEmitter(keptUsers, emitter);
       } else {
         const allPostReaders = await post.usersCanSee();
         userIds = List.intersection(allPostReaders, userIds).items;
@@ -393,10 +396,15 @@ export default class PubsubListener {
   };
 
   // Message-handlers follow
-  onPostDestroy = async ({ postId, rooms }) => {
+  onPostDestroy = async ({
+    postId,
+    rooms,
+    // The JSON of List.everything()
+    onlyForUsers = { items: [], inclusive: false },
+  }) => {
     const json = { meta: { postId } };
     const type = eventNames.POST_DESTROYED;
-    await this.broadcastMessage(rooms, type, json);
+    await this.broadcastMessage(rooms, type, json, { onlyForUsers: List.from(onlyForUsers) });
   };
 
   onPostNew = async ({ postId }) => {
@@ -430,13 +438,18 @@ export default class PubsubListener {
       emitter: this._postEventEmitter,
     };
 
+    // It is possible that after the update of the posts
+    // destinations it will become invisible or visible for the some users.
+    // 'broadcastMessage' will send 'post:destroy' or 'post:new' to such users.
+    const currentUserIds = await post.usersCanSee();
+
     if (usersBeforeIds) {
-      // It is possible that after the update of the posts
-      // destinations it will become invisible or visible for the some users.
-      // 'broadcastMessage' will send 'post:destroy' or 'post:new' to such users.
-      const currentUserIds = await post.usersCanSee();
       broadcastOptions.newUsers = List.difference(currentUserIds, usersBeforeIds);
       broadcastOptions.removedUsers = List.difference(usersBeforeIds, currentUserIds);
+      // These users should receive the 'post:update' event.
+      broadcastOptions.keptUsers = List.intersection(usersBeforeIds, currentUserIds);
+    } else {
+      broadcastOptions.keptUsers = currentUserIds;
     }
 
     await this.broadcastMessage(rooms, eventNames.POST_UPDATED, { postId }, broadcastOptions);

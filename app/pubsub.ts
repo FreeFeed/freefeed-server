@@ -54,8 +54,8 @@ export default class pubSub {
     await this.publisher.postCreated(payload);
   }
 
-  async destroyPost(postId: UUID, rooms: string[]) {
-    const payload = JSON.stringify({ postId, rooms });
+  async destroyPost(postId: UUID, rooms: string[], onlyForUsers: List<UUID>) {
+    const payload = JSON.stringify({ postId, rooms, onlyForUsers });
     await this.publisher.postDestroyed(payload);
   }
 
