@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [2.19.0] - Not released
+### Fixed
+- A realtime bug that caused data leakage via the 'post:update' and
+  'post:destroy' events.
+  
+  The sample scenario was as follows:
+  - UserA subscribed to UserB, UserB subscribed to UserC, UserC is private;
+  - UserB likes post of UserC;
+  - UserC updates that post. 
+  
+  In this case, the UserA could receive the 'post:update' event with the full
+  content of updated post (which is normally not available to him).
 
 ## [2.18.0] - 2024-01-19
 ### Changed
