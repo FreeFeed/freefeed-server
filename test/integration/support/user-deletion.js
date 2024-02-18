@@ -64,6 +64,43 @@ describe('User data deletion', () => {
     });
   });
 
+  it(`should keep the 'invitedBy' field when invited user deleted`, async () => {
+    const invitationCode = await luna.createInvitation({
+      message: 'Welcome to Freefeed!',
+      lang: 'en',
+      singleUse: true,
+      users: ['luna', 'mars', 'jupiter'],
+      groups: [],
+    });
+    const invitation = await dbAdapter.getInvitation(invitationCode);
+    const venus = new User({
+      username: `venus`,
+      password: 'password',
+      invitationId: invitation.id,
+    });
+    await venus.create();
+
+    {
+      const data = await dbAdapter.database.getRow(`select * from users where uid = ?`, venus.id);
+      expect(data, 'to satisfy', {
+        uid: venus.id,
+        username: 'venus',
+        invitation_id: invitation.id,
+      });
+    }
+
+    await deletePersonalInfo(venus.id);
+
+    {
+      const data = await dbAdapter.database.getRow(`select * from users where uid = ?`, venus.id);
+      expect(data, 'to satisfy', {
+        uid: venus.id,
+        username: 'venus',
+        invitation_id: invitation.id,
+      });
+    }
+  });
+
   it(`should delete user posts`, async () => {
     const timelineId = await luna.getPostsTimelineId();
 

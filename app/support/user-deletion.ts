@@ -70,7 +70,16 @@ export async function deletePersonalInfo(userId: UUID) {
   // Update all 'users' row fields to their default values except for some fields
 
   // This fields will not be modified
-  const keepFields = ['id', 'uid', 'username', 'type', 'created_at', 'gone_status', 'gone_at'];
+  const keepFields = [
+    'id',
+    'uid',
+    'username',
+    'type',
+    'created_at',
+    'gone_status',
+    'gone_at',
+    'invitation_id',
+  ];
 
   // These fields will be set to specific values
   const updateFields = {
