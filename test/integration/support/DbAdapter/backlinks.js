@@ -379,6 +379,48 @@ describe('Backlinks DB trait', () => {
       expect(referenced, 'to equal', [[jupiterPost.id, venusPost.id, marsPost.id]]);
     });
 
+    it(`should count short links on post create, when link is 'example.com/abcd/{shortId}' URL`, async () => {
+      const post = new Post({
+        body: `probably a luna post: example.com/abcd/${lunaPostShortId}`,
+        userId: jupiter.id,
+        timelineIds: [jupiterFeed.id],
+      });
+      await post.create();
+
+      const [counts, referenced] = await getCountsAndReferenced([lunaPost.id]);
+      expect(counts, 'to equal', new Map([[lunaPost.id, 4]]));
+      expect(referenced, 'to equal', [[post.id, jupiterPost.id, venusPost.id, marsPost.id]]);
+      await post.destroy();
+    });
+
+    it(`should NOT count short links on post create, when link is 'http://localhost/{shortId}' URL`, async () => {
+      const post = new Post({
+        body: `not a luna post: http://localhost/${lunaPostShortId}`,
+        userId: jupiter.id,
+        timelineIds: [jupiterFeed.id],
+      });
+      await post.create();
+
+      const [counts, referenced] = await getCountsAndReferenced([lunaPost.id]);
+      expect(counts, 'to equal', new Map([[lunaPost.id, 3]]));
+      expect(referenced, 'to equal', [[jupiterPost.id, venusPost.id, marsPost.id]]);
+      await post.destroy();
+    });
+
+    it(`should NOT count short links on post create, when link is 'example.com/abcd/{shortId}/efg' URL`, async () => {
+      const post = new Post({
+        body: `not a luna post: example.com/abcd/${lunaPostShortId}/efg`,
+        userId: jupiter.id,
+        timelineIds: [jupiterFeed.id],
+      });
+      await post.create();
+
+      const [counts, referenced] = await getCountsAndReferenced([lunaPost.id]);
+      expect(counts, 'to equal', new Map([[lunaPost.id, 3]]));
+      expect(referenced, 'to equal', [[jupiterPost.id, venusPost.id, marsPost.id]]);
+      await post.destroy();
+    });
+
     it(`should count short links on comment create`, async () => {
       jupiterCommentNo2 = jupiter.newComment({
         postId: jupiterPost.id,
