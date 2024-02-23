@@ -50,7 +50,7 @@ describe('User freeze', () => {
         username: luna.username,
         password: luna.password,
       });
-      expect(resp, 'to satisfy', { __httpCode: 401, err: /suspended by the site administration/ });
+      expect(resp, 'to satisfy', { __httpCode: 401, err: /suspended due to suspicious activity/ });
     });
 
     it(`should not allow Luna to sign in by external provider`, async () => {
@@ -64,12 +64,12 @@ describe('User freeze', () => {
         query: { code: '12345', state: redirectParams.state },
       });
 
-      expect(resp, 'to satisfy', { __httpCode: 401, err: /suspended by the site administration/ });
+      expect(resp, 'to satisfy', { __httpCode: 401, err: /suspended due to suspicious activity/ });
     });
 
     it(`should not allow Luna to perform any request`, async () => {
       const resp = await performJSONRequest('GET', '/v1/users/me', null, authHeaders(luna));
-      expect(resp, 'to satisfy', { __httpCode: 401, err: /suspended by the site administration/ });
+      expect(resp, 'to satisfy', { __httpCode: 401, err: /suspended due to suspicious activity/ });
     });
   });
 });
