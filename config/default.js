@@ -44,6 +44,8 @@ const config = {
   frontendPreferencesLimit: 65536,
 
   monitorPrefix: 'development',
+
+  adminEmail: '',
 };
 
 // Site instance owner's requisites for use in the digest email footers

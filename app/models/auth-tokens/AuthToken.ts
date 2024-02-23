@@ -3,6 +3,7 @@ import { Context, Next } from 'koa';
 import { dbAdapter } from '../../models';
 import { NotAuthorizedException } from '../../support/exceptions';
 import { UUID } from '../../support/types';
+import { currentConfig } from '../../support/app-async-context';
 
 import { authDebug, authDebugError } from '.';
 
@@ -31,7 +32,11 @@ export abstract class AuthToken {
 
     if (await user.isFrozen()) {
       authDebugError(`user ${this.userId} has been suspended by the site administration`);
-      throw new NotAuthorizedException(`account has been suspended by the site administration`);
+      const { adminEmail } = currentConfig();
+      throw new NotAuthorizedException(
+        'Account has been suspended due to suspicious activity. ' +
+          `Please contact support${adminEmail ? ` at ${adminEmail}` : ''} if you believe this is an error.`,
+      );
     }
 
     authDebug(`authenticated as ${user.username} with ${this.constructor.name} token`);

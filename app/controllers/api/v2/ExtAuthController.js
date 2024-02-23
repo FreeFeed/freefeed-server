@@ -1,4 +1,3 @@
-import config from 'config';
 import { pick } from 'lodash';
 import compose from 'koa-compose';
 
@@ -21,6 +20,7 @@ import {
 } from '../../../support/ExtAuth';
 import { User, dbAdapter, sessionTokenV1Store } from '../../../models';
 import { serializeUsersByIds } from '../../../serializers/v2/user';
+import { currentConfig } from '../../../support/app-async-context';
 
 import { authStartInputSchema, authFinishInputSchema } from './data-schemes/ext-auth';
 
@@ -64,6 +64,7 @@ export const authFinish = compose([
   inputSchemaRequired(authFinishInputSchema),
   /** @param {import('../../../support/types').Ctx} ctx */
   async (ctx) => {
+    const config = currentConfig();
     const { provider: provName } = ctx.request.body;
     const authProvider = getAuthProvider(provName);
 
@@ -120,7 +121,8 @@ export const authFinish = compose([
 
           if (await profileUser.isFrozen()) {
             throw new NotAuthorizedException(
-              'Your account has been suspended by the site administration. Please contact support for more information.',
+              'Your account has been suspended due to suspicious activity. ' +
+                `Please contact support${config.adminEmail ? ` at ${config.adminEmail}` : ''} if you believe this is an error.`,
             );
           }
 
