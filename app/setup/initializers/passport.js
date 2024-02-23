@@ -1,6 +1,7 @@
 import { Strategy as LocalStrategy } from 'passport-local';
 
 import { dbAdapter } from '../../models';
+import { currentConfig } from '../../support/app-async-context';
 
 export function init(passport) {
   passport.use(
@@ -20,9 +21,11 @@ export function init(passport) {
           }
 
           if (user && (await user.isFrozen())) {
+            const { adminEmail } = currentConfig();
             done({
               message:
-                'Your account has been suspended by the site administration. Please contact support for more information.',
+                'Your account has been suspended due to suspicious activity. ' +
+                `Please contact support${adminEmail ? ` at ${adminEmail}` : ''} if you believe this is an error.`,
             });
 
             return;
