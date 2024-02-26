@@ -120,6 +120,8 @@ export class Group {
   createdAt: string; // numeric string
   updatedAt: string; // numeric string
   type: 'group';
+  constructor(params: unknown);
+  create(creatorId: UUID): Promise<this>;
   isGroup(): true;
   isUser(): false;
   getAdministrators(): Promise<User[]>;
@@ -130,6 +132,9 @@ export class Group {
 
   blockUser(userId: UUID, adminId: UUID): Promise<boolean>;
   unblockUser(userId: UUID, adminId: UUID): Promise<boolean>;
+
+  enableBansFor(userId: UUID, initiatorId?: UUID): Promise<void>;
+  disableBansFor(userId: UUID, initiatorId?: UUID): Promise<void>;
 }
 
 type PostUserState = {
