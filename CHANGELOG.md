@@ -10,6 +10,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Provide full user data in the 'like:new' realtime event. Previously, the event
   only included a small subset of the data, making it impossible for the client
   to fill out the store correctly.
+- Bug in comment visibility detection, that leads to incorrect behavior in the
+  following case:
+  1. User A turns off bans in some group G
+  2. User A bans user B
+  3. User A subscribes to the post P in group G
+  4. User B adds a new comment to the post P
+  
+  In this case user A won't get a new comment notification, even though she can
+  see the B's comment.
 
 ## [2.18.3] - 2024-02-23
 #### Changed

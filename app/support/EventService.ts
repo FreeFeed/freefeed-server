@@ -281,14 +281,12 @@ export class EventService {
       return;
     }
 
-    const [postAuthor, commentAuthor, commentAuthorBanners, destFeeds, affectedUsers] =
-      await Promise.all([
-        dbAdapter.getUserById(post.userId),
-        comment.userId ? dbAdapter.getUserById(comment.userId) : null,
-        dbAdapter.getUserIdsWhoBannedUser(comment.userId!),
-        post.getPostedTo(),
-        dbAdapter.getFeedOwnersByIds(eventsToSend.map((e) => e.userId)) as Promise<User[]>,
-      ]);
+    const [postAuthor, commentAuthor, destFeeds, affectedUsers] = await Promise.all([
+      dbAdapter.getUserById(post.userId),
+      comment.userId ? dbAdapter.getUserById(comment.userId) : null,
+      post.getPostedTo(),
+      dbAdapter.getFeedOwnersByIds(eventsToSend.map((e) => e.userId)) as Promise<User[]>,
+    ]);
 
     let postGroupIntId: number | null = null;
 
@@ -300,11 +298,9 @@ export class EventService {
       }
     }
 
-    // Leave users who has post and comment access
-    // Only users who can see this post
-    let targetUsers = await post.onlyUsersCanSeePost(affectedUsers);
-    // Only users who can see this comment
-    targetUsers = targetUsers.filter((u) => !commentAuthorBanners.includes(u.id));
+    // Leave users who has comment (and post) access
+    const usersCanSeeComment = await comment.usersCanSee();
+    const targetUsers = affectedUsers.filter((u) => usersCanSeeComment.includes(u.id));
 
     // Create events
     await Promise.all(

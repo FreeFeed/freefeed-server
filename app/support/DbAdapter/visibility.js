@@ -174,10 +174,12 @@ const visibilityTrait = (superClass) =>
         // Users who banned author
         authorBannedBy,
         usersDisabledBans,
+        privacyAllowed,
       ] = await Promise.all([
         this.getUserBansIds(authorId),
         this.getUserIdsWhoBannedUser(authorId),
         this.getUsersWithDisabledBansInGroups(groups),
+        this.getUsersWhoCanSeeFeeds(destFeeds),
       ]);
 
       // Users who choose to see banned posts in any of post group
@@ -187,16 +189,14 @@ const visibilityTrait = (superClass) =>
         .filter((r) => r.is_admin)
         .map((r) => r.user_id);
 
-      const allExceptBanned = List.inverse(
+      return List.difference(
+        privacyAllowed,
+        // Except banned
         List.union(
           List.difference(authorBannedBy, allWhoDisabledBans),
           List.difference(bannedByAuthor, adminsWhoDisabledBans),
         ),
       );
-
-      const privacyAllowed = await this.getUsersWhoCanSeeFeeds(destFeeds);
-
-      return List.intersection(privacyAllowed, allExceptBanned);
     }
 
     /**
@@ -237,9 +237,11 @@ const visibilityTrait = (superClass) =>
         this.getUsersWithDisabledBansInGroups(postGroups),
       ]);
 
+      const allWhoDisabledBans = usersDisabledBans.map((r) => r.user_id);
+
       return List.intersection(
         postViewers,
-        List.inverse(List.difference(authorBannedBy, usersDisabledBans)),
+        List.inverse(List.difference(authorBannedBy, allWhoDisabledBans)),
       );
     }
 
