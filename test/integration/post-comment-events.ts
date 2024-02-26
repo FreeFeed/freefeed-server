@@ -2,7 +2,7 @@
 
 import expect from 'unexpected';
 
-import { Post, User, dbAdapter } from '../../app/models';
+import { Group, Post, User, dbAdapter } from '../../app/models';
 import cleanDB from '../dbCleaner';
 import { EVENT_TYPES as ET } from '../../app/support/EventTypes';
 
@@ -226,6 +226,49 @@ describe(`'post_comment' event emitting`, () => {
               { event_type: ET.DIRECT_CREATED, created_by_user_id: luna.intId },
             ]);
           });
+        });
+      });
+    });
+
+    describe('Comments of blocked users', () => {
+      let selenites: Group;
+      let post: Post;
+
+      beforeEach(async () => {
+        selenites = new Group({ username: 'selenites' });
+        await selenites.create(luna.id);
+
+        // Mars creates post in Selenites group
+        post = await createPost(mars, 'Hello, selenites!', [selenites]);
+
+        // Luna subscribes to comment of this post
+        await luna.notifyOfAllCommentsOfPost(post, true);
+
+        // Luna turns off ban in the group
+        await selenites.disableBansFor(luna.id);
+      });
+
+      it(`should create notifications for Luna when Mars comments the post`, async () => {
+        await createComment(mars, post, 'Hi, folks!');
+
+        await expectUserEventsToBe(
+          luna,
+          [{ event_type: ET.POST_COMMENT, created_by_user_id: mars.intId }],
+          [ET.POST_COMMENT],
+        );
+      });
+
+      describe('Luna bans Mars', () => {
+        beforeEach(() => luna.ban(mars.username));
+
+        it(`should still create notifications for Luna when Mars comments the post`, async () => {
+          await createComment(mars, post, 'Hi, folks!');
+
+          await expectUserEventsToBe(
+            luna,
+            [{ event_type: ET.POST_COMMENT, created_by_user_id: mars.intId }],
+            [ET.POST_COMMENT],
+          );
         });
       });
     });

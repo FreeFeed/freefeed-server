@@ -27,7 +27,7 @@ import {
   HOMEFEED_MODE_CLASSIC,
   HOMEFEED_MODE_FRIENDS_ONLY,
 } from './models/timeline';
-import { serializeSinglePost, serializeLike } from './serializers/v2/post';
+import { serializeSinglePost } from './serializers/v2/post';
 import { serializeCommentFull } from './serializers/v2/comment';
 import { serializeUsersByIds } from './serializers/v2/user';
 import { serializeEvents } from './serializers/v2/event';
@@ -495,16 +495,14 @@ export default class PubsubListener {
   };
 
   onLikeNew = async ({ userId, postId }) => {
-    const [user, post] = await Promise.all([
-      await dbAdapter.getUserById(userId),
-      await dbAdapter.getPostById(postId),
-    ]);
-    const json = serializeLike(user);
-    json.meta = { postId };
-
+    const post = await dbAdapter.getPostById(postId);
+    const json = {
+      users: { id: userId }, // will be filled by _likeEventEmitter
+      meta: { postId },
+    };
     const type = eventNames.LIKE_ADDED;
     const rooms = await getRoomsOfPost(post);
-    await this.broadcastMessage(rooms, type, json, { post });
+    await this.broadcastMessage(rooms, type, json, { post, emitter: this._likeEventEmitter });
   };
 
   onLikeRemove = async ({ userId, postId, rooms }) => {
@@ -704,6 +702,16 @@ export default class PubsubListener {
     json.comments.likes = parseInt(commentLikesData.c_likes);
     json.comments.hasOwnLike = commentLikesData.has_own_like;
 
+    defaultEmitter(socket, type, json);
+  }
+
+  async _likeEventEmitter(socket, type, json) {
+    const viewerId = socket.userId;
+    const userId = json.users.id;
+    // We need to re-serialize users according to the viewerId
+    const users = await serializeUsersByIds([userId], viewerId, false);
+    // eslint-disable-next-line prefer-destructuring
+    json.users = users[0];
     defaultEmitter(socket, type, json);
   }
 
