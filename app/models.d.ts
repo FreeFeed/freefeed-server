@@ -261,6 +261,41 @@ export class Attachment {
   destroy(destroyedBy?: User): Promise<void>;
 }
 
+type DocumentParams = {
+  id?: UUID;
+  userId: UUID;
+  title: string;
+  slug: string;
+  body: string;
+  parentId?: UUID | null;
+  isPublished?: boolean;
+  tags?: string[];
+  createdAt?: string;
+  updatedAt?: string;
+};
+export class Document {
+  constructor(params: DocumentParams);
+  id: UUID;
+  userId: UUID;
+  title: string;
+  slug: string;
+  body: string;
+  parentId: UUID | null;
+  isPublished: boolean;
+  tags: string[];
+  createdAt: Date;
+  updatedAt: Date;
+  readonly url: string;
+  static create(params: Partial<DocumentParams>, user: User): Promise<Document>;
+  update(params: Partial<DocumentParams>): Promise<Document>;
+  destroy(): Promise<void>;
+  addTag(tag: string): Promise<void>;
+  removeTag(tag: string): Promise<void>;
+  getChildren(): Promise<Document[]>;
+  getParent(): Promise<Document | null>;
+  static slugify(text: string): string;
+}
+
 export class Comment {
   static VISIBLE: 0;
   static DELETED: 1;

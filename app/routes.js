@@ -33,6 +33,7 @@ import HashtagsRoute from './routes/api/v2/HashtagsRoute';
 import AdminCommonRoute from './routes/api/admin/CommonRoute';
 import AdminAdminRoute from './routes/api/admin/AdminRoute';
 import AdminModeratorRoute from './routes/api/admin/ModeratorRoute';
+import DocumentsRoute from './routes/api/v5/DocumentsRoute';
 import { withJWT } from './controllers/middlewares/with-jwt';
 import { withAuthToken } from './controllers/middlewares/with-auth-token';
 import { apiNotFoundMiddleware } from './setup/initializers/api-not-found';
@@ -44,6 +45,33 @@ export default function (app) {
   app.use(router.routes());
   app.use(router.allowedMethods());
 
+  // Stable public URL for documents
+  //   /docs/:slug               (backwards compatible, deprecated)
+  //   /docs/:username/:slug     (preferred, user-namespaced)
+  app.use(async (ctx, next) => {
+    let slug = null;
+    let username = null;
+    const matchFlat = /^\/docs\/([^/]+)\/?$/u.exec(ctx.path);
+    const matchUser = /^\/docs\/([^/]+)\/([^/]+)\/?$/u.exec(ctx.path);
+
+    if (matchUser) {
+      username = matchUser[1];
+      slug = matchUser[2];
+    } else if (matchFlat) {
+      slug = matchFlat[1];
+    }
+
+    if (slug && ctx.method === 'GET') {
+      const { default: DocumentsController } =
+        await import('./controllers/api/v5/DocumentsController');
+      const controller = new DocumentsController(app);
+      ctx.params = { slug, username };
+      await controller.getByUserAndSlug(ctx, next);
+      return;
+    }
+
+    await next();
+  });
   app.use(cors());
   app.use(apiNotFoundMiddleware);
 }
@@ -90,6 +118,7 @@ export function createRouter() {
   AttachmentsRouteV2(publicRouter);
   CorsProxyRoute(publicRouter);
   UndoRoute(publicRouter);
+  DocumentsRoute(publicRouter);
   HashtagsRoute(publicRouter);
 
   const router = new Router();
