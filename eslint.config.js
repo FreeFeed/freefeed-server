@@ -66,7 +66,7 @@ export default defineConfig([
       'import-x/no-extraneous-dependencies': 'error',
       'import-x/no-mutable-exports': 'error',
       'import-x/newline-after-import': 'error',
-      'import-x/consistent-type-specifier-style': ['error', 'prefer-inline'],
+      'import-x/consistent-type-specifier-style': ['error', 'prefer-top-level'],
       'import-x/order': [
         'error',
         {
