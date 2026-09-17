@@ -15,6 +15,9 @@ import {
   identifySize,
   isJpeg,
   jpegSegment,
+  orientationArgs,
+  orientSize,
+  readOrientation,
   scaledSize,
 } from './jpeg-hdr-utils';
 
@@ -77,10 +80,17 @@ export async function createJpegHdrPreview({
 
     await writeFile(gainMapPath, gainMap);
 
-    const sourceSize = await identifySize(sourcePath);
-    const gainMapSize = await identifySize(gainMapPath);
+    const [sourceSize, gainMapSize, orientation] = await Promise.all([
+      identifySize(sourcePath),
+      identifySize(gainMapPath),
+      readOrientation(sourcePath),
+    ]);
     // The gain map must keep the same relative scale as in the original file.
-    const gainMapTarget = scaledSize({ width, height }, sourceSize, gainMapSize);
+    const gainMapTarget = scaledSize(
+      { width, height },
+      orientSize(sourceSize, orientation),
+      orientSize(gainMapSize, orientation),
+    );
 
     const hasIcc = await extractIccProfile(sourcePath, iccPath);
 
@@ -92,7 +102,7 @@ export async function createJpegHdrPreview({
       quality,
       hasIcc ? iccPath : null,
     );
-    await resizeGainMap(gainMapPath, resizedGainMapPath, gainMapTarget.width, gainMapTarget.height);
+    await resizeGainMap(gainMapPath, resizedGainMapPath, gainMapTarget, orientation);
 
     const resizedGainMapSize = await stat(resizedGainMapPath).then((s) => s.size);
     const baseWithXmpPath = join(workDir, 'base-with-xmp.jpg');
@@ -182,12 +192,13 @@ async function extractGainMapTag(
 async function resizeGainMap(
   sourcePath: string,
   targetPath: string,
-  width: number,
-  height: number,
+  targetSize: { width: number; height: number },
+  orientation: number,
 ): Promise<void> {
   await runImageMagick('convert', [
     sourcePath,
-    ['-resize', `${width}!x${height}!`],
+    ...orientationArgs(orientation),
+    ['-resize', `${targetSize.width}!x${targetSize.height}!`],
     ['-quality', '90'],
     targetPath,
   ]);

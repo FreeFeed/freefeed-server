@@ -1,6 +1,9 @@
 import { readFile, writeFile } from 'fs/promises';
 
+import { exiftoolPath } from 'exiftool-vendored';
+
 import { runImageMagick } from '../image-magick';
+import { spawnAsync } from '../spawn-async';
 
 export type ImageSize = { width: number; height: number };
 
@@ -75,6 +78,47 @@ export async function identifySize(filePath: string): Promise<ImageSize> {
   }
 
   return { width, height };
+}
+
+/**
+ * Reads the numeric EXIF orientation, defaulting to the normal orientation.
+ */
+export async function readOrientation(filePath: string): Promise<number> {
+  const exe = await exiftoolPath();
+  const { stdout } = await spawnAsync(exe, ['-n', '-s3', '-Orientation', filePath]);
+  const orientation = parseInt(stdout.trim(), 10);
+  return orientation >= 1 && orientation <= 8 ? orientation : 1;
+}
+
+/**
+ * Returns ImageMagick operations equivalent to an EXIF orientation.
+ */
+export function orientationArgs(orientation: number): string[] {
+  switch (orientation) {
+    case 2:
+      return ['-flop'];
+    case 3:
+      return ['-rotate', '180'];
+    case 4:
+      return ['-flip'];
+    case 5:
+      return ['-transpose'];
+    case 6:
+      return ['-rotate', '90'];
+    case 7:
+      return ['-transverse'];
+    case 8:
+      return ['-rotate', '270'];
+    default:
+      return [];
+  }
+}
+
+/**
+ * Swaps dimensions for orientations that rotate the image by 90 degrees.
+ */
+export function orientSize(size: ImageSize, orientation: number): ImageSize {
+  return orientation >= 5 ? { width: size.height, height: size.width } : size;
 }
 
 /**
