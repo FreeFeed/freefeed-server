@@ -1,5 +1,3 @@
-import { randomBytes } from 'crypto';
-
 import * as _ from 'lodash-es';
 import validator from 'validator';
 import pgFormat from 'pg-format';
@@ -9,6 +7,7 @@ import { toTSVector } from '../search/to-tsvector';
 import { currentConfig } from '../app-async-context';
 
 import { initObject, prepareModelPayload, sqlNotIn } from './utils';
+import { createShortId } from './short-ids';
 
 ///////////////////////////////////////////////////
 // Posts
@@ -34,7 +33,15 @@ const postsTrait = (superClass) =>
         const [{ uid: longId }] = await trx('posts').insert(preparedPayload).returning('uid');
 
         // Create a short ID for this post
-        await this.createPostShortId(trx, longId);
+        await createShortId(currentConfig().shortLinks.initialLength.post, (shortId) =>
+          trx
+            .getOne(
+              `insert into post_short_ids (short_id, long_id) values (:shortId, :longId)
+              on conflict (short_id) do nothing returning true`,
+              { shortId, longId },
+            )
+            .then((res) => !!res),
+        );
 
         return longId;
       });
@@ -435,54 +442,6 @@ const postsTrait = (superClass) =>
       const adminIds = _.map(rows, 'uid');
       return this.getUsersByIds(adminIds);
     }
-
-    async createPostShortId(trx, longId) {
-      let length = currentConfig().shortLinks.initialLength.post;
-
-      for (; length <= 10; length++) {
-        // eslint-disable-next-line no-await-in-loop
-        if (await this.createPostShortIdForLength(trx, longId, length)) {
-          return;
-        }
-      }
-    }
-
-    async createPostShortIdForLength(trx, longId, length) {
-      for (let i = 0; i < currentConfig().shortLinks.maxAttempts; i++) {
-        const shortId = this.getDecentRandomString(length);
-
-        // eslint-disable-next-line no-await-in-loop
-        const res = await trx('post_short_ids')
-          .insert({ short_id: shortId, long_id: longId })
-          .returning('short_id')
-          .onConflict()
-          .ignore();
-
-        if (res && res.length > 0) {
-          return true;
-        }
-      }
-
-      return false;
-    }
-
-    getDecentRandomString(length) {
-      for (;;) {
-        const shortId = this.getRandomString(length);
-
-        if (this.isStringDecent(shortId)) {
-          return shortId;
-        }
-      }
-    }
-
-    isStringDecent = (str) =>
-      !currentConfig().shortLinks.stopWords.some((word) => str.includes(word));
-
-    getRandomString = (length) =>
-      randomBytes(Math.ceil(length / 2)) // divide by 2 since bytes are twice longer than hex
-        .toString('hex')
-        .slice(0, length); // slice to cut an extra char when the length is odd
   };
 
 export default postsTrait;

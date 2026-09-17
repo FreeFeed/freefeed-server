@@ -66,10 +66,12 @@ const articlesTrait = (superClass: typeof DbAdapter) =>
         );
 
         await createShortId(currentConfig().shortLinks.initialLength.article, (shortId) =>
-          trx.maybeOneFirst(
-            shortIdQuery`insert into article_short_ids (short_id, long_id) values (${shortId}, ${id})
+          trx
+            .maybeOneFirst(
+              shortIdQuery`insert into article_short_ids (short_id, long_id) values (${shortId}, ${id})
               on conflict (short_id) do nothing returning short_id`,
-          ),
+            )
+            .then((res) => !!res),
         );
 
         return id;

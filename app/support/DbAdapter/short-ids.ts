@@ -4,12 +4,14 @@ import { currentConfig } from '../app-async-context';
 
 export async function createShortId(
   initialLength: number,
-  tryInsert: (shortId: string) => Promise<string | null>,
+  tryInsert: (shortId: string) => Promise<boolean>,
 ) {
   for (let length = initialLength; length <= currentConfig().shortLinks.maxLength; length++) {
     // eslint-disable-next-line no-await-in-loop
-    if (await createShortIdForLength(tryInsert, length)) {
-      return;
+    const shortId = await createShortIdForLength(tryInsert, length);
+
+    if (shortId) {
+      return shortId;
     }
   }
 
@@ -17,19 +19,19 @@ export async function createShortId(
 }
 
 async function createShortIdForLength(
-  tryInsert: (shortId: string) => Promise<string | null>,
+  tryInsert: (shortId: string) => Promise<boolean>,
   length: number,
 ) {
   for (let i = 0; i < currentConfig().shortLinks.maxAttempts; i++) {
     const shortId = getDecentRandomString(length);
 
     // eslint-disable-next-line no-await-in-loop
-    if ((await tryInsert(shortId)) !== null) {
-      return true;
+    if (await tryInsert(shortId)) {
+      return shortId;
     }
   }
 
-  return false;
+  return null;
 }
 
 function getDecentRandomString(length: number) {

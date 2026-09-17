@@ -6,6 +6,7 @@ import { toTSVector } from '../search/to-tsvector';
 import { currentConfig } from '../app-async-context';
 
 import { initObject, prepareModelPayload } from './utils';
+import { createShortId } from './short-ids';
 
 ///////////////////////////////////////////////////
 // Comments
@@ -36,7 +37,14 @@ const commentsTrait = (superClass) =>
 
         preparedPayload.seq_number = (maxCommentNumber || 0) + 1;
 
-        preparedPayload.short_id = await this.generateCommentShortId(trx, payload.postId);
+        preparedPayload.short_id = await createShortId(
+          currentConfig().shortLinks.initialLength.comment,
+          (shortId) =>
+            trx.getOne(
+              `select not exists(select 1 from comments where post_id = :postId and short_id = :shortId)`,
+              { shortId, postId: preparedPayload.post_id },
+            ),
+        );
 
         const [{ uid: commentId }] = await trx('comments').returning('uid').insert(preparedPayload);
 
@@ -243,38 +251,6 @@ const commentsTrait = (superClass) =>
       }
 
       return uid;
-    }
-
-    async generateCommentShortId(trx, postId) {
-      let length = currentConfig().shortLinks.initialLength.comment;
-
-      for (; length <= 6; length++) {
-        // eslint-disable-next-line no-await-in-loop
-        const shortId = await this.generateCommentShortIdForLength(trx, postId, length);
-
-        if (shortId !== null) {
-          return shortId;
-        }
-      }
-
-      return null;
-    }
-
-    async generateCommentShortIdForLength(trx, postId, length) {
-      for (let i = 0; i < currentConfig().shortLinks.maxAttempts; i++) {
-        const shortId = this.getDecentRandomString(length);
-
-        // eslint-disable-next-line no-await-in-loop
-        const [{ count }] = await trx('comments')
-          .where({ short_id: shortId, post_id: postId })
-          .count();
-
-        if (+count === 0) {
-          return shortId;
-        }
-      }
-
-      return null;
     }
   };
 
