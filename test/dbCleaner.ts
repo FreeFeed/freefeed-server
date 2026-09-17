@@ -3,7 +3,7 @@ import type { Knex } from 'knex';
 
 const tablesToKeep = ['admin_roles', 'event_types'];
 
-export default function cleanDB(knex: Knex) {
+export default function cleanDB(knex: Pick<Knex, 'raw'>) {
   return knex.raw(
     `
     do $$
