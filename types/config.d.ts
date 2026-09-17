@@ -104,9 +104,11 @@ declare module 'config' {
       initialLength: {
         post: number;
         comment: number;
+        article: number;
       };
       stopWords: string[];
       maxAttempts: number;
+      maxLength: number;
     };
 
     jobManager: {

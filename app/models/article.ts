@@ -84,6 +84,10 @@ export class Article extends ArticleContent {
   getRevisions(limit: number, offset: number, descOrder = true) {
     return this.dba.getArticleRevisions(this.uid, limit, offset, descOrder);
   }
+
+  getShortId(): Promise<string> {
+    return this.dba.getArticleShortId(this.uid);
+  }
 }
 
 export type ArticleCreationParams = {

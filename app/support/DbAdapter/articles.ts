@@ -11,6 +11,9 @@ import type {
   ArticleUpdateResult,
 } from '../../models/article';
 import type { UUID } from '../types';
+import { currentConfig } from '../app-async-context';
+
+import { createShortId } from './short-ids';
 
 import type { DbAdapter } from './index';
 
@@ -41,9 +44,10 @@ const articlesTrait = (superClass: typeof DbAdapter) =>
       descOrder = true,
     ): Promise<ArticleRevision[]> {
       const pool = await this.getSlonik();
+      const order = descOrder ? sql.fragment`desc` : sql.fragment`asc`;
       const rows = await pool.any(
         articleRevisionQuery`select * from article_revisions where
-          article_id = ${articleId} order by version ${sql.literalValue(descOrder ? 'desc' : 'asc')}
+          article_id = ${articleId} order by version ${order}
           limit ${limit} offset ${offset}`,
       );
       return rows.map((row) => new ArticleRevision(this, row));
@@ -51,23 +55,51 @@ const articlesTrait = (superClass: typeof DbAdapter) =>
 
     async createArticle(params: ArticleCreationParams): Promise<Article> {
       const pool = await this.getSlonik();
-      const id = await pool.oneFirst(
-        uidQuery`insert into articles
+      const createdId = await pool.transaction(async (trx) => {
+        const id = await trx.oneFirst(
+          uidQuery`insert into articles
           (author_id, title, slug, digest, body)
           values
           (${params.author_id}, ${params.title}, ${params.slug}, ${params.digest}, 
             ${sql.jsonb(params.body)})
           returning uid`,
-      );
+        );
 
-      const article = await this.getArticleById(id);
+        await createShortId(currentConfig().shortLinks.initialLength.article, (shortId) =>
+          trx.maybeOneFirst(
+            shortIdQuery`insert into article_short_ids (short_id, long_id) values (${shortId}, ${id})
+              on conflict (short_id) do nothing returning short_id`,
+          ),
+        );
+
+        return id;
+      });
+
+      const article = await this.getArticleById(createdId);
 
       if (!article) {
         // We should never reach this point if the article was successfully created
-        throw new Error(`Failed to create article with id ${id}`);
+        throw new Error(`Failed to create article with id ${createdId}`);
       }
 
       return article;
+    }
+
+    async getArticleByShortId(shortId: string): Promise<Article | null> {
+      const pool = await this.getSlonik();
+      const row = await pool.maybeOne(
+        articleQuery`select a.* from articles a
+          join article_short_ids s on s.long_id = a.uid
+          where s.short_id = ${shortId}`,
+      );
+      return row ? new Article(this, row) : null;
+    }
+
+    async getArticleShortId(articleId: UUID): Promise<string> {
+      const pool = await this.getSlonik();
+      return pool.oneFirst(
+        shortIdQuery`select short_id from article_short_ids where long_id = ${articleId}`,
+      );
     }
 
     async updateArticle(
@@ -132,6 +164,7 @@ const articlesTrait = (superClass: typeof DbAdapter) =>
 export default articlesTrait;
 
 const uidQuery = sql.type(z.object({ uid: z.uuid() }));
+const shortIdQuery = sql.type(z.object({ short_id: z.string() }));
 const versionSchema = z.number().int().positive();
 const versionQuery = sql.type(z.object({ version: versionSchema }));
 const articleContentSchema = {

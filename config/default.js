@@ -412,9 +412,11 @@ config.shortLinks = {
   initialLength: {
     post: 6,
     comment: 4,
+    article: 4,
   },
   stopWords: ['dea', 'bad', 'bee', 'bab', 'fee', '666'],
   maxAttempts: 3, // max number of attempts (with DB uniqueness check) for selected length, before increasing the length by one
+  maxLength: 10, // maximum length for short IDs
 };
 
 config.userPreferences = {

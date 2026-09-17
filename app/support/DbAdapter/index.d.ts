@@ -528,6 +528,7 @@ export class DbAdapter {
 
   // Articles
   getArticleById(uid: UUID): Promise<Article | null>;
+  getArticleByShortId(shortId: string): Promise<Article | null>;
   getArticleRevisionById(uid: UUID): Promise<ArticleRevision | null>;
   createArticle(row: ArticleCreationParams): Promise<Article>;
   updateArticle(
@@ -536,6 +537,7 @@ export class DbAdapter {
     params: ArticleDbRowContent,
   ): Promise<ArticleUpdateResult>;
   destroyArticle(uid: UUID): Promise<boolean>;
+  getArticleShortId(articleId: UUID): Promise<string>;
   getArticleRevisions(
     articleId: UUID,
     limit: number,
