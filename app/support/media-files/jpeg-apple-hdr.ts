@@ -14,6 +14,9 @@ import {
   findMetadataInsertOffset,
   identifySize,
   isJpeg,
+  orientationArgs,
+  orientSize,
+  readOrientation,
   scaledSize,
   type ImageSize,
   type JpegSegment,
@@ -133,16 +136,6 @@ async function extractGainMap(sourcePath: string): Promise<Buffer | null> {
 }
 
 /**
- * Reads the numeric EXIF orientation, defaulting to the normal orientation.
- */
-async function readOrientation(sourcePath: string): Promise<number> {
-  const exe = await exiftoolPath();
-  const { stdout } = await spawnAsync(exe, ['-n', '-s3', '-Orientation', sourcePath]);
-  const orientation = parseInt(stdout.trim(), 10);
-  return orientation >= 1 && orientation <= 8 ? orientation : 1;
-}
-
-/**
  * Applies the source orientation before resizing the Apple gain map.
  */
 async function resizeGainMap(
@@ -163,37 +156,6 @@ async function resizeGainMap(
     ['-quality', '90'],
     targetPath,
   ]);
-}
-
-/**
- * Returns ImageMagick operations equivalent to an EXIF orientation.
- */
-function orientationArgs(orientation: number): string[] {
-  switch (orientation) {
-    case 2:
-      return ['-flop'];
-    case 3:
-      return ['-rotate', '180'];
-    case 4:
-      return ['-flip'];
-    case 5:
-      return ['-transpose'];
-    case 6:
-      return ['-rotate', '90'];
-    case 7:
-      return ['-transverse'];
-    case 8:
-      return ['-rotate', '270'];
-    default:
-      return [];
-  }
-}
-
-/**
- * Swaps dimensions for orientations that rotate the image by 90 degrees.
- */
-function orientSize(size: ImageSize, orientation: number): ImageSize {
-  return orientation >= 5 ? { width: size.height, height: size.width } : size;
 }
 
 /**

@@ -1,4 +1,4 @@
-import { copyFile, mkdtemp, rm } from 'fs/promises';
+import { copyFile, mkdtemp, rm, writeFile } from 'fs/promises';
 import { join } from 'path';
 import { tmpdir } from 'os';
 
@@ -137,6 +137,60 @@ describe('JPEG HDR previews', () => {
         validate: 'OK',
         warnings: [],
       });
+    } finally {
+      await rm(workDir, { recursive: true, force: true });
+    }
+  });
+
+  it('should apply the primary EXIF orientation to the gain map', async () => {
+    const workDir = await mkdtemp(join(tmpdir(), 'freefeed-hdr-orientation-'));
+
+    try {
+      const orientedSourcePath = join(workDir, 'source.jpg');
+      const sourceGainMapPath = join(workDir, 'source-gain-map.jpg');
+      const expectedGainMapPath = join(workDir, 'expected-gain-map.jpg');
+      const actualGainMapPath = join(workDir, 'actual-gain-map.jpg');
+      const targetPath = join(workDir, 'preview.jpg');
+      const exe = await exiftoolPath();
+
+      await copyFile(sourcePath, orientedSourcePath);
+      await spawnAsync(exe, ['-overwrite_original', '-Orientation#=6', orientedSourcePath]);
+
+      expect(
+        await createJpegHdrPreview({
+          sourcePath: orientedSourcePath,
+          targetPath,
+          width: 768,
+          height: 1020,
+          quality: 90,
+        }),
+        'to be true',
+      );
+
+      const [{ stdout: sourceGainMap }, { stdout: actualGainMap }] = await Promise.all([
+        spawnAsync(exe, ['-b', '-GainMapImage', orientedSourcePath], { binary: true }),
+        spawnAsync(exe, ['-b', '-MPImage2', targetPath], { binary: true }),
+      ]);
+      await Promise.all([
+        writeFile(sourceGainMapPath, sourceGainMap),
+        writeFile(actualGainMapPath, actualGainMap),
+      ]);
+      await runImageMagick('convert', [
+        sourceGainMapPath,
+        '-rotate',
+        '90',
+        '-resize',
+        '192!x255!',
+        '-quality',
+        '90',
+        expectedGainMapPath,
+      ]);
+
+      const [{ stdout: expectedPixels }, { stdout: actualPixels }] = await Promise.all([
+        runImageMagick('convert', [expectedGainMapPath, 'rgb:-'], { binary: true }),
+        runImageMagick('convert', [actualGainMapPath, 'rgb:-'], { binary: true }),
+      ]);
+      expect(actualPixels, 'to equal', expectedPixels);
     } finally {
       await rm(workDir, { recursive: true, force: true });
     }
