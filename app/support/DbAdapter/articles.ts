@@ -1,0 +1,169 @@
+import { isDeepStrictEqual } from 'node:util';
+
+import { sql } from 'slonik';
+import { z } from 'zod';
+import { pick } from 'lodash-es';
+
+import { Article, ARTICLE_CONTENT_KEYS, ArticleRevision } from '../../models/article';
+import type {
+  ArticleCreationParams,
+  ArticleDbRowContent,
+  ArticleUpdateResult,
+} from '../../models/article';
+import type { UUID } from '../types';
+
+import type { DbAdapter } from './index';
+
+///////////////////////////////////////////////////
+// Articles
+///////////////////////////////////////////////////
+
+const articlesTrait = (superClass: typeof DbAdapter) =>
+  class extends superClass {
+    async getArticleById(uid: UUID): Promise<Article | null> {
+      const pool = await this.getSlonik();
+      const row = await pool.maybeOne(articleQuery`select * from articles where uid = ${uid}`);
+      return row ? new Article(this, row) : null;
+    }
+
+    async getArticleRevisionById(uid: UUID): Promise<ArticleRevision | null> {
+      const pool = await this.getSlonik();
+      const row = await pool.maybeOne(
+        articleRevisionQuery`select * from article_revisions where uid = ${uid}`,
+      );
+      return row ? new ArticleRevision(this, row) : null;
+    }
+
+    async getArticleRevisions(
+      articleId: UUID,
+      limit: number,
+      offset: number,
+      descOrder = true,
+    ): Promise<ArticleRevision[]> {
+      const pool = await this.getSlonik();
+      const rows = await pool.any(
+        articleRevisionQuery`select * from article_revisions where
+          article_id = ${articleId} order by version ${sql.literalValue(descOrder ? 'desc' : 'asc')}
+          limit ${limit} offset ${offset}`,
+      );
+      return rows.map((row) => new ArticleRevision(this, row));
+    }
+
+    async createArticle(params: ArticleCreationParams): Promise<Article> {
+      const pool = await this.getSlonik();
+      const id = await pool.oneFirst(
+        uidQuery`insert into articles
+          (author_id, title, slug, digest, body)
+          values
+          (${params.author_id}, ${params.title}, ${params.slug}, ${params.digest}, 
+            ${sql.jsonb(params.body)})
+          returning uid`,
+      );
+
+      const article = await this.getArticleById(id);
+
+      if (!article) {
+        // We should never reach this point if the article was successfully created
+        throw new Error(`Failed to create article with id ${id}`);
+      }
+
+      return article;
+    }
+
+    async updateArticle(
+      uid: UUID,
+      expectedVersion: number,
+      params: ArticleDbRowContent,
+    ): Promise<ArticleUpdateResult> {
+      const pool = await this.getSlonik();
+      return pool.transaction(async (trx): Promise<ArticleUpdateResult> => {
+        const currentData = await trx.maybeOne(
+          articleQuery`select * from articles where uid = ${uid} for update`,
+        );
+
+        if (currentData === null) {
+          return { status: 'not-found' };
+        }
+
+        if (currentData.version !== expectedVersion) {
+          return { status: 'conflict' };
+        }
+
+        const currentContent = pick(currentData, ...ARTICLE_CONTENT_KEYS);
+        const newContent = pick(params, ...ARTICLE_CONTENT_KEYS);
+
+        if (isDeepStrictEqual(currentContent, newContent)) {
+          return { status: 'unchanged' };
+        }
+
+        await trx.oneFirst(
+          uidQuery`insert into article_revisions
+            (article_id, title, slug, digest, body, version)
+            select 
+            uid, title, slug, digest, body, version from articles
+            where articles.uid = ${uid} returning uid`,
+        );
+
+        const version = await trx.oneFirst(
+          versionQuery`update articles
+            set title = ${params.title},
+                slug = ${params.slug},
+                digest = ${params.digest},
+                body = ${sql.jsonb(params.body)},
+                version = version + 1,
+                updated_at = now()
+            where uid = ${uid} and version = ${expectedVersion}
+            returning version`,
+        );
+
+        return { status: 'updated', version };
+      });
+    }
+
+    async destroyArticle(uid: UUID): Promise<boolean> {
+      const pool = await this.getSlonik();
+      const result = await pool.maybeOneFirst(
+        uidQuery`delete from articles where uid = ${uid} returning uid`,
+      );
+      return result !== null;
+    }
+  };
+
+export default articlesTrait;
+
+const uidQuery = sql.type(z.object({ uid: z.uuid() }));
+const versionSchema = z.number().int().positive();
+const versionQuery = sql.type(z.object({ version: versionSchema }));
+const articleContentSchema = {
+  title: z.string(),
+  slug: z.string(),
+  digest: z.string(),
+  body: z.object({
+    blocks: z.array(
+      // prettier-ignore
+      z.discriminatedUnion('type', [
+        z.object({ type: z.literal('test'), content: z.string() }),
+      ]),
+    ),
+  }),
+};
+const articleQuery = sql.type(
+  z.object({
+    uid: z.uuid(),
+    author_id: z.uuid(),
+    post_id: z.uuid().nullable(),
+    created_at: z.date(),
+    updated_at: z.date(),
+    version: versionSchema,
+    ...articleContentSchema,
+  }),
+);
+const articleRevisionQuery = sql.type(
+  z.object({
+    uid: z.uuid(),
+    article_id: z.uuid(),
+    created_at: z.date(),
+    version: versionSchema,
+    ...articleContentSchema,
+  }),
+);

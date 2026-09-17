@@ -23,12 +23,20 @@ import { T_EVENT_TYPE } from '../EventTypes';
 import { AdminAction, AdminRole } from '../../models/admins';
 import { InvitationCreationCriterion } from '../types/invitations';
 import { RefusalReason } from '../../models/invitations';
-import { List, type ListLike } from '../open-lists';
-
-import { type UserStats } from './user-stats-dynamic';
+import { List } from '../open-lists';
+import type { ListLike } from '../open-lists';
 import {
-  type RegisterOptions as TranslationRegisterOptions,
-  type UsageOptions as TranslationUsageOptions,
+  Article,
+  ArticleRevision,
+  ArticleCreationParams,
+  ArticleDbRowContent,
+  ArticleUpdateResult,
+} from '../../models/article';
+
+import type { UserStats } from './user-stats-dynamic';
+import type {
+  RegisterOptions as TranslationRegisterOptions,
+  UsageOptions as TranslationUsageOptions,
 } from './translation-usage';
 import { notificationsDigestRecipientSchema } from './users';
 
@@ -517,4 +525,21 @@ export class DbAdapter {
   getCommentEventsListenersForPost(postId: UUID): Promise<Map<UUID, boolean>>;
   setCommentEventsStatusForPost(postId: UUID, userId: UUID, isEnabled: boolean): Promise<void>;
   cleanCommentEventsSubscriptions(userId: UUID): Promise<void>;
+
+  // Articles
+  getArticleById(uid: UUID): Promise<Article | null>;
+  getArticleRevisionById(uid: UUID): Promise<ArticleRevision | null>;
+  createArticle(row: ArticleCreationParams): Promise<Article>;
+  updateArticle(
+    uid: UUID,
+    expectedVersion: number,
+    params: ArticleDbRowContent,
+  ): Promise<ArticleUpdateResult>;
+  destroyArticle(uid: UUID): Promise<boolean>;
+  getArticleRevisions(
+    articleId: UUID,
+    limit: number,
+    offset: number,
+    descOrder?: boolean,
+  ): Promise<ArticleRevision[]>;
 }
