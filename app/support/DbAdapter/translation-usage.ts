@@ -1,6 +1,6 @@
-import { type ISO8601DateTimeString, type UUID } from '../types';
+import type { ISO8601DateTimeString, UUID } from '../types';
 
-import { type DbAdapter } from './index';
+import type { DbAdapter } from './index';
 
 export type RegisterOptions = {
   userId?: UUID | null;

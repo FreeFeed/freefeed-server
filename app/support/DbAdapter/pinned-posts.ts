@@ -1,6 +1,6 @@
 import pgFormat from 'pg-format';
 
-import { type DbAdapter } from './index';
+import type { DbAdapter } from './index';
 
 export default (superClass: typeof DbAdapter) =>
   class extends superClass {

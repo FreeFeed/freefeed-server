@@ -1,4 +1,4 @@
-import { type Knex } from 'knex';
+import type { Knex } from 'knex';
 import pgFormat from 'pg-format';
 
 import { normalizeHashtag } from '../app/support/normalize-hashtags';

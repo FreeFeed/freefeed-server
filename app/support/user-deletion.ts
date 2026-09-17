@@ -5,7 +5,7 @@ import { GONE_DELETED } from '../models/user';
 
 import { forEachAsync } from './forEachAsync';
 import { delay } from './timers';
-import { type UUID } from './types';
+import type { UUID } from './types';
 
 const debug = createDebug('freefeed:user-gone');
 

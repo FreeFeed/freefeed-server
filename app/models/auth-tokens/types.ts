@@ -1,4 +1,4 @@
-import { type IPAddr, type Nullable, type UUID } from '../../support/types';
+import type { IPAddr, Nullable, UUID } from '../../support/types';
 
 export type AppTokenCreateParams = {
   userId: UUID;

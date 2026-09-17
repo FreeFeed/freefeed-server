@@ -1,9 +1,9 @@
-import { type Router } from '@koa/router';
-import { type DefaultState } from 'koa';
+import type { Router } from '@koa/router';
+import type { DefaultState } from 'koa';
 
 import { journal, whoAmI } from '../../../controllers/api/admin/CommonController';
 import { adminRolesRequired } from '../../../controllers/middlewares/admin-only';
-import { type AppContext } from '../../../support/types';
+import type { AppContext } from '../../../support/types';
 
 export default function addRoutes(router: Router<DefaultState, AppContext>) {
   const mw = adminRolesRequired();

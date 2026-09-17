@@ -1,14 +1,14 @@
 import { Knex } from 'knex';
-import { type Cache } from 'cache-manager';
-import { type DatabasePool } from 'slonik';
+import type { Cache } from 'cache-manager';
+import type { DatabasePool } from 'slonik';
 import { z } from 'zod';
 
-import {
-  type IPAddr,
-  type ISO8601DateTimeString,
-  type ISO8601DurationString,
-  type Nullable,
-  type UUID,
+import type {
+  IPAddr,
+  ISO8601DateTimeString,
+  ISO8601DurationString,
+  Nullable,
+  UUID,
 } from '../types';
 import { AppTokenV1, Attachment, Comment, Group, Post, Timeline, User, Job } from '../../models';
 import {

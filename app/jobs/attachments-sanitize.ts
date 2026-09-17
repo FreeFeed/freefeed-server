@@ -2,8 +2,9 @@ import createDebug from 'debug';
 import { DateTime } from 'luxon';
 import Raven from 'raven';
 
-import { dbAdapter, Job, JobManager, type User } from '../models';
-import { type UUID } from '../support/types';
+import { dbAdapter, Job, JobManager } from '../models';
+import type { User } from '../models';
+import type { UUID } from '../support/types';
 
 const debug = createDebug('freefeed:model:attachment');
 

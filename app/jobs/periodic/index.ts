@@ -3,7 +3,8 @@ import createDebug from 'debug';
 import Raven from 'raven';
 
 import FreefeedApp from '../../freefeed-app';
-import { Job, type JobHandler, JobManager } from '../../models';
+import { Job, JobManager } from '../../models';
+import type { JobHandler } from '../../models';
 
 import { initHandlers as initAuthTokensHandlers } from './auth-tokens';
 import { initHandlers as initFrozenUsersHandlers } from './frozen-users';

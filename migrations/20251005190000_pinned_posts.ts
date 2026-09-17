@@ -1,6 +1,6 @@
 // See 20251005… migration for the name issue
 
-import { type Knex } from 'knex';
+import type { Knex } from 'knex';
 
 import { eventTypesSQLs } from '../app/support/migrations';
 

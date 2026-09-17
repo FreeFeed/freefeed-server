@@ -1,13 +1,9 @@
 import { API_VERSION_3 } from '../../api-versions';
-import { type Attachment } from '../../models';
+import type { Attachment } from '../../models';
 import { currentConfig } from '../../support/app-async-context';
 import { setExtension } from '../../support/media-files/file-ext';
-import {
-  type MediaMetaData,
-  type MediaPreviews,
-  type MediaType,
-} from '../../support/media-files/types';
-import { type ISO8601DateTimeString, type UUID } from '../../support/types';
+import type { MediaMetaData, MediaPreviews, MediaType } from '../../support/media-files/types';
+import type { ISO8601DateTimeString, UUID } from '../../support/types';
 
 type SerializedAttachmentV2 = {
   id: UUID;

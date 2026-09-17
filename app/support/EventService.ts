@@ -3,13 +3,9 @@ import { difference, intersectionBy, uniq, uniqBy } from 'lodash-es';
 import { dbAdapter, User, Group, Post, Comment, PubSub as pubSub, Timeline } from '../models';
 
 import { extractMentions, extractMentionsWithOffsets } from './mentions';
-import {
-  ALLOWED_EVENT_TYPES,
-  COUNTABLE_EVENT_TYPES,
-  EVENT_TYPES,
-  type T_EVENT_TYPE,
-} from './EventTypes';
-import { type Nullable, type UUID } from './types';
+import { ALLOWED_EVENT_TYPES, COUNTABLE_EVENT_TYPES, EVENT_TYPES } from './EventTypes';
+import type { T_EVENT_TYPE } from './EventTypes';
+import type { Nullable, UUID } from './types';
 import { extractHashedShortIds, extractShortIds, extractUUIDs } from './backlinks';
 
 type OnPostFeedsChangedParams = {

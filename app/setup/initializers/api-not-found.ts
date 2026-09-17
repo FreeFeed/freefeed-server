@@ -1,4 +1,4 @@
-import { type Context, type Next } from 'koa';
+import type { Context, Next } from 'koa';
 
 export async function apiNotFoundMiddleware(ctx: Context, next: Next) {
   if (ctx.state.apiVersion || ctx.request.url.startsWith('/api')) {

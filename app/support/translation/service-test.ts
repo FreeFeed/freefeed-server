@@ -1,4 +1,4 @@
-import { type TranslationResult } from './types';
+import type { TranslationResult } from './types';
 
 export function translate(text: string, targetLang: string): Promise<TranslationResult> {
   return Promise.resolve({

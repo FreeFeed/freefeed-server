@@ -1,8 +1,8 @@
-import { type Context, type Next } from 'koa';
+import type { Context, Next } from 'koa';
 
 import { dbAdapter } from '../../models';
 import { NotAuthorizedException } from '../../support/exceptions';
-import { type UUID } from '../../support/types';
+import type { UUID } from '../../support/types';
 import { currentConfig } from '../../support/app-async-context';
 
 import { authDebug, authDebugError } from '.';

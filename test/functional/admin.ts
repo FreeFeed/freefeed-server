@@ -19,13 +19,13 @@ import {
 } from '../../app/models/admins';
 
 import {
-  type UserCtx,
   performJSONRequest,
   authHeaders,
   cmpBy,
   createUserAsync,
   createTestUser,
 } from './functional_test_helper';
+import type { UserCtx } from './functional_test_helper';
 
 const expect = unexpected.clone();
 expect.use(unexpectedDate);

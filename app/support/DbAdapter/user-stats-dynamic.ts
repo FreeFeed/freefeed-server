@@ -1,8 +1,8 @@
-import { type UUID } from '../types';
+import type { UUID } from '../types';
 
 import { sqlIntarrayIn } from './utils';
 
-import { type DbAdapter } from './index';
+import type { DbAdapter } from './index';
 
 const ZERO_UID = '00000000-00000000-00000000-00000000';
 

@@ -3,7 +3,7 @@ import { LINK } from 'social-text-tokenizer';
 import { linkHref } from 'social-text-tokenizer/prettifiers';
 
 import { List } from './open-lists';
-import { type UUID } from './types';
+import type { UUID } from './types';
 import { SHORT_LINK, tokenize } from './tokenize-text';
 
 export function getUpdatedUUIDs(text1: string, text2 = '') {

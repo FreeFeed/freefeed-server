@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken';
 type JwtPayload = jwt.JwtPayload;
 
 import { currentConfig } from '../app-async-context';
-import { type UUID } from '../types';
+import type { UUID } from '../types';
 
 export type SerializedUndoEntry<Subj extends string> = {
   subject: Subj;

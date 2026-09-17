@@ -1,4 +1,4 @@
-import { type ISO8601DurationString } from './branded';
+import type { ISO8601DurationString } from './branded';
 
 export type InvitationCreationCriterion =
   | ['minAccountAge', { age: ISO8601DurationString }]

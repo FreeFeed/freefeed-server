@@ -3,7 +3,8 @@ import crypto from 'crypto';
 import config from 'config';
 import { Keyv } from 'keyv';
 import KeyvRedis from '@keyv/redis';
-import { createCache, type Cache as TCache } from 'cache-manager';
+import { createCache } from 'cache-manager';
+import type { Cache as TCache } from 'cache-manager';
 
 const KEY_LENGTH = 16; // bytes
 

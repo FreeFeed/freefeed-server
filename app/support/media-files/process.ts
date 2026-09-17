@@ -5,21 +5,22 @@ import { exiftool } from 'exiftool-vendored';
 import createDebug from 'debug';
 
 import { runImageMagick } from '../image-magick';
-import { spawnAsync, type SpawnAsyncArgs } from '../spawn-async';
+import { spawnAsync } from '../spawn-async';
+import type { SpawnAsyncArgs } from '../spawn-async';
 import { currentConfig } from '../app-async-context';
 import { ContentTooLargeException } from '../exceptions';
 import { nodeDirname } from '../node-dirname';
 
 import { detectMediaType } from './detect';
-import {
-  type Box,
-  type FilesToUpload,
-  type MediaInfoAudio,
-  type MediaInfoImage,
-  type MediaInfoVideo,
-  type MediaProcessResult,
-  type NonVisualPreviews,
-  type VisualPreviews,
+import type {
+  Box,
+  FilesToUpload,
+  MediaInfoAudio,
+  MediaInfoImage,
+  MediaInfoVideo,
+  MediaProcessResult,
+  NonVisualPreviews,
+  VisualPreviews,
 } from './types';
 import { getImagePreviewSizes, getVideoPreviewSizes } from './geometry';
 import { setExtension } from './file-ext';

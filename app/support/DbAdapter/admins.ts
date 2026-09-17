@@ -1,7 +1,8 @@
-import { type AdminAction, type AdminRole, ROLE_ADMIN } from '../../models/admins';
-import { type UUID } from '../types';
+import { ROLE_ADMIN } from '../../models/admins';
+import type { AdminAction, AdminRole } from '../../models/admins';
+import type { UUID } from '../types';
 
-import { type DbAdapter } from './index';
+import type { DbAdapter } from './index';
 
 const adminsTrait = (superClass: typeof DbAdapter) =>
   class extends superClass {

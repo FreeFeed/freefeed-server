@@ -1,7 +1,7 @@
 import { Readable } from 'stream';
 import { ReadableStream } from 'stream/web';
 
-import { type Context } from 'koa';
+import type { Context } from 'koa';
 import { Duration } from 'luxon';
 
 import { ForbiddenException, ValidationException } from '../../../support/exceptions';

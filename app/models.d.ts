@@ -1,7 +1,8 @@
 import { Knex } from 'knex';
 import { Config } from 'config';
 
-import { DbAdapter, type InvitationRecord } from './support/DbAdapter';
+import { DbAdapter } from './support/DbAdapter';
+import type { InvitationRecord } from './support/DbAdapter';
 import PubSubAdapter from './pubsub';
 import { GONE_NAMES } from './models/user';
 import { ISO8601DateTimeString, ISO8601DurationString, Nullable, UUID } from './support/types';

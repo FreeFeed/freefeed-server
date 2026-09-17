@@ -1,7 +1,8 @@
 import { AsyncLocalStorage } from 'async_hooks';
 
-import defaultConfig, { type Config } from 'config';
-import { type Middleware } from 'koa';
+import defaultConfig from 'config';
+import type { Config } from 'config';
+import type { Middleware } from 'koa';
 
 type AppAsyncContext = {
   config: Config;

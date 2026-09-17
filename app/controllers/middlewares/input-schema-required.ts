@@ -1,6 +1,6 @@
 import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
-import { type Middleware } from 'koa';
+import type { Middleware } from 'koa';
 import { ZodType } from 'zod';
 import { fromError } from 'zod-validation-error';
 

@@ -1,6 +1,6 @@
-import { type UUID } from '../types';
+import type { UUID } from '../types';
 
-import { type DbAdapter } from './index';
+import type { DbAdapter } from './index';
 
 export default function postCommentEventsTrait(superClass: typeof DbAdapter): typeof DbAdapter {
   return class extends superClass {

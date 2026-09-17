@@ -1,4 +1,4 @@
-import { type Knex } from 'knex';
+import type { Knex } from 'knex';
 
 // local_bumps is disposable feed-ordering state that naturally repopulates after a crash.
 // Keep it unlogged to avoid WAL for its high-churn heap and indexes.

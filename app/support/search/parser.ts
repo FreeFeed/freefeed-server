@@ -14,13 +14,13 @@ import {
   Text,
   InScope,
   trimText,
-  type Token,
   SeqTexts,
   AnyText,
   IN_COMMENTS,
   dateConditions,
   counterConditions,
 } from './query-tokens';
+import type { Token } from './query-tokens';
 import { parseDateExpression } from './date-parser';
 import { parseCounterExpression } from './counter-parser';
 

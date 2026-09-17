@@ -5,7 +5,8 @@ import Raven from 'raven';
 import monitor from 'monitor-dog';
 import config from 'config';
 
-import { Job, type JobHandler } from '../models';
+import { Job } from '../models';
+import type { JobHandler } from '../models';
 
 const debug = createDebug('freefeed:jobs:debug');
 

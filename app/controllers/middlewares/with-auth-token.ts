@@ -1,9 +1,9 @@
-import { type Context, type Next } from 'koa';
+import type { Context, Next } from 'koa';
 
 import { NotAuthorizedException } from '../../support/exceptions';
 import { authDebugError, AuthToken, SessionTokenV1 } from '../../models/auth-tokens';
 import { AppTokenV1, dbAdapter, sessionTokenV1Store } from '../../models';
-import { type Nullable } from '../../support/types';
+import type { Nullable } from '../../support/types';
 
 export async function withAuthToken(ctx: Context, next: Next) {
   const payload = ctx.state.authJWTPayload;

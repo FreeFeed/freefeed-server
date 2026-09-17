@@ -1,7 +1,7 @@
-import { type Context } from 'koa';
+import type { Context } from 'koa';
 
 import { Comment, Group, Post, User } from '../../app/models';
-import { type UUID } from '../../app/support/types';
+import type { UUID } from '../../app/support/types';
 
 export type UserCtx = {
   authToken: string;

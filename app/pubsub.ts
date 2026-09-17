@@ -2,7 +2,7 @@ import { Comment, dbAdapter, Post } from './models';
 import { serializeTimeline } from './serializers/v2/timeline';
 import { List } from './support/open-lists';
 import { PubSubAdapter } from './support/PubSubAdapter';
-import { type Nullable, type UUID } from './support/types';
+import type { Nullable, UUID } from './support/types';
 
 export class DummyPublisher extends PubSubAdapter {
   constructor() {

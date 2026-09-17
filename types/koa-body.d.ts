@@ -1,4 +1,4 @@
-import { type Files } from 'formidable';
+import type { Files } from 'formidable';
 import 'koa';
 
 // koa-body augments the @types/koa copy resolved from its own dependency tree.

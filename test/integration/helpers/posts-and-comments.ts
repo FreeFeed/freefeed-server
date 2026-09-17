@@ -1,5 +1,5 @@
 import { Comment, Group, Post, User } from '../../../app/models';
-import { type UUID } from '../../../app/support/types';
+import type { UUID } from '../../../app/support/types';
 
 export async function createPost(
   author: User,

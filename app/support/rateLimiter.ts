@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 
 import monitor from 'monitor-dog'; // search keyword: datadog
-import { type Context, type Next } from 'koa';
+import type { Context, Next } from 'koa';
 import RateLimiter from 'async-ratelimiter';
 import Redis from 'ioredis';
 import config from 'config';

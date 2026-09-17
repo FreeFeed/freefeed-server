@@ -1,5 +1,5 @@
 declare module 'koa-methodoverride' {
-  import { type Request, type Middleware } from 'koa';
+  import type { Request, Middleware } from 'koa';
 
   function methodOverride(fn: (req: Request) => string): Middleware;
 
