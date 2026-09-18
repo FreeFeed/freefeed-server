@@ -58,9 +58,9 @@ const articlesTrait = (superClass: typeof DbAdapter) =>
       const createdId = await pool.transaction(async (trx) => {
         const id = await trx.oneFirst(
           uidQuery`insert into articles
-          (author_id, title, slug, digest, body)
+          (author_id, title, digest, body)
           values
-          (${params.author_id}, ${params.title}, ${params.slug}, ${params.digest}, 
+          (${params.author_id}, ${params.title}, ${params.digest},
             ${sql.jsonb(params.body)})
           returning uid`,
         );
@@ -170,16 +170,15 @@ const articlesTrait = (superClass: typeof DbAdapter) =>
 
         await trx.oneFirst(
           uidQuery`insert into article_revisions
-            (article_id, title, slug, digest, body, version)
+            (article_id, title, digest, body, version)
             select 
-            uid, title, slug, digest, body, version from articles
+            uid, title, digest, body, version from articles
             where articles.uid = ${uid} returning uid`,
         );
 
         const version = await trx.oneFirst(
           versionQuery`update articles
             set title = ${params.title},
-                slug = ${params.slug},
                 digest = ${params.digest},
                 body = ${sql.jsonb(params.body)},
                 version = version + 1,
@@ -217,7 +216,6 @@ const versionSchema = z.number().int().positive();
 const versionQuery = sql.type(z.object({ version: versionSchema }));
 const articleContentSchema = {
   title: z.string(),
-  slug: z.string(),
   digest: z.string(),
   body: z.object({
     blocks: z.array(

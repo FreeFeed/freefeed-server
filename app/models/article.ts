@@ -8,14 +8,12 @@ abstract class ArticleContent {
   protected readonly dba: DbAdapter;
 
   title: string;
-  slug: string;
   digest: string;
   body: ArticleBody;
 
   constructor(dba: DbAdapter, dbRow: ArticleDbRowContent) {
     this.dba = dba;
     this.title = dbRow.title;
-    this.slug = dbRow.slug;
     this.digest = dbRow.digest;
     this.body = dbRow.body;
   }
@@ -23,14 +21,12 @@ abstract class ArticleContent {
 
 export type ArticleDbRowContent = {
   title: string;
-  slug: string;
   digest: string;
   body: ArticleBody;
 };
 
 export const ARTICLE_CONTENT_KEYS = [
   'title',
-  'slug',
   'digest',
   'body',
 ] as const satisfies (keyof ArticleDbRowContent)[];

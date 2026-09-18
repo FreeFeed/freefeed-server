@@ -11,7 +11,6 @@ export const up = (knex: Knex) =>
             post_id     uuid NULL,
 
             title       text NOT NULL,
-            slug        text NOT NULL,
             digest      text NOT NULL DEFAULT '',
             body        jsonb NOT NULL,
             version     integer NOT NULL DEFAULT 1,
@@ -38,7 +37,6 @@ export const up = (knex: Knex) =>
             created_at  timestamptz NOT NULL DEFAULT now(),
 
             title       text NOT NULL,
-            slug        text NOT NULL,
             digest      text NOT NULL DEFAULT '',
             body        jsonb NOT NULL,
             version     integer NOT NULL,

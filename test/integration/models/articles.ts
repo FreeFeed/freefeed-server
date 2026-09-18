@@ -19,7 +19,6 @@ describe('Articles model', () => {
 
   const ARTICLE_CONTENT = {
     title: 'Test Article',
-    slug: 'test-article',
     digest: 'test-digest',
     body: { blocks: [{ type: 'test', content: 'Test content' }] },
   } satisfies ArticleDbRowContent;
@@ -271,7 +270,6 @@ describe('Articles model', () => {
 function makeContent(prefix: string): ArticleDbRowContent {
   return {
     title: `${prefix} Article`,
-    slug: `${prefix.toLowerCase()}-article`,
     digest: `${prefix} digest`,
     body: { blocks: [{ type: 'test', content: `${prefix} content` }] },
   };
