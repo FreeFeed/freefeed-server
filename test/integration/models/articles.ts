@@ -169,8 +169,80 @@ describe('Articles model', () => {
     });
   });
 
+  it('should set ordered tags without changing the article version', async () => {
+    await article.setTags(['Second', 'First']);
+
+    expect(await getArticleTagState(article.uid), 'to equal', {
+      articleTags: [
+        { name: 'second', ord: 1 },
+        { name: 'first', ord: 2 },
+      ],
+      usageTags: ['first', 'second'],
+    });
+    expect(await dbAdapter.getArticleById(article.uid), 'to satisfy', { version: 1 });
+    expect(await article.getRevisions(10, 0), 'to be empty');
+  });
+
+  it('should replace article tags and their usages', async () => {
+    await article.setTags(['one', 'two']);
+    await article.setTags(['two', 'three']);
+
+    expect(await getArticleTagState(article.uid), 'to equal', {
+      articleTags: [
+        { name: 'two', ord: 1 },
+        { name: 'three', ord: 2 },
+      ],
+      usageTags: ['three', 'two'],
+    });
+  });
+
+  it('should clear article tags without deleting hashtags', async () => {
+    await article.setTags(['one', 'two']);
+    await article.setTags([]);
+
+    expect(await getArticleTagState(article.uid), 'to equal', {
+      articleTags: [],
+      usageTags: [],
+    });
+
+    const pool = await dbAdapter.getSlonik();
+    const hashtags = await pool.any(
+      hashtagNameQuery`select name from hashtags
+        where name = any(${sql.array(['one', 'two'], 'text')}) order by name`,
+    );
+    expect(
+      hashtags.map(({ name }) => name),
+      'to equal',
+      ['one', 'two'],
+    );
+  });
+
+  it('should reuse hashtags regardless of case', async () => {
+    await article.setTags(['Test']);
+    await article.setTags(['TEST', 'Other']);
+
+    expect(await getArticleTagState(article.uid), 'to equal', {
+      articleTags: [
+        { name: 'test', ord: 1 },
+        { name: 'other', ord: 2 },
+      ],
+      usageTags: ['other', 'test'],
+    });
+  });
+
+  it('should serialize concurrent tag replacements', async () => {
+    await Promise.all([article.setTags(['one', 'two']), article.setTags(['three', 'four'])]);
+
+    const state = await getArticleTagState(article.uid);
+    const orderedNames = state.articleTags.map(({ name }) => name);
+
+    expect(['one,two', 'three,four'], 'to contain', orderedNames.join(','));
+    expect(state.usageTags, 'to equal', [...orderedNames].sort());
+  });
+
   it('should delete the article and preserve its short ID tombstone', async () => {
     await article.update(1, UPDATED_CONTENT);
+    await article.setTags(['one', 'two']);
     const shortId = await article.getShortId();
 
     expect(await article.destroy(), 'to be', true);
@@ -178,6 +250,10 @@ describe('Articles model', () => {
     expect(await dbAdapter.getArticleById(article.uid), 'to be null');
     expect(await dbAdapter.getArticleByShortId(shortId), 'to be null');
     expect(await article.getRevisions(10, 0), 'to be empty');
+    expect(await getArticleTagState(article.uid), 'to equal', {
+      articleTags: [],
+      usageTags: [],
+    });
     expect(await article.update(2, OTHER_CONTENT), 'to equal', { status: 'not-found' });
     const pool = await dbAdapter.getSlonik();
     expect(
@@ -198,5 +274,29 @@ function makeContent(prefix: string): ArticleDbRowContent {
     slug: `${prefix.toLowerCase()}-article`,
     digest: `${prefix} digest`,
     body: { blocks: [{ type: 'test', content: `${prefix} content` }] },
+  };
+}
+
+const articleTagQuery = sql.type(z.object({ name: z.string(), ord: z.number().int() }));
+const hashtagNameQuery = sql.type(z.object({ name: z.string() }));
+
+async function getArticleTagState(articleId: UUID) {
+  const pool = await dbAdapter.getSlonik();
+  const [articleTags, usageTags] = await Promise.all([
+    pool.any(
+      articleTagQuery`select h.name, at.ord
+        from article_tags at join hashtags h on h.id = at.tag_id
+        where at.article_id = ${articleId} order by at.ord`,
+    ),
+    pool.any(
+      hashtagNameQuery`select h.name
+        from hashtag_usages hu join hashtags h on h.id = hu.hashtag_id
+        where hu.entity_id = ${articleId} and hu.type = ${'article'} order by h.name`,
+    ),
+  ]);
+
+  return {
+    articleTags: [...articleTags],
+    usageTags: usageTags.map(({ name }) => name),
   };
 }

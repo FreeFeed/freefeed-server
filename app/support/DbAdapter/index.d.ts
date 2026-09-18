@@ -202,6 +202,8 @@ export class DbAdapter {
    */
   refreshHashtagStats(): Promise<void>;
 
+  getOrCreateHashtagIdsByNames(names: string[]): Promise<number[]>;
+
   setFirstUserInteraction(userId: UUID): Promise<Date | null>;
 
   getUsersIdsByIntIds(intIds: number[]): Promise<{ id: number; uid: UUID }[]>;
@@ -544,4 +546,5 @@ export class DbAdapter {
     offset: number,
     descOrder?: boolean,
   ): Promise<ArticleRevision[]>;
+  setArticleTags(articleId: UUID, tags: string[]): Promise<void>;
 }

@@ -104,6 +104,44 @@ const articlesTrait = (superClass: typeof DbAdapter) =>
       );
     }
 
+    async setArticleTags(articleId: UUID, tags: string[]): Promise<void> {
+      const pool = await this.getSlonik();
+      const normalizedTags = [...new Set(tags.map((tag) => tag.toLowerCase()))];
+      await this.getOrCreateHashtagIdsByNames(normalizedTags);
+      const tagIds = (
+        await pool.any(
+          hashtagIdQuery`select h.id
+            from unnest(${sql.array(normalizedTags, 'text')}) with ordinality as t(name, ord)
+            join hashtags h on h.name = t.name
+            order by t.ord`,
+        )
+      ).map(({ id }) => id);
+
+      await pool.transaction(async (trx) => {
+        await trx.oneFirst(
+          uidQuery`select uid from articles where uid = ${articleId} for no key update`,
+        );
+
+        // Delete existing tags and hashtag usages for the article before inserting the new ones
+        await trx.query(voidQuery`delete from article_tags where article_id = ${articleId}`);
+        await trx.query(
+          voidQuery`delete from hashtag_usages where entity_id = ${articleId} and type = ${'article'}`,
+        );
+
+        // Insert new tags and hashtag usages for the article
+        await trx.query(
+          voidQuery`insert into article_tags (article_id, tag_id, ord)
+            select ${articleId}, tag_id, ord
+            from unnest(${sql.array(tagIds, 'int4')}) with ordinality as t(tag_id, ord)`,
+        );
+        await trx.query(
+          voidQuery`insert into hashtag_usages (entity_id, hashtag_id, type)
+            select ${articleId}, tag_id, ${'article'}
+            from unnest(${sql.array(tagIds, 'int4')}) as t(tag_id)`,
+        );
+      });
+    }
+
     async updateArticle(
       uid: UUID,
       expectedVersion: number,
@@ -156,10 +194,15 @@ const articlesTrait = (superClass: typeof DbAdapter) =>
 
     async destroyArticle(uid: UUID): Promise<boolean> {
       const pool = await this.getSlonik();
-      const result = await pool.maybeOneFirst(
-        uidQuery`delete from articles where uid = ${uid} returning uid`,
-      );
-      return result !== null;
+      return pool.transaction(async (trx) => {
+        await trx.query(
+          voidQuery`delete from hashtag_usages where entity_id = ${uid} and type = ${'article'}`,
+        );
+        const result = await trx.maybeOneFirst(
+          uidQuery`delete from articles where uid = ${uid} returning uid`,
+        );
+        return result !== null;
+      });
     }
   };
 
@@ -167,6 +210,9 @@ export default articlesTrait;
 
 const uidQuery = sql.type(z.object({ uid: z.uuid() }));
 const shortIdQuery = sql.type(z.object({ short_id: z.string() }));
+const hashtagIdQuery = sql.type(z.object({ id: z.number().int().positive() }));
+const voidQuery = sql.type(z.void());
+
 const versionSchema = z.number().int().positive();
 const versionQuery = sql.type(z.object({ version: versionSchema }));
 const articleContentSchema = {

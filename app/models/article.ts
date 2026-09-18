@@ -77,6 +77,10 @@ export class Article extends ArticleContent {
     return result;
   }
 
+  setTags(tags: string[]): Promise<void> {
+    return this.dba.setArticleTags(this.uid, tags);
+  }
+
   destroy(): Promise<boolean> {
     return this.dba.destroyArticle(this.uid);
   }
