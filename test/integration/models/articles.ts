@@ -20,12 +20,12 @@ describe('Articles model', () => {
   const ARTICLE_CONTENT = {
     title: 'Test Article',
     digest: 'test-digest',
-    body: { blocks: [{ type: 'test', content: 'Test content' }] },
+    body: { blocks: [{ id: '1', type: 'test', content: 'Test content' }] },
   } satisfies ArticleDbRowContent;
 
-  const UPDATED_CONTENT = makeContent('Updated');
-  const OTHER_CONTENT = makeContent('Other');
-  const FINAL_CONTENT = makeContent('Final');
+  const UPDATED_CONTENT = makeContent('Updated', '2');
+  const OTHER_CONTENT = makeContent('Other', '3');
+  const FINAL_CONTENT = makeContent('Final', '4');
 
   let luna: User;
   let article: Article;
@@ -267,11 +267,11 @@ describe('Articles model', () => {
   });
 });
 
-function makeContent(prefix: string): ArticleDbRowContent {
+function makeContent(prefix: string, id: string): ArticleDbRowContent {
   return {
     title: `${prefix} Article`,
     digest: `${prefix} digest`,
-    body: { blocks: [{ type: 'test', content: `${prefix} content` }] },
+    body: { blocks: [{ id, type: 'test', content: `${prefix} content` }] },
   };
 }
 

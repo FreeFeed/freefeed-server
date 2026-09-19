@@ -4,7 +4,12 @@ import { sql } from 'slonik';
 import { z } from 'zod';
 import { pick } from 'lodash-es';
 
-import { Article, ARTICLE_CONTENT_KEYS, ArticleRevision } from '../../models/article';
+import {
+  Article,
+  ARTICLE_CONTENT_KEYS,
+  articleBodySchema,
+  ArticleRevision,
+} from '../../models/article';
 import type {
   ArticleCreationParams,
   ArticleDbRowContent,
@@ -217,14 +222,7 @@ const versionQuery = sql.type(z.object({ version: versionSchema }));
 const articleContentSchema = {
   title: z.string(),
   digest: z.string(),
-  body: z.object({
-    blocks: z.array(
-      // prettier-ignore
-      z.discriminatedUnion('type', [
-        z.object({ type: z.literal('test'), content: z.string() }),
-      ]),
-    ),
-  }),
+  body: articleBodySchema,
 };
 const articleQuery = sql.type(
   z.object({
