@@ -18,6 +18,8 @@ export const up = (knex: Knex) =>
             created_at  timestamptz NOT NULL DEFAULT now(),
             updated_at  timestamptz NOT NULL DEFAULT now(),
 
+            to_delete   boolean NOT NULL DEFAULT false,
+
             CONSTRAINT articles_author_fk
                 FOREIGN KEY (author_id)
                 REFERENCES users(uid),
@@ -90,6 +92,9 @@ export const up = (knex: Knex) =>
 
         CREATE INDEX articles_author_idx
             ON articles (author_id);
+
+        CREATE INDEX articles_to_delete_idx
+            ON articles (to_delete);
 
         CREATE UNIQUE INDEX articles_post_unique_idx
             ON articles (post_id)

@@ -196,6 +196,24 @@ const articlesTrait = (superClass: typeof DbAdapter) =>
       });
     }
 
+    async deactivateArticle(uid: UUID): Promise<boolean> {
+      const pool = await this.getSlonik();
+      const result = await pool.maybeOneFirst(
+        uidQuery`update articles set to_delete = true where
+          uid = ${uid} and not to_delete returning uid`,
+      );
+      return result !== null;
+    }
+
+    async activateArticle(uid: UUID): Promise<boolean> {
+      const pool = await this.getSlonik();
+      const result = await pool.maybeOneFirst(
+        uidQuery`update articles set to_delete = false where
+          uid = ${uid} and to_delete returning uid`,
+      );
+      return result !== null;
+    }
+
     async destroyArticle(uid: UUID): Promise<boolean> {
       const pool = await this.getSlonik();
       return pool.transaction(async (trx) => {
@@ -232,6 +250,7 @@ const articleQuery = sql.type(
     created_at: z.date(),
     updated_at: z.date(),
     version: versionSchema,
+    to_delete: z.boolean(),
     ...articleContentSchema,
   }),
 );

@@ -538,6 +538,8 @@ export class DbAdapter {
     expectedVersion: number,
     params: ArticleDbRowContent,
   ): Promise<ArticleUpdateResult>;
+  deactivateArticle(uid: UUID): Promise<boolean>;
+  activateArticle(uid: UUID): Promise<boolean>;
   destroyArticle(uid: UUID): Promise<boolean>;
   getArticleShortId(articleId: UUID): Promise<string>;
   getArticleRevisions(

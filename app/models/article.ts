@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import type { DbAdapter } from '../support/DbAdapter';
 import type { UUID } from '../support/types';
+import { scheduleArticleDeletion } from '../jobs/delete-article';
 
 const articleBlockSchema = z
   .object({
@@ -62,6 +63,7 @@ export class Article extends ArticleContent {
   createdAt: Date;
   updatedAt: Date;
   version: number;
+  toDelete: boolean;
 
   constructor(dba: DbAdapter, dbRow: ArticleDbRow) {
     super(dba, dbRow);
@@ -69,6 +71,7 @@ export class Article extends ArticleContent {
     this.uid = dbRow.uid;
     this.authorId = dbRow.author_id;
     this.postId = dbRow.post_id;
+    this.toDelete = dbRow.to_delete;
     this.createdAt = dbRow.created_at;
     this.updatedAt = dbRow.updated_at;
     this.version = dbRow.version;
@@ -95,6 +98,31 @@ export class Article extends ArticleContent {
     return this.dba.setArticleTags(this.uid, tags);
   }
 
+  async deactivate(): Promise<boolean> {
+    const result = await this.dba.deactivateArticle(this.uid);
+
+    if (!result) {
+      return false;
+    }
+
+    this.toDelete = true;
+    await scheduleArticleDeletion(this.uid);
+
+    return true;
+  }
+
+  async activate(): Promise<boolean> {
+    const result = await this.dba.activateArticle(this.uid);
+
+    if (!result) {
+      return false;
+    }
+
+    this.toDelete = false;
+
+    return true;
+  }
+
   destroy(): Promise<boolean> {
     return this.dba.destroyArticle(this.uid);
   }
@@ -119,6 +147,7 @@ export type ArticleDbRow = {
   created_at: Date;
   updated_at: Date;
   version: number;
+  to_delete: boolean;
 } & ArticleDbRowContent;
 
 // Revisions of articles

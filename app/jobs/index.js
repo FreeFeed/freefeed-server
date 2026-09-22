@@ -3,6 +3,7 @@ import config from 'config';
 import { JobManager } from '../models';
 import { initHandlers as initWelcomeDirectsHandlers } from '../support/welcome-directs';
 
+import { initHandlers as initDeleteArticleHandlers } from './delete-article';
 import { initHandlers as initPeriodicHandlers } from './periodic';
 import { initHandlers as initUserGoneHandlers } from './user-gone';
 import { initHandlers as initAttachmentsSanitizeHandlers } from './attachments-sanitize';
@@ -24,6 +25,7 @@ export async function initJobProcessing(app) {
       initWelcomeDirectsHandlers,
       initDeletePostsHandlers,
       initDeleteCommentsHandlers,
+      initDeleteArticleHandlers,
     ].map((h) => h(jobManager, app)),
   );
 

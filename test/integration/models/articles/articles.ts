@@ -4,12 +4,12 @@ import unexpectedDate from 'unexpected-date';
 import { sql } from 'slonik';
 import { z } from 'zod';
 
-import { dbAdapter, User } from '../../../app/models';
-import cleanDB from '../../dbCleaner';
-import { createUser } from '../helpers/users';
-import type { Article, ArticleDbRowContent } from '../../../app/models/article';
-import type { UUID } from '../../../app/support/types';
-import { currentConfig } from '../../../app/support/app-async-context';
+import { dbAdapter, User } from '../../../../app/models';
+import cleanDB from '../../../dbCleaner';
+import { createUser } from '../../helpers/users';
+import type { Article, ArticleDbRowContent } from '../../../../app/models/article';
+import type { UUID } from '../../../../app/support/types';
+import { currentConfig } from '../../../../app/support/app-async-context';
 
 const expect = unexpected.clone();
 expect.use(unexpectedDate);
