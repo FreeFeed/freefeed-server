@@ -98,6 +98,18 @@ export class Article extends ArticleContent {
     return this.dba.setArticleTags(this.uid, tags);
   }
 
+  async setPost(postId: UUID | null): Promise<boolean> {
+    const result = await this.dba.setArticlePost(this.uid, postId);
+
+    if (!result) {
+      return false;
+    }
+
+    this.postId = postId;
+
+    return true;
+  }
+
   async deactivate(): Promise<boolean> {
     const result = await this.dba.deactivateArticle(this.uid);
 

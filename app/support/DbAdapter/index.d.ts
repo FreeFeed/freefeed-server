@@ -538,6 +538,7 @@ export class DbAdapter {
     expectedVersion: number,
     params: ArticleDbRowContent,
   ): Promise<ArticleUpdateResult>;
+  setArticlePost(uid: UUID, postId: UUID | null): Promise<boolean>;
   deactivateArticle(uid: UUID): Promise<boolean>;
   activateArticle(uid: UUID): Promise<boolean>;
   destroyArticle(uid: UUID): Promise<boolean>;

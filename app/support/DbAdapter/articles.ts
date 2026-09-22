@@ -196,6 +196,32 @@ const articlesTrait = (superClass: typeof DbAdapter) =>
       });
     }
 
+    /**
+     * Associates or disassociates a post with an article.
+     *
+     * @param uid The unique identifier of the article.
+     * @param postId The unique identifier of the post to associate with the article, or null
+     * to disassociate it. Post (if specified) must have been created by the same author as the article.
+     */
+    async setArticlePost(uid: UUID, postId: UUID | null): Promise<boolean> {
+      const pool = await this.getSlonik();
+      const result = await pool.maybeOneFirst(
+        uidQuery`update articles
+          set post_id = ${postId}
+          where articles.uid = ${uid}
+            and (
+              ${postId}::uuid is null
+              or exists (
+                select 1 from posts
+                where posts.uid = ${postId}
+                  and posts.user_id = articles.author_id
+              )
+            )
+          returning uid`,
+      );
+      return result !== null;
+    }
+
     async deactivateArticle(uid: UUID): Promise<boolean> {
       const pool = await this.getSlonik();
       const result = await pool.maybeOneFirst(
