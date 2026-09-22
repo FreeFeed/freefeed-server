@@ -9,7 +9,7 @@ import { initObject, prepareModelPayload } from './utils';
 // Attachments
 ///////////////////////////////////////////////////
 
-const cacheVersion = 2;
+const cacheVersion = 3;
 const cacheTTL = 3 * 60 * 60; // 3 hours
 
 const attachmentsTrait = (superClass) =>
@@ -259,6 +259,7 @@ const ATTACHMENT_COLUMNS = {
   title: 'title',
   userId: 'user_id',
   postId: 'post_id',
+  articleId: 'article_id',
   sanitized: 'sanitized',
   previews: 'previews',
   meta: 'meta',
@@ -307,6 +308,7 @@ export const ATTACHMENT_FIELDS = {
   title: 'title',
   user_id: 'userId',
   post_id: 'postId',
+  article_id: 'articleId',
   sanitized: 'sanitized',
   previews: 'previews',
   meta: 'meta',

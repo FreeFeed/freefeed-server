@@ -147,6 +147,67 @@ const articlesTrait = (superClass: typeof DbAdapter) =>
       });
     }
 
+    async setArticleAttachments(articleId: UUID, attachmentIds: UUID[]): Promise<boolean> {
+      const uniqueAttachmentIds = [...new Set(attachmentIds)];
+      const pool = await this.getSlonik();
+      const changedIds = await pool.transaction(async (trx) => {
+        const article = await trx.maybeOne(
+          articleOwnerQuery`select author_id from articles
+            where uid = ${articleId} for update`,
+        );
+
+        if (!article) {
+          return null;
+        }
+
+        const attachments =
+          uniqueAttachmentIds.length === 0
+            ? []
+            : await trx.any(
+                articleAttachmentQuery`select uid, user_id, post_id, article_id
+                  from attachments
+                  where uid = any(${sql.array(uniqueAttachmentIds, 'uuid')})
+                  order by uid for update`,
+              );
+
+        if (
+          attachments.length !== uniqueAttachmentIds.length ||
+          attachments.some(
+            (attachment) =>
+              attachment.user_id !== article.author_id ||
+              attachment.post_id !== null ||
+              (attachment.article_id !== null && attachment.article_id !== articleId),
+          )
+        ) {
+          return null;
+        }
+
+        const unlinked = await trx.anyFirst(
+          uidQuery`update attachments set article_id = null
+            where article_id = ${articleId}
+              and not (uid = any(${sql.array(uniqueAttachmentIds, 'uuid')}))
+            returning uid`,
+        );
+        const linked =
+          uniqueAttachmentIds.length === 0
+            ? []
+            : await trx.anyFirst(
+                uidQuery`update attachments set article_id = ${articleId}
+                  where uid = any(${sql.array(uniqueAttachmentIds, 'uuid')})
+                  returning uid`,
+              );
+
+        return [...unlinked, ...linked];
+      });
+
+      if (changedIds === null) {
+        return false;
+      }
+
+      await Promise.all(changedIds.map((id) => this.dropCachedAttachmentData(id)));
+      return true;
+    }
+
     async updateArticle(
       uid: UUID,
       expectedVersion: number,
@@ -242,15 +303,32 @@ const articlesTrait = (superClass: typeof DbAdapter) =>
 
     async destroyArticle(uid: UUID): Promise<boolean> {
       const pool = await this.getSlonik();
-      return pool.transaction(async (trx) => {
+      const attachmentIds = await pool.transaction(async (trx) => {
+        const articleId = await trx.maybeOneFirst(
+          uidQuery`select uid from articles where uid = ${uid} for update`,
+        );
+
+        if (articleId === null) {
+          return null;
+        }
+
+        const linkedAttachmentIds = await trx.anyFirst(
+          uidQuery`select uid from attachments where article_id = ${uid}`,
+        );
+
         await trx.query(
           voidQuery`delete from hashtag_usages where entity_id = ${uid} and type = ${'article'}`,
         );
-        const result = await trx.maybeOneFirst(
-          uidQuery`delete from articles where uid = ${uid} returning uid`,
-        );
-        return result !== null;
+        await trx.query(voidQuery`delete from articles where uid = ${uid}`);
+        return linkedAttachmentIds;
       });
+
+      if (attachmentIds === null) {
+        return false;
+      }
+
+      await Promise.all(attachmentIds.map((id) => this.dropCachedAttachmentData(id)));
+      return true;
     }
   };
 
@@ -268,6 +346,15 @@ const articleContentSchema = {
   digest: z.string(),
   body: articleBodySchema,
 };
+const articleOwnerQuery = sql.type(z.object({ author_id: z.uuid() }));
+const articleAttachmentQuery = sql.type(
+  z.object({
+    uid: z.uuid(),
+    user_id: z.uuid().nullable(),
+    post_id: z.uuid().nullable(),
+    article_id: z.uuid().nullable(),
+  }),
+);
 const articleQuery = sql.type(
   z.object({
     uid: z.uuid(),

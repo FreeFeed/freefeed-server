@@ -297,8 +297,10 @@ export class DbAdapter {
   // Attachments
   getAttachmentById(id: UUID): Promise<Attachment | null>;
   getAttachmentsByIds(ids: UUID[]): Promise<(Attachment | null)[]>;
+  dropCachedAttachmentData(attachmentId: UUID): Promise<void>;
   getPostAttachments(id: UUID): Promise<UUID[]>;
   getAttachmentsOfPost(postId: UUID): Promise<Attachment[]>;
+  setArticleAttachments(articleId: UUID, attachmentIds: UUID[]): Promise<boolean>;
   listAttachments(options: ListAttachmentsOptions): Promise<Attachment[]>;
   createAttachmentsSanitizeTask(userId: UUID): Promise<AttachmentsSanitizeTask>;
   getAttachmentsSanitizeTask(userId: UUID): Promise<Nullable<AttachmentsSanitizeTask>>;
