@@ -11,24 +11,25 @@ const debug = createDebug('freefeed:user-gone');
 
 // Objects to delete:
 // 1. [x] User personal information
-// 2. [x] Posts created by the user
-// 3. [x] Likes created by the user
-// 4. [x] Comment likes created by the user
-// 5. [x] Bans of user
-// 6. [x] Subscriptions of user
-// 7. [x] Subscription requests from user
-// 8. [x] Auxiliary home feeds of user
-// 9. [x] Notifications caused by user activity
-// 10. [x] App tokens of user (also app tokens logs)
-// 11. [x] External auth profiles
-// 12. [x] Archive restoration info
-// 13. [x] Hidden (archived) comments and likes
-// 14. [x] Invitations
-// 15. [x] Local bumps
-// 16. [x] sent_emails_log records
-// 17. [x] Statistics (posts, likes, subscriptions = 0, update comments count)
-// 18. [x] User's attachments
-// 19. [x] Subscriptions for individual posts comments
+// 2. [x] Articles created by the user
+// 3. [x] Posts created by the user
+// 4. [x] Likes created by the user
+// 5. [x] Comment likes created by the user
+// 6. [x] Bans of user
+// 7. [x] Subscriptions of user
+// 8. [x] Subscription requests from user
+// 9. [x] Auxiliary home feeds of user
+// 10. [x] Notifications caused by user activity
+// 11. [x] App tokens of user (also app tokens logs)
+// 12. [x] External auth profiles
+// 13. [x] Archive restoration info
+// 14. [x] Hidden (archived) comments and likes
+// 15. [x] Invitations
+// 16. [x] Local bumps
+// 17. [x] sent_emails_log records
+// 18. [x] Statistics (posts, likes, subscriptions = 0, update comments count)
+// 19. [x] User's attachments
+// 20. [x] Subscriptions for individual posts comments
 
 /**
  * Delete user data. User must be in GONE_DELETION status, when all data is
@@ -36,6 +37,7 @@ const debug = createDebug('freefeed:user-gone');
  */
 export const deleteAllUserData = combineTasks(
   deletePersonalInfo,
+  deleteArticles,
   deletePosts,
   deleteLikes,
   deleteCommentLikes,
@@ -124,6 +126,31 @@ export async function deletePosts(userId: UUID, runUntil: Date) {
     await forEachAsync(postIds, async (postId: UUID) => {
       const post = await dbAdapter.getPostById(postId);
       await post?.destroy();
+    });
+
+    // eslint-disable-next-line no-await-in-loop
+    await delay(batchPauseMs);
+  } while (new Date() < runUntil);
+}
+
+async function deleteArticles(userId: UUID, runUntil: Date) {
+  const batchSize = 20;
+
+  do {
+    // eslint-disable-next-line no-await-in-loop
+    const articleIds = await dbAdapter.database.getCol<UUID>(
+      `select uid from articles where author_id = :userId order by created_at limit :batchSize`,
+      { userId, batchSize },
+    );
+
+    if (articleIds.length === 0) {
+      break;
+    }
+
+    // eslint-disable-next-line no-await-in-loop
+    await forEachAsync(articleIds, async (articleId: UUID) => {
+      const article = await dbAdapter.getArticleById(articleId);
+      await article?.destroy();
     });
 
     // eslint-disable-next-line no-await-in-loop

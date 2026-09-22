@@ -50,6 +50,26 @@ describe('User data deletion', () => {
   it(`should pass smoke test`, () =>
     expect(deleteAllUserData(luna.id, afterHour()), 'to be fulfilled'));
 
+  it(`should delete user articles`, async () => {
+    const article = await dbAdapter.createArticle({
+      author_id: luna.id,
+      title: 'Luna article',
+      digest: '',
+      body: { blocks: [{ id: '1', type: 'test', content: 'Article body' }] },
+    });
+    const marsArticle = await dbAdapter.createArticle({
+      author_id: mars.id,
+      title: 'Mars article',
+      digest: '',
+      body: { blocks: [{ id: '2', type: 'test', content: 'Article body' }] },
+    });
+
+    await deleteAllUserData(luna.id, afterHour());
+
+    expect(await dbAdapter.getArticleById(article.uid), 'to be null');
+    expect(await dbAdapter.getArticleById(marsArticle.uid), 'not to be null');
+  });
+
   it(`should delete user personal data`, async () => {
     await luna.setGoneStatus(GONE_DELETION);
 
