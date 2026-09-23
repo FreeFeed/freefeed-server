@@ -238,4 +238,9 @@ export const appTokensScopes = [
       'POST /vN/users/:username/unsubscribeFromMe',
     ],
   },
+  {
+    name: 'manage-articles',
+    title: 'Manage my articles',
+    routes: ['POST /vN/articles'],
+  },
 ];

@@ -79,6 +79,14 @@ export class Article extends ArticleContent {
     return this.dba.setArticleTags(this.uid, tags);
   }
 
+  getTags(): Promise<readonly string[]> {
+    return this.dba.getArticleTags(this.uid);
+  }
+
+  getAttachmentIds(): Promise<UUID[]> {
+    return this.dba.getArticleAttachmentIds(this.uid);
+  }
+
   async setPost(postId: UUID | null): Promise<boolean> {
     const result = await this.dba.setArticlePost(this.uid, postId);
 

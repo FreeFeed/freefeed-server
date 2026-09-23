@@ -296,7 +296,7 @@ export class DbAdapter {
 
   // Attachments
   getAttachmentById(id: UUID): Promise<Attachment | null>;
-  getAttachmentsByIds(ids: UUID[]): Promise<(Attachment | null)[]>;
+  getAttachmentsByIds(ids: readonly UUID[]): Promise<(Attachment | null)[]>;
   dropCachedAttachmentData(attachmentId: UUID): Promise<void>;
   getPostAttachments(id: UUID): Promise<UUID[]>;
   getAttachmentsOfPost(postId: UUID): Promise<Attachment[]>;
@@ -551,4 +551,6 @@ export class DbAdapter {
     descOrder?: boolean,
   ): Promise<ArticleRevision[]>;
   setArticleTags(articleId: UUID, tags: string[]): Promise<void>;
+  getArticleTags(articleId: UUID): Promise<readonly string[]>;
+  getArticleAttachmentIds(articleId: UUID): Promise<UUID[]>;
 }

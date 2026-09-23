@@ -13,6 +13,7 @@ export type UserCtx = {
 
 export function createTestUser(username?: string): Promise<UserCtx>;
 export function createTestUsers(usernames: string[]): Promise<UserCtx[]>;
+export function createMockAttachmentAsync(userCtx: UserCtx): Promise<{ id: UUID }>;
 export function createUserAsync(
   username: string,
   password?: string,

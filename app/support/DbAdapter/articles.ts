@@ -132,6 +132,17 @@ const articlesTrait = (superClass: typeof DbAdapter) =>
       );
     }
 
+    async getArticleTags(articleId: UUID): Promise<readonly string[]> {
+      const pool = await this.getSlonik();
+      return pool.anyFirst(
+        tagQuery`select t.name
+          from article_tags at
+          join hashtags t on t.id = at.tag_id
+          where at.article_id = ${articleId}
+          order by at.ord`,
+      );
+    }
+
     async setArticleTags(articleId: UUID, tags: string[]): Promise<void> {
       const pool = await this.getSlonik();
       const normalizedTags = [...new Set(tags.map((tag) => tag.toLowerCase()))];
@@ -170,6 +181,14 @@ const articlesTrait = (superClass: typeof DbAdapter) =>
       });
     }
 
+    async getArticleAttachmentIds(articleId: UUID): Promise<UUID[]> {
+      const pool = await this.getSlonik();
+      const ids = await pool.anyFirst(
+        uidQuery`select uid from attachments where article_id = ${articleId} order by uid`,
+      );
+      return [...ids];
+    }
+
     private async checkArticleAttachments(
       trx: CommonQueryMethods,
       articleId: UUID,
@@ -183,7 +202,7 @@ const articlesTrait = (superClass: typeof DbAdapter) =>
       }
 
       const attachments = await trx.any(
-        articleAttachmentQuery`select uid from attachments where
+        uidQuery`select uid from attachments where
           uid = any(${sql.array(uniqueAttachmentIds, 'uuid')})
           and user_id = ${authorId}
           and (article_id is null or article_id = ${articleId})
@@ -367,6 +386,7 @@ const articlesTrait = (superClass: typeof DbAdapter) =>
 export default articlesTrait;
 
 const uidQuery = sql.type(z.object({ uid: z.uuid() }));
+const tagQuery = sql.type(z.object({ name: z.string() }));
 const shortIdQuery = sql.type(z.object({ short_id: z.string() }));
 const hashtagIdQuery = sql.type(z.object({ id: z.number().int().positive() }));
 const voidQuery = sql.type(z.void());
@@ -378,7 +398,6 @@ const articleContentSchema = {
   digest: z.string(),
   body: articleBodySchema,
 };
-const articleAttachmentQuery = sql.type(z.object({ uid: z.uuid() }));
 const articleQuery = sql.type(
   z.object({
     uid: z.uuid(),

@@ -29,6 +29,7 @@ import ServerInfoRoute from './routes/api/v2/ServerInfo';
 import ExtAuthRoute from './routes/api/v2/ExtAuth';
 import CorsProxyRoute from './routes/api/v2/CorsProxyRoute';
 import UndoRoute from './routes/api/v2/UndoRoute';
+import ArticlesRoute from './routes/api/v2/ArticlesRoute';
 import HashtagsRoute from './routes/api/v2/HashtagsRoute';
 import AdminCommonRoute from './routes/api/admin/CommonRoute';
 import AdminAdminRoute from './routes/api/admin/AdminRoute';
@@ -91,6 +92,7 @@ export function createRouter() {
   CorsProxyRoute(publicRouter);
   UndoRoute(publicRouter);
   HashtagsRoute(publicRouter);
+  ArticlesRoute(publicRouter);
 
   const router = new Router();
 
