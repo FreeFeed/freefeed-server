@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { UUID } from '../support/types';
+import type { UUID } from '../support/types';
 
 const articleBlockSchema = z
   .object({
@@ -45,3 +45,25 @@ export const articleBodySchema = z.object({
 });
 
 export type ArticleBody = z.infer<typeof articleBodySchema>;
+
+/**
+ * Extracts all attachment IDs from the given article body
+ *
+ * @param body The article body from which to extract attachment IDs.
+ * @returns An array of unique (!) attachment IDs found in the article body.
+ */
+export function extractAttachmentIds(body: ArticleBody): UUID[] {
+  const ids = new Set<UUID>();
+
+  for (const block of body.blocks) {
+    if (block.type === 'media') {
+      ids.add(block.attachmentId);
+    } else if (block.type === 'gallery') {
+      for (const item of block.items) {
+        ids.add(item.attachmentId);
+      }
+    }
+  }
+
+  return Array.from(ids);
+}

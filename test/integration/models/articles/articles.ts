@@ -1,5 +1,3 @@
-import { randomUUID } from 'node:crypto';
-
 import { beforeEach, describe, it } from 'mocha';
 import unexpected from 'unexpected';
 import unexpectedDate from 'unexpected-date';
@@ -12,6 +10,7 @@ import { createUser } from '../../helpers/users';
 import type { Article, ArticleDbRowContent } from '../../../../app/models/article';
 import type { UUID } from '../../../../app/support/types';
 import { currentConfig } from '../../../../app/support/app-async-context';
+import { createAttachment } from '../attachment-helpers';
 
 const expect = unexpected.clone();
 expect.use(unexpectedDate);
@@ -60,6 +59,11 @@ describe('Articles model', () => {
   });
 
   it('should store media and gallery blocks', async () => {
+    const [image, video, gallery1, gallery2] = await Promise.all(
+      ['image', 'video', 'gallery1', 'gallery2'].map((name) =>
+        createAttachment(luna.id, { name: `${name}.txt`, content: name }),
+      ),
+    );
     const content = {
       title: 'Media article',
       digest: '',
@@ -68,17 +72,17 @@ describe('Articles model', () => {
           {
             id: 'image',
             type: 'media',
-            attachmentId: randomUUID(),
+            attachmentId: image.id,
           },
           {
             id: 'video',
             type: 'media',
-            attachmentId: randomUUID(),
+            attachmentId: video.id,
           },
           {
             id: 'gallery',
             type: 'gallery',
-            items: [{ attachmentId: randomUUID() }, { attachmentId: randomUUID() }],
+            items: [{ attachmentId: gallery1.id }, { attachmentId: gallery2.id }],
           },
         ],
       },
@@ -88,6 +92,9 @@ describe('Articles model', () => {
 
     expect(await dbAdapter.getArticleById(mediaArticle.uid), 'to satisfy', {
       body: content.body,
+    });
+    expect(await dbAdapter.getAttachmentById(video.id), 'to satisfy', {
+      articleId: mediaArticle.uid,
     });
   });
 

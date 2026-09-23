@@ -1,6 +1,7 @@
 import { isDeepStrictEqual } from 'node:util';
 
 import { sql } from 'slonik';
+import type { CommonQueryMethods } from 'slonik';
 import { z } from 'zod';
 import { pick } from 'lodash-es';
 
@@ -12,7 +13,8 @@ import type {
 } from '../../models/article';
 import type { UUID } from '../types';
 import { currentConfig } from '../app-async-context';
-import { articleBodySchema } from '../../models/article-body';
+import { ValidationException } from '../exceptions';
+import { articleBodySchema, extractAttachmentIds } from '../../models/article-body';
 
 import { createShortId } from './short-ids';
 
@@ -56,7 +58,7 @@ const articlesTrait = (superClass: typeof DbAdapter) =>
 
     async createArticle(params: ArticleCreationParams): Promise<Article> {
       const pool = await this.getSlonik();
-      const createdId = await pool.transaction(async (trx) => {
+      const { createdId, attachmentIds } = await pool.transaction(async (trx) => {
         const id = await trx.oneFirst(
           uidQuery`insert into articles
           (author_id, title, digest, body)
@@ -66,6 +68,22 @@ const articlesTrait = (superClass: typeof DbAdapter) =>
           returning uid`,
         );
 
+        // Extract attachment IDs from the article body
+        const linkedAttachmentIds = await this.checkArticleAttachments(
+          trx,
+          id,
+          params.author_id,
+          extractAttachmentIds(params.body),
+        );
+
+        if (linkedAttachmentIds.length > 0) {
+          await trx.query(
+            voidQuery`update attachments set article_id = ${id}
+                    where uid = any(${sql.array(linkedAttachmentIds, 'uuid')})`,
+          );
+        }
+
+        // Create a short ID for the article
         await createShortId(currentConfig().shortLinks.initialLength.article, (shortId) =>
           trx
             .maybeOneFirst(
@@ -75,8 +93,10 @@ const articlesTrait = (superClass: typeof DbAdapter) =>
             .then((res) => !!res),
         );
 
-        return id;
+        return { createdId: id, attachmentIds: linkedAttachmentIds };
       });
+
+      await Promise.all(attachmentIds.map((id) => this.dropCachedAttachmentData(id)));
 
       const article = await this.getArticleById(createdId);
 
@@ -143,65 +163,32 @@ const articlesTrait = (superClass: typeof DbAdapter) =>
       });
     }
 
-    async setArticleAttachments(articleId: UUID, attachmentIds: UUID[]): Promise<boolean> {
+    private async checkArticleAttachments(
+      trx: CommonQueryMethods,
+      articleId: UUID,
+      authorId: UUID,
+      attachmentIds: UUID[],
+    ): Promise<UUID[]> {
       const uniqueAttachmentIds = [...new Set(attachmentIds)];
-      const pool = await this.getSlonik();
-      const changedIds = await pool.transaction(async (trx) => {
-        const article = await trx.maybeOne(
-          articleOwnerQuery`select author_id from articles
-            where uid = ${articleId} for update`,
-        );
 
-        if (!article) {
-          return null;
-        }
-
-        const attachments =
-          uniqueAttachmentIds.length === 0
-            ? []
-            : await trx.any(
-                articleAttachmentQuery`select uid, user_id, post_id, article_id
-                  from attachments
-                  where uid = any(${sql.array(uniqueAttachmentIds, 'uuid')})
-                  order by uid for update`,
-              );
-
-        if (
-          attachments.length !== uniqueAttachmentIds.length ||
-          attachments.some(
-            (attachment) =>
-              attachment.user_id !== article.author_id ||
-              attachment.post_id !== null ||
-              (attachment.article_id !== null && attachment.article_id !== articleId),
-          )
-        ) {
-          return null;
-        }
-
-        const unlinked = await trx.anyFirst(
-          uidQuery`update attachments set article_id = null
-            where article_id = ${articleId}
-              and not (uid = any(${sql.array(uniqueAttachmentIds, 'uuid')}))
-            returning uid`,
-        );
-        const linked =
-          uniqueAttachmentIds.length === 0
-            ? []
-            : await trx.anyFirst(
-                uidQuery`update attachments set article_id = ${articleId}
-                  where uid = any(${sql.array(uniqueAttachmentIds, 'uuid')})
-                  returning uid`,
-              );
-
-        return [...unlinked, ...linked];
-      });
-
-      if (changedIds === null) {
-        return false;
+      if (uniqueAttachmentIds.length === 0) {
+        return [];
       }
 
-      await Promise.all(changedIds.map((id) => this.dropCachedAttachmentData(id)));
-      return true;
+      const attachments = await trx.any(
+        articleAttachmentQuery`select uid from attachments where
+          uid = any(${sql.array(uniqueAttachmentIds, 'uuid')})
+          and user_id = ${authorId}
+          and (article_id is null or article_id = ${articleId})
+          and post_id is null
+          order by uid for update`,
+      );
+
+      if (attachments.length !== uniqueAttachmentIds.length) {
+        throw new ValidationException('Some article attachments are unavailable');
+      }
+
+      return uniqueAttachmentIds;
     }
 
     async updateArticle(
@@ -210,7 +197,8 @@ const articlesTrait = (superClass: typeof DbAdapter) =>
       params: ArticleDbRowContent,
     ): Promise<ArticleUpdateResult> {
       const pool = await this.getSlonik();
-      return pool.transaction(async (trx): Promise<ArticleUpdateResult> => {
+      const updatedAttachmentIds: UUID[] = [];
+      const result = await pool.transaction(async (trx): Promise<ArticleUpdateResult> => {
         const currentData = await trx.maybeOne(
           articleQuery`select * from articles where uid = ${uid} for update`,
         );
@@ -229,6 +217,13 @@ const articlesTrait = (superClass: typeof DbAdapter) =>
         if (isDeepStrictEqual(currentContent, newContent)) {
           return { status: 'unchanged' };
         }
+
+        const newAttachmentIds = await this.checkArticleAttachments(
+          trx,
+          currentData.uid,
+          currentData.author_id,
+          extractAttachmentIds(params.body),
+        );
 
         await trx.oneFirst(
           uidQuery`insert into article_revisions
@@ -249,8 +244,36 @@ const articlesTrait = (superClass: typeof DbAdapter) =>
             returning version`,
         );
 
+        const prevAttachmentIds = extractAttachmentIds(currentData.body);
+
+        const addedAttachmentIds = newAttachmentIds.filter((id) => !prevAttachmentIds.includes(id));
+        const removedAttachmentIds = prevAttachmentIds.filter(
+          (id) => !newAttachmentIds.includes(id),
+        );
+
+        if (addedAttachmentIds.length > 0) {
+          await trx.query(
+            voidQuery`update attachments set article_id = ${currentData.uid}
+              where uid = any(${sql.array(addedAttachmentIds, 'uuid')})`,
+          );
+          updatedAttachmentIds.push(...addedAttachmentIds);
+        }
+
+        if (removedAttachmentIds.length > 0) {
+          await trx.query(
+            voidQuery`update attachments set article_id = null
+              where uid = any(${sql.array(removedAttachmentIds, 'uuid')})
+              and article_id = ${currentData.uid}`,
+          );
+          updatedAttachmentIds.push(...removedAttachmentIds);
+        }
+
         return { status: 'updated', version };
       });
+
+      await Promise.all(updatedAttachmentIds.map((id) => this.dropCachedAttachmentData(id)));
+
+      return result;
     }
 
     /**
@@ -342,15 +365,7 @@ const articleContentSchema = {
   digest: z.string(),
   body: articleBodySchema,
 };
-const articleOwnerQuery = sql.type(z.object({ author_id: z.uuid() }));
-const articleAttachmentQuery = sql.type(
-  z.object({
-    uid: z.uuid(),
-    user_id: z.uuid().nullable(),
-    post_id: z.uuid().nullable(),
-    article_id: z.uuid().nullable(),
-  }),
-);
+const articleAttachmentQuery = sql.type(z.object({ uid: z.uuid() }));
 const articleQuery = sql.type(
   z.object({
     uid: z.uuid(),

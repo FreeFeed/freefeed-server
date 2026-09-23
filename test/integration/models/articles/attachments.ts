@@ -11,21 +11,30 @@ import { createUser } from '../../helpers/users';
 
 const expect = unexpected.clone();
 
-describe('Article attachments', () => {
+const content = (attachmentIds: UUID[]): ArticleDbRowContent => ({
+  title: 'Test Article',
+  digest: '',
+  body: {
+    blocks: attachmentIds.map((attachmentId, index) => ({
+      id: String(index),
+      type: 'media',
+      attachmentId,
+    })),
+  },
+});
+
+describe('Article body attachments', () => {
   beforeEach(() => cleanDB(dbAdapter.database));
 
-  const ARTICLE_CONTENT = {
-    title: 'Test Article',
-    digest: 'test-digest',
-    body: { blocks: [] },
-  } satisfies ArticleDbRowContent;
-
-  it('should store the article association', async () => {
+  it('should link referenced attachments on creation', async () => {
     const luna = await createUser('luna');
-    const article = await dbAdapter.createArticle({ author_id: luna.id, ...ARTICLE_CONTENT });
     const attachment = await createAttachment(luna.id, { name: 'file.txt', content: 'test' });
+    await dbAdapter.getAttachmentById(attachment.id);
 
-    await dbAdapter.updateAttachment(attachment.id, { articleId: article.uid });
+    const article = await dbAdapter.createArticle({
+      author_id: luna.id,
+      ...content([attachment.id]),
+    });
 
     expect(await dbAdapter.getAttachmentById(attachment.id), 'to satisfy', {
       articleId: article.uid,
@@ -33,105 +42,142 @@ describe('Article attachments', () => {
     });
   });
 
-  it('should replace and clear the article attachments', async () => {
+  it('should roll back creation when a referenced attachment is unavailable', async () => {
     const luna = await createUser('luna');
-    const article = await dbAdapter.createArticle({ author_id: luna.id, ...ARTICLE_CONTENT });
+    const mars = await createUser('mars');
+    const own = await createAttachment(luna.id, { name: 'own.txt', content: 'own' });
+    const foreign = await createAttachment(mars.id, { name: 'foreign.txt', content: 'foreign' });
+    const occupied = await createAttachment(luna.id, { name: 'occupied.txt', content: 'occupied' });
+    const otherArticle = await dbAdapter.createArticle({
+      author_id: luna.id,
+      ...content([occupied.id]),
+    });
+    const unknownId = '00000000-0000-0000-0000-000000000000' as UUID;
+
+    await Promise.all(
+      [unknownId, foreign.id, occupied.id].map((id) =>
+        expect(
+          dbAdapter.createArticle({ author_id: luna.id, ...content([own.id, id]) }),
+          'to be rejected with error satisfying',
+          {
+            status: 422,
+            message: 'Some article attachments are unavailable',
+          },
+        ),
+      ),
+    );
+
+    expect(await dbAdapter.database('articles').where({ author_id: luna.id }), 'to have length', 1);
+    expect(await dbAdapter.getAttachmentById(own.id), 'to satisfy', { articleId: null });
+    expect(await dbAdapter.getAttachmentById(occupied.id), 'to satisfy', {
+      articleId: otherArticle.uid,
+    });
+  });
+
+  it('should replace and clear references on update', async () => {
+    const luna = await createUser('luna');
     const first = await createAttachment(luna.id, { name: 'first.txt', content: 'first' });
     const second = await createAttachment(luna.id, { name: 'second.txt', content: 'second' });
+    const article = await dbAdapter.createArticle({ author_id: luna.id, ...content([first.id]) });
+    await dbAdapter.getAttachmentById(first.id);
+    await dbAdapter.getAttachmentById(second.id);
 
-    expect(await dbAdapter.getAttachmentById(first.id), 'to satisfy', { articleId: null });
-    expect(await article.setAttachments([first.id]), 'to equal', true);
-    expect(await dbAdapter.getAttachmentById(first.id), 'to satisfy', {
-      articleId: article.uid,
+    expect(await article.update(1, content([second.id])), 'to equal', {
+      status: 'updated',
+      version: 2,
     });
-
-    expect(await article.setAttachments([second.id]), 'to equal', true);
     expect(await dbAdapter.getAttachmentById(first.id), 'to satisfy', { articleId: null });
     expect(await dbAdapter.getAttachmentById(second.id), 'to satisfy', {
       articleId: article.uid,
     });
 
-    expect(await article.setAttachments([]), 'to equal', true);
+    expect(await article.update(2, content([])), 'to equal', { status: 'updated', version: 3 });
     expect(await dbAdapter.getAttachmentById(second.id), 'to satisfy', { articleId: null });
   });
 
-  it('should reject unknown and foreign attachments without partial changes', async () => {
+  it('should keep a shared media and gallery attachment until its last reference is removed', async () => {
+    const luna = await createUser('luna');
+    const attachment = await createAttachment(luna.id, { name: 'file.txt', content: 'test' });
+    const gallery = {
+      id: 'gallery',
+      type: 'gallery' as const,
+      items: [{ attachmentId: attachment.id }],
+    };
+    const article = await dbAdapter.createArticle({
+      author_id: luna.id,
+      ...content([]),
+      body: {
+        blocks: [{ id: 'media', type: 'media', attachmentId: attachment.id }, gallery],
+      },
+    });
+
+    expect(await dbAdapter.getAttachmentById(attachment.id), 'to satisfy', {
+      articleId: article.uid,
+    });
+    expect(await article.update(1, { ...content([]), body: { blocks: [gallery] } }), 'to equal', {
+      status: 'updated',
+      version: 2,
+    });
+    expect(await dbAdapter.getAttachmentById(attachment.id), 'to satisfy', {
+      articleId: article.uid,
+    });
+    expect(await article.update(2, content([])), 'to equal', { status: 'updated', version: 3 });
+    expect(await dbAdapter.getAttachmentById(attachment.id), 'to satisfy', { articleId: null });
+  });
+
+  it('should reject missing, foreign, and occupied attachments without changing the article', async () => {
     const luna = await createUser('luna');
     const mars = await createUser('mars');
-    const article = await dbAdapter.createArticle({ author_id: luna.id, ...ARTICLE_CONTENT });
     const own = await createAttachment(luna.id, { name: 'own.txt', content: 'own' });
     const foreign = await createAttachment(mars.id, { name: 'foreign.txt', content: 'foreign' });
+    const occupied = await createAttachment(luna.id, { name: 'occupied.txt', content: 'occupied' });
+    const linked = await createAttachment(luna.id, { name: 'linked.txt', content: 'linked' });
+    const post = await createPost(luna, 'Post body');
+    await dbAdapter.updateAttachment(occupied.id, { postId: post.id });
+    const otherArticle = await dbAdapter.createArticle({
+      author_id: luna.id,
+      ...content([linked.id]),
+    });
+    const article = await dbAdapter.createArticle({ author_id: luna.id, ...content([own.id]) });
     const unknownId = '00000000-0000-0000-0000-000000000000' as UUID;
 
-    await article.setAttachments([own.id]);
+    await Promise.all(
+      [unknownId, foreign.id, occupied.id, linked.id].map((id) =>
+        expect(article.update(1, content([own.id, id])), 'to be rejected with error satisfying', {
+          status: 422,
+          message: 'Some article attachments are unavailable',
+        }),
+      ),
+    );
 
-    expect(await article.setAttachments([own.id, foreign.id]), 'to equal', false);
-    expect(await article.setAttachments([unknownId]), 'to equal', false);
+    expect(await dbAdapter.getArticleById(article.uid), 'to satisfy', { version: 1 });
+    expect(await article.getRevisions(10, 0), 'to be empty');
     expect(await dbAdapter.getAttachmentById(own.id), 'to satisfy', {
       articleId: article.uid,
     });
     expect(await dbAdapter.getAttachmentById(foreign.id), 'to satisfy', { articleId: null });
-  });
-
-  it('should reject attachments associated with a post or another article', async () => {
-    const luna = await createUser('luna');
-    const article = await dbAdapter.createArticle({ author_id: luna.id, ...ARTICLE_CONTENT });
-    const otherArticle = await dbAdapter.createArticle({
-      author_id: luna.id,
-      ...ARTICLE_CONTENT,
-    });
-    const articleAttachment = await createAttachment(luna.id, {
-      name: 'article.txt',
-      content: 'article',
-    });
-    const postAttachment = await createAttachment(luna.id, {
-      name: 'post.txt',
-      content: 'post',
-    });
-    const post = await createPost(luna, 'Post body');
-
-    await otherArticle.setAttachments([articleAttachment.id]);
-    await dbAdapter.updateAttachment(postAttachment.id, { postId: post.id });
-
-    expect(await article.setAttachments([articleAttachment.id]), 'to equal', false);
-    expect(await article.setAttachments([postAttachment.id]), 'to equal', false);
-    expect(await dbAdapter.getAttachmentById(articleAttachment.id), 'to satisfy', {
-      articleId: otherArticle.uid,
-    });
-    expect(await dbAdapter.getAttachmentById(postAttachment.id), 'to satisfy', {
+    expect(await dbAdapter.getAttachmentById(occupied.id), 'to satisfy', {
       articleId: null,
       postId: post.id,
     });
+    expect(await dbAdapter.getAttachmentById(linked.id), 'to satisfy', {
+      articleId: otherArticle.uid,
+    });
   });
 
-  it('should not associate an attachment with both an article and a post', async () => {
+  it('should clear the cached association when the article is deleted', async () => {
     const luna = await createUser('luna');
-    const article = await dbAdapter.createArticle({ author_id: luna.id, ...ARTICLE_CONTENT });
-    const post = await createPost(luna, 'Post body');
     const attachment = await createAttachment(luna.id, { name: 'file.txt', content: 'test' });
-
-    await dbAdapter.updateAttachment(attachment.id, { postId: post.id });
-
-    await expect(
-      dbAdapter.updateAttachment(attachment.id, { articleId: article.uid }),
-      'to be rejected',
-    );
-  });
-
-  it('should clear the association when the article is deleted', async () => {
-    const luna = await createUser('luna');
-    const article = await dbAdapter.createArticle({ author_id: luna.id, ...ARTICLE_CONTENT });
-    const attachment = await createAttachment(luna.id, { name: 'file.txt', content: 'test' });
-
-    await article.setAttachments([attachment.id]);
+    const article = await dbAdapter.createArticle({
+      author_id: luna.id,
+      ...content([attachment.id]),
+    });
     expect(await dbAdapter.getAttachmentById(attachment.id), 'to satisfy', {
       articleId: article.uid,
     });
 
     await article.destroy();
 
-    expect(await dbAdapter.getAttachmentById(attachment.id), 'to satisfy', {
-      articleId: null,
-    });
+    expect(await dbAdapter.getAttachmentById(attachment.id), 'to satisfy', { articleId: null });
   });
 });
