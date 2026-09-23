@@ -41,7 +41,11 @@ const articleBlockSchema = z
   );
 
 export const articleBodySchema = z.object({
-  blocks: z.array(articleBlockSchema),
+  blocks: z
+    .array(articleBlockSchema)
+    .refine((blocks) => new Set(blocks.map(({ id }) => id)).size === blocks.length, {
+      message: 'Block IDs must be unique',
+    }),
 });
 
 export type ArticleBody = z.infer<typeof articleBodySchema>;

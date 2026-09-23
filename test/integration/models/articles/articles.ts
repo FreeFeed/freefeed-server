@@ -27,6 +27,19 @@ describe('Articles model', () => {
   const UPDATED_CONTENT = makeContent('Updated', '2');
   const OTHER_CONTENT = makeContent('Other', '3');
   const FINAL_CONTENT = makeContent('Final', '4');
+  const INVALID_CONTENT = {
+    ...ARTICLE_CONTENT,
+    body: { blocks: [{ id: '1', type: 'unsupported', content: 'Invalid block' }] },
+  } as unknown as ArticleDbRowContent;
+  const DUPLICATE_BLOCK_IDS_CONTENT = {
+    ...ARTICLE_CONTENT,
+    body: {
+      blocks: [
+        { id: 'same', type: 'text', content: 'One' },
+        { id: 'same', type: 'list', items: ['Two'] },
+      ],
+    },
+  } satisfies ArticleDbRowContent;
 
   let luna: User;
   let article: Article;
@@ -56,6 +69,26 @@ describe('Articles model', () => {
     expect(await dbAdapter.getArticleByShortId(shortId), 'to satisfy', {
       uid: article.uid,
     });
+  });
+
+  it('should reject an invalid body without creating an article', async () => {
+    await expect(
+      dbAdapter.createArticle({ author_id: luna.id, ...INVALID_CONTENT }),
+      'to be rejected with error satisfying',
+      { status: 422, message: /type/ },
+    );
+
+    expect(await dbAdapter.database('articles').where({ author_id: luna.id }), 'to have length', 1);
+  });
+
+  it('should reject duplicate block IDs without creating an article', async () => {
+    await expect(
+      dbAdapter.createArticle({ author_id: luna.id, ...DUPLICATE_BLOCK_IDS_CONTENT }),
+      'to be rejected with error satisfying',
+      { status: 422, message: /Block IDs must be unique/ },
+    );
+
+    expect(await dbAdapter.database('articles').where({ author_id: luna.id }), 'to have length', 1);
   });
 
   it('should store media and gallery blocks', async () => {
@@ -127,6 +160,33 @@ describe('Articles model', () => {
         version: 1,
       },
     ]);
+  });
+
+  it('should reject an invalid body without updating the article', async () => {
+    await expect(article.update(1, INVALID_CONTENT), 'to be rejected with error satisfying', {
+      status: 422,
+      message: /type/,
+    });
+
+    expect(await dbAdapter.getArticleById(article.uid), 'to satisfy', {
+      ...ARTICLE_CONTENT,
+      version: 1,
+    });
+    expect(await article.getRevisions(10, 0), 'to be empty');
+  });
+
+  it('should reject duplicate block IDs without updating the article', async () => {
+    await expect(
+      article.update(1, DUPLICATE_BLOCK_IDS_CONTENT),
+      'to be rejected with error satisfying',
+      { status: 422, message: /Block IDs must be unique/ },
+    );
+
+    expect(await dbAdapter.getArticleById(article.uid), 'to satisfy', {
+      ...ARTICLE_CONTENT,
+      version: 1,
+    });
+    expect(await article.getRevisions(10, 0), 'to be empty');
   });
 
   it('should not create a revision for unchanged content', async () => {

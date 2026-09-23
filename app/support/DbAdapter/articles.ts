@@ -3,6 +3,7 @@ import { isDeepStrictEqual } from 'node:util';
 import { sql } from 'slonik';
 import type { CommonQueryMethods } from 'slonik';
 import { z } from 'zod';
+import { fromError } from 'zod-validation-error';
 import { pick } from 'lodash-es';
 
 import { Article, ARTICLE_CONTENT_KEYS, ArticleRevision } from '../../models/article';
@@ -57,6 +58,12 @@ const articlesTrait = (superClass: typeof DbAdapter) =>
     }
 
     async createArticle(params: ArticleCreationParams): Promise<Article> {
+      const bodyResult = articleBodySchema.safeParse(params.body);
+
+      if (!bodyResult.success) {
+        throw new ValidationException(fromError(bodyResult.error).message);
+      }
+
       const pool = await this.getSlonik();
       const { createdId, attachmentIds } = await pool.transaction(async (trx) => {
         const id = await trx.oneFirst(
@@ -216,6 +223,12 @@ const articlesTrait = (superClass: typeof DbAdapter) =>
 
         if (isDeepStrictEqual(currentContent, newContent)) {
           return { status: 'unchanged' };
+        }
+
+        const bodyResult = articleBodySchema.safeParse(params.body);
+
+        if (!bodyResult.success) {
+          throw new ValidationException(fromError(bodyResult.error).message);
         }
 
         const newAttachmentIds = await this.checkArticleAttachments(
