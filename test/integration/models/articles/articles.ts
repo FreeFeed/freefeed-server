@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+
 import { beforeEach, describe, it } from 'mocha';
 import unexpected from 'unexpected';
 import unexpectedDate from 'unexpected-date';
@@ -20,7 +22,7 @@ describe('Articles model', () => {
   const ARTICLE_CONTENT = {
     title: 'Test Article',
     digest: 'test-digest',
-    body: { blocks: [{ id: '1', type: 'test', content: 'Test content' }] },
+    body: { blocks: [{ id: '1', type: 'text', content: 'Test content' }] },
   } satisfies ArticleDbRowContent;
 
   const UPDATED_CONTENT = makeContent('Updated', '2');
@@ -54,6 +56,38 @@ describe('Articles model', () => {
     expect(shortId, 'to match', RegExp(`^[a-f0-9]{${initialLength.article},${maxLength}}$`));
     expect(await dbAdapter.getArticleByShortId(shortId), 'to satisfy', {
       uid: article.uid,
+    });
+  });
+
+  it('should store media and gallery blocks', async () => {
+    const content = {
+      title: 'Media article',
+      digest: '',
+      body: {
+        blocks: [
+          {
+            id: 'image',
+            type: 'media',
+            attachmentId: randomUUID(),
+          },
+          {
+            id: 'video',
+            type: 'media',
+            attachmentId: randomUUID(),
+          },
+          {
+            id: 'gallery',
+            type: 'gallery',
+            items: [{ attachmentId: randomUUID() }, { attachmentId: randomUUID() }],
+          },
+        ],
+      },
+    } satisfies ArticleDbRowContent;
+
+    const mediaArticle = await dbAdapter.createArticle({ author_id: luna.id, ...content });
+
+    expect(await dbAdapter.getArticleById(mediaArticle.uid), 'to satisfy', {
+      body: content.body,
     });
   });
 
@@ -271,7 +305,7 @@ function makeContent(prefix: string, id: string): ArticleDbRowContent {
   return {
     title: `${prefix} Article`,
     digest: `${prefix} digest`,
-    body: { blocks: [{ id, type: 'test', content: `${prefix} content` }] },
+    body: { blocks: [{ id, type: 'text', content: `${prefix} content` }] },
   };
 }
 

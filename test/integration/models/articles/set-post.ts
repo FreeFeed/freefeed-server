@@ -16,7 +16,7 @@ describe('Article.setPost', () => {
   const ARTICLE_CONTENT = {
     title: 'Test Article',
     digest: 'test-digest',
-    body: { blocks: [{ id: '1', type: 'test', content: 'Test content' }] },
+    body: { blocks: [{ id: '1', type: 'text', content: 'Test content' }] },
   } satisfies ArticleDbRowContent;
 
   let luna: User;

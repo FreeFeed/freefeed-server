@@ -1,27 +1,8 @@
-import { z } from 'zod';
-
 import type { DbAdapter } from '../support/DbAdapter';
 import type { UUID } from '../support/types';
 import { scheduleArticleDeletion } from '../jobs/delete-article';
 
-const articleBlockSchema = z
-  .object({
-    // All blocks must have an ID
-    id: z.string(),
-  })
-  .and(
-    // Discriminated union for different block types
-    z.discriminatedUnion('type', [
-      z.object({ type: z.literal('test'), content: z.string() }),
-      // ...other block types can be added here
-    ]),
-  );
-
-export const articleBodySchema = z.object({
-  blocks: z.array(articleBlockSchema),
-});
-
-export type ArticleBody = z.infer<typeof articleBodySchema>;
+import type { ArticleBody } from './article-body';
 
 abstract class ArticleContent {
   protected readonly dba: DbAdapter;

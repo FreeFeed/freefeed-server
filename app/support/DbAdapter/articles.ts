@@ -4,12 +4,7 @@ import { sql } from 'slonik';
 import { z } from 'zod';
 import { pick } from 'lodash-es';
 
-import {
-  Article,
-  ARTICLE_CONTENT_KEYS,
-  articleBodySchema,
-  ArticleRevision,
-} from '../../models/article';
+import { Article, ARTICLE_CONTENT_KEYS, ArticleRevision } from '../../models/article';
 import type {
   ArticleCreationParams,
   ArticleDbRowContent,
@@ -17,6 +12,7 @@ import type {
 } from '../../models/article';
 import type { UUID } from '../types';
 import { currentConfig } from '../app-async-context';
+import { articleBodySchema } from '../../models/article-body';
 
 import { createShortId } from './short-ids';
 
