@@ -61,16 +61,19 @@ export const update = compose([
   monitored('articles.update'),
   async (ctx: Ctx<{ user: User; article: Article; apiVersion: number }>) => {
     const { user, article, apiVersion } = ctx.state;
-    const expectedVersion =
-      typeof ctx.request.query.version === 'string'
-        ? parseInt(ctx.request.query.version, 10)
-        : article.version;
+    const { expectedVersion: expectedVersionParam } = ctx.request.query;
 
     if (article.authorId !== user?.id) {
       throw new ForbiddenException('You are not allowed to update this article');
     }
 
-    if (!Number.isFinite(expectedVersion) || expectedVersion <= 0) {
+    if (typeof expectedVersionParam !== 'string' || !/^[1-9]\d*$/.test(expectedVersionParam)) {
+      throw new BadRequestException('Invalid expected version');
+    }
+
+    const expectedVersion = Number(expectedVersionParam);
+
+    if (!Number.isSafeInteger(expectedVersion)) {
       throw new BadRequestException('Invalid expected version');
     }
 

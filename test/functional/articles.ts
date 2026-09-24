@@ -329,7 +329,7 @@ describe('Articles API', () => {
 
       const response = await performJSONRequest(
         'PUT',
-        `/v4/articles/${article.uid}?version=1`,
+        `/v4/articles/${article.uid}?expectedVersion=1`,
         updated,
         authHeaders(luna),
       );
@@ -362,7 +362,7 @@ describe('Articles API', () => {
     it('should update only tags without creating a revision', async () => {
       const response = await performJSONRequest(
         'PUT',
-        `/v4/articles/${article.uid}?version=1`,
+        `/v4/articles/${article.uid}?expectedVersion=1`,
         { ...content, tags: ['New'] },
         authHeaders(luna),
       );
@@ -379,7 +379,7 @@ describe('Articles API', () => {
       const second = { ...content, title: 'Second update', tags: ['Second'] };
       const firstResponse = await performJSONRequest(
         'PUT',
-        `/v4/articles/${article.uid}?version=1`,
+        `/v4/articles/${article.uid}?expectedVersion=1`,
         first,
         authHeaders(luna),
       );
@@ -387,7 +387,7 @@ describe('Articles API', () => {
 
       const response = await performJSONRequest(
         'PUT',
-        `/v4/articles/${article.uid}?version=1`,
+        `/v4/articles/${article.uid}?expectedVersion=1`,
         second,
         authHeaders(luna),
       );
@@ -404,11 +404,30 @@ describe('Articles API', () => {
       expect(await article.getRevisions(10, 0), 'to have length', 1);
     });
 
+    it('should require the expected version', async () => {
+      const response = await performJSONRequest(
+        'PUT',
+        `/v4/articles/${article.uid}`,
+        { ...content, title: 'Updated without a version', tags: [] },
+        authHeaders(luna),
+      );
+
+      expect(response, 'to satisfy', {
+        __httpCode: 400,
+        err: 'Invalid expected version',
+      });
+      expect(await dbAdapter.getArticleById(article.uid), 'to satisfy', {
+        title: content.title,
+        version: 1,
+      });
+      expect(await article.getRevisions(10, 0), 'to be empty');
+    });
+
     it('should deny updates by another user', async () => {
       const mars = await createTestUser('mars');
       const response = await performJSONRequest(
         'PUT',
-        `/v4/articles/${article.uid}?version=1`,
+        `/v4/articles/${article.uid}?expectedVersion=1`,
         { ...content, title: 'Unauthorized update', tags: [] },
         authHeaders(mars),
       );
@@ -424,7 +443,7 @@ describe('Articles API', () => {
     it('should reject an invalid body without changing the article', async () => {
       const response = await performJSONRequest(
         'PUT',
-        `/v4/articles/${article.uid}?version=1`,
+        `/v4/articles/${article.uid}?expectedVersion=1`,
         {
           ...content,
           tags: [],
@@ -567,6 +586,35 @@ describe('Articles API', () => {
 
       expect(response, 'to satisfy', { __httpCode: 403, err: 'Invalid or expired undo token' });
       expect(await dbAdapter.getArticleById(article.uid), 'to satisfy', { toDelete: true });
+    });
+
+    it('should restore an article with a manage-articles app token', async () => {
+      const appToken = await dbAdapter.createAppToken({
+        userId: luna.user.id,
+        title: 'Articles client',
+        scopes: ['manage-articles'],
+      });
+      const headers = { Authorization: `Bearer ${appToken.tokenString()}` as const };
+      const deletion = await performJSONRequest(
+        'DELETE',
+        `/v4/articles/${article.uid}`,
+        undefined,
+        headers,
+      );
+      const [{ token }] = (deletion as typeof deletion & { undo: [{ token: string }] }).undo;
+
+      const response = await performJSONRequest(
+        'POST',
+        `/v4/undo/${UNDO_ARTICLE_DELETE}`,
+        { token },
+        headers,
+      );
+
+      expect(response, 'to satisfy', {
+        __httpCode: 200,
+        article: { id: article.uid },
+      });
+      expect(await dbAdapter.getArticleById(article.uid), 'to satisfy', { toDelete: false });
     });
   });
 });
