@@ -160,6 +160,8 @@ export class Post {
   destinationFeedIds: number[];
   feedIntIds: number[];
   toDelete: boolean;
+  isProtected: '0' | '1';
+  isPrivate: '0' | '1';
   constructor(params: {
     userId: UUID;
     body: string;

@@ -1,6 +1,7 @@
 import type { DbAdapter } from '../support/DbAdapter';
 import type { UUID } from '../support/types';
 import { scheduleArticleDeletion } from '../jobs/delete-article';
+import type { User } from '../models';
 
 import type { ArticleBody } from './article-body';
 
@@ -122,6 +123,51 @@ export class Article extends ArticleContent {
     this.toDelete = false;
 
     return true;
+  }
+
+  /**
+   * An article still exists in the database, but is treated as deleted in any way.
+   * It can be restored in the future.
+   */
+  async isDeleting(): Promise<boolean> {
+    if (this.toDelete) {
+      return true;
+    }
+
+    const author = await this.dba.getUserById(this.authorId);
+    return !author?.isActive;
+  }
+
+  async isVisibleFor(
+    viewer: User | null,
+  ): Promise<'VISIBLE' | 'DENIED' | 'LOGIN_REQUIRED' | 'NOT_FOUND'> {
+    if (await this.isDeleting()) {
+      return 'NOT_FOUND';
+    }
+
+    // If the viewer is the author of the article, he/she can always see it
+    if (viewer?.id === this.authorId) {
+      return 'VISIBLE';
+    }
+
+    // Otherwise, the article must be associated with a post and the viewer must have access to it
+    const post = this.postId ? await this.dba.getPostById(this.postId) : null;
+
+    if (!post) {
+      return 'DENIED';
+    }
+
+    const isVisible = await post.isVisibleFor(viewer);
+
+    if (!isVisible) {
+      if (!viewer && post.isProtected === '1' && post.isPrivate === '0') {
+        return 'LOGIN_REQUIRED';
+      }
+
+      return 'DENIED';
+    }
+
+    return 'VISIBLE';
   }
 
   destroy(): Promise<boolean> {
