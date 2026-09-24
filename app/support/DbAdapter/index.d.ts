@@ -543,6 +543,7 @@ export class DbAdapter {
   deactivateArticle(uid: UUID): Promise<boolean>;
   activateArticle(uid: UUID): Promise<boolean>;
   destroyArticle(uid: UUID): Promise<boolean>;
+  getArticleLongId(shortId: string): Promise<UUID | null>;
   getArticleShortId(articleId: UUID): Promise<string>;
   getArticleRevisions(
     articleId: UUID,

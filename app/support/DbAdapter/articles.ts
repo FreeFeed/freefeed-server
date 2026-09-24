@@ -115,6 +115,13 @@ const articlesTrait = (superClass: typeof DbAdapter) =>
       return article;
     }
 
+    async getArticleLongId(shortId: string): Promise<UUID | null> {
+      const pool = await this.getSlonik();
+      return pool.maybeOneFirst(
+        uidQuery`select long_id as uid from article_short_ids where short_id = ${shortId}`,
+      );
+    }
+
     async getArticleByShortId(shortId: string): Promise<Article | null> {
       const pool = await this.getSlonik();
       const row = await pool.maybeOne(

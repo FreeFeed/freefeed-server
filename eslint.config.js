@@ -127,7 +127,7 @@ export default defineConfig([
       'spaced-comment': ['error', 'always', { exceptions: ['/'] }],
       strict: ['error', 'never'],
       'no-unused-vars': 'off',
-      '@typescript-eslint/no-unused-vars': 'error',
+      '@typescript-eslint/no-unused-vars': ['error', { varsIgnorePattern: '^_' }],
       '@typescript-eslint/parameter-properties': 'error',
       '@typescript-eslint/consistent-type-definitions': ['error', 'type'],
       'you-dont-need-lodash-underscore/find': 'error',
