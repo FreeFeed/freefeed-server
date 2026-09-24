@@ -245,6 +245,7 @@ export const appTokensScopes = [
     routes: [
       'POST /vN/articles',
       'PUT /vN/articles/:articleId',
+      'DELETE /vN/articles/:articleId/post',
       'DELETE /vN/articles/:articleId',
       'POST /vN/undo/:subject',
     ],

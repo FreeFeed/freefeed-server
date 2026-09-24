@@ -125,6 +125,22 @@ export const deactivate = compose([
   },
 ]);
 
+export const detachPost = compose([
+  authRequired(),
+  articleAccessRequired(true),
+  monitored('articles.detachPost'),
+  async (ctx: Ctx<{ user: User; article: Article; apiVersion: number }>) => {
+    const { user, article, apiVersion } = ctx.state;
+
+    if (article.authorId !== user.id) {
+      throw new ForbiddenException('You are not allowed to detach this article from its post');
+    }
+
+    await article.setPost(null);
+    ctx.body = await fullArticleResponse(user, article, apiVersion);
+  },
+]);
+
 export async function fullArticleResponse(viewer: User, article: Article, apiVersion: number) {
   const feedOutput = await serializeFeed(article.postId ? [article.postId] : [], viewer?.id);
   const { timelines: _timelines, isLastPage: _isLastPage, ...output } = feedOutput;

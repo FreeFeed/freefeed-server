@@ -81,7 +81,11 @@ export async function serializeFeed(
 
   const { notifyOfCommentsOnMyPosts = false, notifyOfCommentsOnCommentedPosts = false } =
     viewer?.preferences ?? {};
-  const commentEventsStatus = await dbAdapter.getCommentEventsStatusForPosts(viewerId, postIds);
+  const [commentEventsStatus, articleIdsByPostId, pinDetailsMap] = await Promise.all([
+    dbAdapter.getCommentEventsStatusForPosts(viewerId, postIds),
+    dbAdapter.getArticleIdsByPostIds(postIds),
+    dbAdapter.getPinnedDetailsByPosts(postIds),
+  ]);
 
   let commentedPostIds = [];
 
@@ -89,8 +93,6 @@ export async function serializeFeed(
     const feedIntId = await viewer.getCommentsTimelineIntId();
     commentedPostIds = await dbAdapter.getPostsPresentsInTimeline(postIds, feedIntId);
   }
-
-  const pinDetailsMap = await dbAdapter.getPinnedDetailsByPosts(postIds);
 
   for (const {
     post,
@@ -114,6 +116,7 @@ export async function serializeFeed(
       omittedLikes,
       backlinksCount,
       notifyOfAllComments: false,
+      articleId: articleIdsByPostId.get(post.id) ?? null,
     };
 
     if (post.feedIntIds.includes(hidesFeedId)) {

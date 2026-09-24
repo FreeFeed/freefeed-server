@@ -320,25 +320,64 @@ const articlesTrait = (superClass: typeof DbAdapter) =>
      *
      * @param uid The unique identifier of the article.
      * @param postId The unique identifier of the post to associate with the article, or null
-     * to disassociate it. Post (if specified) must have been created by the same author as the article.
+     * to disassociate it. Post (if specified) must be active and have been created by the same
+     * author as the article. An existing association can only be replaced if its post is deleting.
      */
     async setArticlePost(uid: UUID, postId: UUID | null): Promise<boolean> {
       const pool = await this.getSlonik();
-      const result = await pool.maybeOneFirst(
-        uidQuery`update articles
-          set post_id = ${postId}
-          where articles.uid = ${uid}
-            and (
-              ${postId}::uuid is null
-              or exists (
-                select 1 from posts
-                where posts.uid = ${postId}
-                  and posts.user_id = articles.author_id
-              )
-            )
-          returning uid`,
+      return pool.transaction(async (trx): Promise<boolean> => {
+        const article = await trx.maybeOne(
+          articlePostStateQuery`select uid, author_id, post_id, to_delete from articles
+            where uid = ${uid} for update`,
+        );
+
+        if (!article || article.to_delete) {
+          return false;
+        }
+
+        if (postId === null) {
+          await trx.query(voidQuery`update articles set post_id = null where uid = ${uid}`);
+          return true;
+        }
+
+        const postIds =
+          article.post_id === null || article.post_id === postId
+            ? [postId]
+            : [article.post_id, postId];
+        const posts = await trx.any(
+          postStateQuery`select uid, user_id, to_delete from posts
+            where uid = any(${sql.array(postIds, 'uuid')})`,
+        );
+        const targetPost = posts.find((post) => post.uid === postId);
+
+        if (!targetPost || targetPost.user_id !== article.author_id || targetPost.to_delete) {
+          return false;
+        }
+
+        if (article.post_id !== null && article.post_id !== postId) {
+          const currentPost = posts.find((post) => post.uid === article.post_id);
+
+          if (!currentPost?.to_delete) {
+            return false;
+          }
+        }
+
+        await trx.query(voidQuery`update articles set post_id = ${postId} where uid = ${uid}`);
+        return true;
+      });
+    }
+
+    async getArticleIdsByPostIds(postIds: UUID[]): Promise<Map<UUID, UUID>> {
+      if (postIds.length === 0) {
+        return new Map();
+      }
+
+      const pool = await this.getSlonik();
+      const rows = await pool.any(
+        articlePostIdQuery`select uid, post_id from articles where
+          post_id = any(${sql.array(postIds, 'uuid')}) and not to_delete`,
       );
-      return result !== null;
+      return new Map(rows.map(({ post_id, uid }) => [post_id, uid]));
     }
 
     async deactivateArticle(uid: UUID): Promise<boolean> {
@@ -397,6 +436,18 @@ const tagQuery = sql.type(z.object({ name: z.string() }));
 const shortIdQuery = sql.type(z.object({ short_id: z.string() }));
 const hashtagIdQuery = sql.type(z.object({ id: z.number().int().positive() }));
 const voidQuery = sql.type(z.void());
+const articlePostStateQuery = sql.type(
+  z.object({
+    uid: z.uuid(),
+    author_id: z.uuid(),
+    post_id: z.uuid().nullable(),
+    to_delete: z.boolean(),
+  }),
+);
+const postStateQuery = sql.type(
+  z.object({ uid: z.uuid(), user_id: z.uuid(), to_delete: z.boolean() }),
+);
+const articlePostIdQuery = sql.type(z.object({ uid: z.uuid(), post_id: z.uuid() }));
 
 const versionSchema = z.number().int().positive();
 const versionQuery = sql.type(z.object({ version: versionSchema }));

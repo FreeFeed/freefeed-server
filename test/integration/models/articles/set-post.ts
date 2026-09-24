@@ -34,11 +34,24 @@ describe('Article.setPost', () => {
     expect(await dbAdapter.getArticleById(article.uid), 'to satisfy', { postId: post.id });
   });
 
-  it('should replace and remove the associated post', async () => {
+  it('should not replace an active associated post', async () => {
     const firstPost = await createPost(luna, 'First post');
     const secondPost = await createPost(luna, 'Second post');
 
     await article.setPost(firstPost.id);
+    expect(await article.setPost(secondPost.id), 'to equal', false);
+    expect(article.postId, 'to equal', firstPost.id);
+    expect(await dbAdapter.getArticleById(article.uid), 'to satisfy', {
+      postId: firstPost.id,
+    });
+  });
+
+  it('should replace a deleting associated post and remove the new association', async () => {
+    const firstPost = await createPost(luna, 'First post');
+    const secondPost = await createPost(luna, 'Second post');
+
+    await article.setPost(firstPost.id);
+    await firstPost.inactivate();
     expect(await article.setPost(secondPost.id), 'to equal', true);
     expect(article.postId, 'to equal', secondPost.id);
     expect(await dbAdapter.getArticleById(article.uid), 'to satisfy', {
@@ -66,6 +79,15 @@ describe('Article.setPost', () => {
 
     expect(await dbAdapter.getArticleById(article.uid), 'to satisfy', { version: 1 });
     expect(await article.getRevisions(10, 0), 'to be empty');
+  });
+
+  it('should not detach a deleting article', async () => {
+    const post = await createPost(luna, 'Post body');
+    await article.setPost(post.id);
+    await article.deactivate();
+
+    expect(await article.setPost(null), 'to equal', false);
+    expect(await dbAdapter.getArticleById(article.uid), 'to satisfy', { postId: post.id });
   });
 
   it('should reject an unknown post without changing the association', async () => {

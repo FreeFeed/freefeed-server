@@ -10,6 +10,7 @@ import {
   NotFoundException,
   BadRequestException,
   ValidationException,
+  ConflictException,
 } from '../../../support/exceptions';
 import {
   postAccessRequired,
@@ -31,7 +32,7 @@ export default class PostsController {
       const { user: author } = ctx.state;
       const {
         meta: { commentsDisabled, feeds },
-        post: { body, attachments },
+        post: { body, attachments, articleId },
       } = ctx.request.body;
 
       const feedNames = typeof feeds === 'string' ? [feeds] : feeds;
@@ -49,6 +50,9 @@ export default class PostsController {
         }
       }
 
+      const article =
+        articleId != null ? await validateArticleAssociation(articleId, author.id) : null;
+
       const newPost = new Post({
         userId: author.id,
         body,
@@ -59,7 +63,15 @@ export default class PostsController {
 
       try {
         await newPost.create();
+
+        if (article && !(await article.setPost(newPost.id))) {
+          throw new ConflictException('Article association has changed');
+        }
       } catch (e) {
+        if (e instanceof ValidationException || e instanceof ConflictException) {
+          throw e;
+        }
+
         throw new BadRequestException(`Can not create post: ${e.message}`);
       }
 
@@ -83,6 +95,10 @@ export default class PostsController {
       }
 
       const { body, attachments, feeds: feedNames } = ctx.request.body.post;
+
+      if (Object.hasOwn(ctx.request.body.post, 'articleId')) {
+        throw new ValidationException('Article can only be associated when creating a post');
+      }
 
       const existingFeeds = await post.getPostedTo();
       const destinationFeeds = feedNames
@@ -365,6 +381,24 @@ export default class PostsController {
       ctx.body = {};
     },
   ]);
+}
+
+async function validateArticleAssociation(articleId, authorId) {
+  const article = await dbAdapter.getArticleById(articleId);
+
+  if (!article || article.authorId !== authorId || article.toDelete) {
+    throw new ValidationException('Article is unavailable');
+  }
+
+  if (article.postId !== null) {
+    const post = await dbAdapter.getPostById(article.postId);
+
+    if (post && !post.toDelete) {
+      throw new ConflictException('Article is already linked to another post');
+    }
+  }
+
+  return article;
 }
 
 /**

@@ -205,6 +205,7 @@ const postBasic = {
   createdAt: expect.it('to be timeStampString'),
   updatedAt: expect.it('to be timeStampString'),
   createdBy: expect.it('to be UUID'),
+  articleId: expect.it('to be null').or('to be UUID'),
   postedTo: expect
     .it('to be an array')
     .and('to be empty')

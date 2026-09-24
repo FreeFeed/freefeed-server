@@ -24,6 +24,7 @@ export const postCreateInputSchema = {
           maxItems: config.attachments.maxCount,
           uniqueItems: true,
         },
+        articleId: { $ref: '#/definitions/uuid' },
       },
     },
     meta: {

@@ -311,6 +311,46 @@ describe('Articles API', () => {
     });
   });
 
+  describe('Detach from post', () => {
+    let article: Article;
+    let postId: UUID;
+
+    beforeEach(async () => {
+      article = await dbAdapter.createArticle({ author_id: luna.user.id, ...content });
+      const post = await createPost(luna.user, 'Public post');
+      postId = post.id;
+      await article.setPost(postId);
+    });
+
+    it('should detach the article from its post', async () => {
+      const response = await performJSONRequest(
+        'DELETE',
+        `/v4/articles/${article.uid}/post`,
+        undefined,
+        authHeaders(luna),
+      );
+
+      expect(response, 'to satisfy', {
+        __httpCode: 200,
+        article: { id: article.uid, postId: null },
+      });
+      expect(await dbAdapter.getArticleById(article.uid), 'to satisfy', { postId: null });
+    });
+
+    it('should not let another user detach the article', async () => {
+      const mars = await createTestUser('mars');
+      const response = await performJSONRequest(
+        'DELETE',
+        `/v4/articles/${article.uid}/post`,
+        undefined,
+        authHeaders(mars),
+      );
+
+      expect(response, 'to satisfy', { __httpCode: 403 });
+      expect(await dbAdapter.getArticleById(article.uid), 'to satisfy', { postId });
+    });
+  });
+
   describe('Update', () => {
     let article: Article;
 
