@@ -5,6 +5,7 @@ import { TIMELINE_VISIBILITY_FULL } from '../../models/constants';
 
 import { serializeUsersByIds } from './user';
 import { serializeAttachment } from './attachment';
+import { serializeArticle } from './articles';
 
 export function serializeComment(comment) {
   return {
@@ -60,6 +61,8 @@ export async function serializeFeed(
   const allComments = [];
   // All serialized attachments
   const allAttachments = [];
+  // All serialized article summaries
+  const allArticles = [];
   // All post destination feeds (it becomes 'subscriptions' in the response)
   const allDestinations = [];
   // All subscribers (UIDs). Includes UIDs of:
@@ -81,9 +84,9 @@ export async function serializeFeed(
 
   const { notifyOfCommentsOnMyPosts = false, notifyOfCommentsOnCommentedPosts = false } =
     viewer?.preferences ?? {};
-  const [commentEventsStatus, articleIdsByPostId, pinDetailsMap] = await Promise.all([
+  const [commentEventsStatus, articleSummariesByPostId, pinDetailsMap] = await Promise.all([
     dbAdapter.getCommentEventsStatusForPosts(viewerId, postIds),
-    dbAdapter.getArticleIdsByPostIds(postIds),
+    dbAdapter.getArticleSummariesByPostIds(postIds),
     dbAdapter.getPinnedDetailsByPosts(postIds),
   ]);
 
@@ -105,6 +108,7 @@ export async function serializeFeed(
     omittedLikes,
     backlinksCount,
   } of postsWithStuff.filter(Boolean)) {
+    const article = articleSummariesByPostId.get(post.id);
     const sPost = {
       ...serializePostData(post),
       postedTo: destinations.map((d) => d.id),
@@ -116,7 +120,7 @@ export async function serializeFeed(
       omittedLikes,
       backlinksCount,
       notifyOfAllComments: false,
-      articleId: articleIdsByPostId.get(post.id) ?? null,
+      articleId: article?.uid ?? null,
     };
 
     if (post.feedIntIds.includes(hidesFeedId)) {
@@ -153,6 +157,10 @@ export async function serializeFeed(
     allSubscribers.push(...destinations.map((d) => d.user));
     allComments.push(...comments.map((c) => serializeComment(c, viewerId)));
     allAttachments.push(...attachments.map((a) => serializeAttachment(a, apiVersion)));
+
+    if (article) {
+      allArticles.push(serializeArticle(article));
+    }
 
     allUserIds.add(sPost.createdBy);
     likes.forEach((l) => allUserIds.add(l));
@@ -208,6 +216,7 @@ export async function serializeFeed(
     posts: allPosts,
     comments: compact(allComments),
     attachments: compact(allAttachments),
+    articles: uniqBy(allArticles, 'id'),
   };
 }
 

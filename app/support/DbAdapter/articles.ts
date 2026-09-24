@@ -10,6 +10,7 @@ import { Article, ARTICLE_CONTENT_KEYS, ArticleRevision } from '../../models/art
 import type {
   ArticleCreationParams,
   ArticleDbRowContent,
+  ArticleSummaryData,
   ArticleUpdateResult,
 } from '../../models/article';
 import type { UUID } from '../types';
@@ -367,17 +368,43 @@ const articlesTrait = (superClass: typeof DbAdapter) =>
       });
     }
 
-    async getArticleIdsByPostIds(postIds: UUID[]): Promise<Map<UUID, UUID>> {
+    async getArticleSummariesByPostIds(postIds: UUID[]): Promise<Map<UUID, ArticleSummaryData>> {
       if (postIds.length === 0) {
         return new Map();
       }
 
       const pool = await this.getSlonik();
       const rows = await pool.any(
-        articlePostIdQuery`select uid, post_id from articles where
-          post_id = any(${sql.array(postIds, 'uuid')}) and not to_delete`,
+        articleSummaryQuery`select
+          a.uid, a.author_id, a.post_id, s.short_id, a.version, a.title, a.digest,
+          a.created_at, a.updated_at,
+          coalesce(
+            (select array_agg(t.name order by at.ord)
+              from article_tags at join hashtags t on t.id = at.tag_id
+              where at.article_id = a.uid),
+            array[]::text[]
+          ) as tags
+          from articles a
+          join article_short_ids s on s.long_id = a.uid
+          where a.post_id = any(${sql.array(postIds, 'uuid')}) and not a.to_delete`,
       );
-      return new Map(rows.map(({ post_id, uid }) => [post_id, uid]));
+      return new Map(
+        rows.map((row) => [
+          row.post_id,
+          {
+            uid: row.uid,
+            authorId: row.author_id,
+            postId: row.post_id,
+            shortId: row.short_id,
+            version: row.version,
+            title: row.title,
+            digest: row.digest,
+            createdAt: row.created_at,
+            updatedAt: row.updated_at,
+            tags: row.tags,
+          },
+        ]),
+      );
     }
 
     async deactivateArticle(uid: UUID): Promise<boolean> {
@@ -447,7 +474,20 @@ const articlePostStateQuery = sql.type(
 const postStateQuery = sql.type(
   z.object({ uid: z.uuid(), user_id: z.uuid(), to_delete: z.boolean() }),
 );
-const articlePostIdQuery = sql.type(z.object({ uid: z.uuid(), post_id: z.uuid() }));
+const articleSummaryQuery = sql.type(
+  z.object({
+    uid: z.uuid(),
+    author_id: z.uuid(),
+    post_id: z.uuid(),
+    short_id: z.string(),
+    version: z.number().int().positive(),
+    title: z.string(),
+    digest: z.string(),
+    created_at: z.date(),
+    updated_at: z.date(),
+    tags: z.array(z.string()),
+  }),
+);
 
 const versionSchema = z.number().int().positive();
 const versionQuery = sql.type(z.object({ version: versionSchema }));

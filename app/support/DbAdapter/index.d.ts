@@ -30,6 +30,7 @@ import {
   ArticleRevision,
   ArticleCreationParams,
   ArticleDbRowContent,
+  ArticleSummaryData,
   ArticleUpdateResult,
 } from '../../models/article';
 
@@ -540,7 +541,7 @@ export class DbAdapter {
     params: ArticleDbRowContent,
   ): Promise<ArticleUpdateResult>;
   setArticlePost(uid: UUID, postId: UUID | null): Promise<boolean>;
-  getArticleIdsByPostIds(postIds: UUID[]): Promise<Map<UUID, UUID>>;
+  getArticleSummariesByPostIds(postIds: UUID[]): Promise<Map<UUID, ArticleSummaryData>>;
   deactivateArticle(uid: UUID): Promise<boolean>;
   activateArticle(uid: UUID): Promise<boolean>;
   destroyArticle(uid: UUID): Promise<boolean>;

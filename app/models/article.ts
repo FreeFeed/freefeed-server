@@ -197,6 +197,19 @@ export type ArticleDbRow = {
   to_delete: boolean;
 } & ArticleDbRowContent;
 
+export type ArticleSummaryData = {
+  uid: UUID;
+  authorId: UUID;
+  postId: UUID | null;
+  shortId: string;
+  version: number;
+  title: string;
+  digest: string;
+  createdAt: Date;
+  updatedAt: Date;
+  tags: readonly string[];
+};
+
 // Revisions of articles
 
 export class ArticleRevision extends ArticleContent {

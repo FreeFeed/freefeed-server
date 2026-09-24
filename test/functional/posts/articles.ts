@@ -7,6 +7,7 @@ import type { UUID } from '../../../app/support/types';
 import cleanDB from '../../dbCleaner';
 import {
   authHeaders,
+  createMockAttachmentAsync,
   createTestUser,
   justCreatePost,
   performJSONRequest,
@@ -24,7 +25,13 @@ describe('Post article association', () => {
   describe('Create', () => {
     it('should create a post associated with an article', async () => {
       const luna = await createTestUser('luna');
-      const article = await dbAdapter.createArticle({ author_id: luna.user.id, ...content });
+      const attachment = await createMockAttachmentAsync(luna);
+      const article = await dbAdapter.createArticle({
+        author_id: luna.user.id,
+        ...content,
+        body: { blocks: [{ id: 'media', type: 'media', attachmentId: attachment.id }] },
+      });
+      await article.setTags(['first', 'second']);
 
       const response = await performJSONRequest(
         'POST',
@@ -36,11 +43,30 @@ describe('Post article association', () => {
         authHeaders(luna),
       );
 
+      const typedResponse = response as typeof response & {
+        posts: { id: UUID };
+        articles: unknown;
+      };
+      const postId = typedResponse.posts.id;
+
       expect(response, 'to satisfy', {
         __httpCode: 200,
         posts: { articleId: article.uid },
       });
-      const postId = (response as typeof response & { posts: { id: UUID } }).posts.id;
+      expect(typedResponse.articles, 'to exhaustively satisfy', [
+        {
+          id: article.uid,
+          authorId: luna.user.id,
+          postId,
+          shortId: await article.getShortId(),
+          version: 1,
+          title: content.title,
+          digest: content.digest,
+          createdAt: article.createdAt.toISOString(),
+          updatedAt: article.updatedAt.toISOString(),
+          tags: ['first', 'second'],
+        },
+      ]);
       expect(await dbAdapter.getArticleById(article.uid), 'to satisfy', {
         postId,
       });
