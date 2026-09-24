@@ -85,6 +85,14 @@ export class ContentTooLargeException extends Error {
   }
 }
 
+export class ConflictException extends Error {
+  constructor(message = 'Conflict') {
+    super(message);
+    Error.captureStackTrace(this, this.constructor);
+    this.status = 409;
+  }
+}
+
 export class ServerErrorException extends Error {
   constructor(message = 'Internal server error') {
     super(message);

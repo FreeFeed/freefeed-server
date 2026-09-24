@@ -33,6 +33,7 @@ describe('Articles API', () => {
     const attachment = await createMockAttachmentAsync(luna);
     const articleContent = {
       ...content,
+      tags: ['First', 'Second', 'FIRST'],
       body: {
         blocks: [
           ...content.body.blocks,
@@ -56,10 +57,12 @@ describe('Articles API', () => {
         postId: null,
         shortId: expect.it('to be a string'),
         version: 1,
-        ...articleContent,
+        title: articleContent.title,
+        digest: articleContent.digest,
+        body: articleContent.body,
         createdAt: expect.it('to be a string'),
         updatedAt: expect.it('to be a string'),
-        tags: [],
+        tags: ['first', 'second'],
         attachmentIds: [attachment.id],
       },
       attachments: [{ id: attachment.id, createdBy: luna.user.id, postId: null }],
@@ -73,10 +76,30 @@ describe('Articles API', () => {
       body: articleContent.body,
     });
     expect(await dbAdapter.getAttachmentById(attachment.id), 'to satisfy', { articleId: id });
+    expect(await (await dbAdapter.getArticleById(id))?.getTags(), 'to equal', ['first', 'second']);
+  });
+
+  it('should reject invalid tags without creating an article', async () => {
+    const response = await performJSONRequest(
+      'POST',
+      '/v4/articles',
+      { ...content, tags: [''] },
+      authHeaders(luna),
+    );
+
+    expect(response, 'to satisfy', { __httpCode: 422 });
+    expect(await dbAdapter.database('articles'), 'to be empty');
+  });
+
+  it('should require tags on creation', async () => {
+    const response = await performJSONRequest('POST', '/v4/articles', content, authHeaders(luna));
+
+    expect(response, 'to satisfy', { __httpCode: 422, err: /tags/ });
+    expect(await dbAdapter.database('articles'), 'to be empty');
   });
 
   it('should reject anonymous creation', async () => {
-    const response = await performJSONRequest('POST', '/v4/articles', content);
+    const response = await performJSONRequest('POST', '/v4/articles', { ...content, tags: [] });
 
     expect(response, 'to satisfy', { __httpCode: 401 });
     expect(await dbAdapter.database('articles'), 'to be empty');
@@ -86,7 +109,11 @@ describe('Articles API', () => {
     const response = await performJSONRequest(
       'POST',
       '/v4/articles',
-      { ...content, body: { blocks: [{ id: 'bad', type: 'media', attachmentId: 'invalid' }] } },
+      {
+        ...content,
+        tags: [],
+        body: { blocks: [{ id: 'bad', type: 'media', attachmentId: 'invalid' }] },
+      },
       authHeaders(luna),
     );
 
@@ -100,6 +127,7 @@ describe('Articles API', () => {
       '/v4/articles',
       {
         ...content,
+        tags: [],
         body: {
           blocks: [...content.body.blocks, { id: 'text', type: 'list', items: ['Other block'] }],
         },
@@ -120,6 +148,7 @@ describe('Articles API', () => {
       '/v4/articles',
       {
         ...content,
+        tags: [],
         body: {
           blocks: [own.id, foreign.id].map((attachmentId, index) => ({
             id: String(index),
@@ -278,6 +307,139 @@ describe('Articles API', () => {
       );
 
       expect(response, 'to satisfy', { __httpCode: 404, err: 'Article not found' });
+    });
+  });
+
+  describe('Update', () => {
+    let article: Article;
+
+    beforeEach(async () => {
+      article = await dbAdapter.createArticle({ author_id: luna.user.id, ...content });
+    });
+
+    it('should update content, tags, and attachments', async () => {
+      const attachment = await createMockAttachmentAsync(luna);
+      const updated = {
+        title: 'Updated article',
+        digest: 'Updated digest',
+        body: { blocks: [{ id: 'media', type: 'media', attachmentId: attachment.id }] },
+        tags: ['First', 'Second'],
+      };
+
+      const response = await performJSONRequest(
+        'PUT',
+        `/v4/articles/${article.uid}?version=1`,
+        updated,
+        authHeaders(luna),
+      );
+
+      expect(response, 'to satisfy', {
+        __httpCode: 200,
+        article: {
+          id: article.uid,
+          version: 2,
+          title: updated.title,
+          digest: updated.digest,
+          body: updated.body,
+          tags: ['first', 'second'],
+          attachmentIds: [attachment.id],
+        },
+        attachments: [{ id: attachment.id }],
+      });
+      expect(await dbAdapter.getArticleById(article.uid), 'to satisfy', {
+        title: updated.title,
+        digest: updated.digest,
+        body: updated.body,
+        version: 2,
+      });
+      expect(await article.getRevisions(10, 0), 'to satisfy', [{ version: 1, ...content }]);
+      expect(await dbAdapter.getAttachmentById(attachment.id), 'to satisfy', {
+        articleId: article.uid,
+      });
+    });
+
+    it('should update only tags without creating a revision', async () => {
+      const response = await performJSONRequest(
+        'PUT',
+        `/v4/articles/${article.uid}?version=1`,
+        { ...content, tags: ['New'] },
+        authHeaders(luna),
+      );
+
+      expect(response, 'to satisfy', {
+        __httpCode: 200,
+        article: { id: article.uid, version: 1, tags: ['new'] },
+      });
+      expect(await article.getRevisions(10, 0), 'to be empty');
+    });
+
+    it('should reject a stale version without changing the article', async () => {
+      const first = { ...content, title: 'First update', tags: ['First'] };
+      const second = { ...content, title: 'Second update', tags: ['Second'] };
+      const firstResponse = await performJSONRequest(
+        'PUT',
+        `/v4/articles/${article.uid}?version=1`,
+        first,
+        authHeaders(luna),
+      );
+      expect(firstResponse, 'to satisfy', { __httpCode: 200, article: { version: 2 } });
+
+      const response = await performJSONRequest(
+        'PUT',
+        `/v4/articles/${article.uid}?version=1`,
+        second,
+        authHeaders(luna),
+      );
+
+      expect(response, 'to satisfy', {
+        __httpCode: 409,
+        err: 'Article version is mismatched',
+      });
+      expect(await dbAdapter.getArticleById(article.uid), 'to satisfy', {
+        title: first.title,
+        version: 2,
+      });
+      expect(await article.getTags(), 'to equal', ['first']);
+      expect(await article.getRevisions(10, 0), 'to have length', 1);
+    });
+
+    it('should deny updates by another user', async () => {
+      const mars = await createTestUser('mars');
+      const response = await performJSONRequest(
+        'PUT',
+        `/v4/articles/${article.uid}?version=1`,
+        { ...content, title: 'Unauthorized update', tags: [] },
+        authHeaders(mars),
+      );
+
+      expect(response, 'to satisfy', { __httpCode: 403 });
+      expect(await dbAdapter.getArticleById(article.uid), 'to satisfy', {
+        title: content.title,
+        version: 1,
+      });
+      expect(await article.getRevisions(10, 0), 'to be empty');
+    });
+
+    it('should reject an invalid body without changing the article', async () => {
+      const response = await performJSONRequest(
+        'PUT',
+        `/v4/articles/${article.uid}?version=1`,
+        {
+          ...content,
+          tags: [],
+          body: {
+            blocks: [...content.body.blocks, { id: 'text', type: 'list', items: ['Duplicate'] }],
+          },
+        },
+        authHeaders(luna),
+      );
+
+      expect(response, 'to satisfy', { __httpCode: 422, err: /Block IDs must be unique/ });
+      expect(await dbAdapter.getArticleById(article.uid), 'to satisfy', {
+        ...content,
+        version: 1,
+      });
+      expect(await article.getRevisions(10, 0), 'to be empty');
     });
   });
 });

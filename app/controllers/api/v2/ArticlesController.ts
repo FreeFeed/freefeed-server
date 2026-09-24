@@ -12,6 +12,13 @@ import { serializeAttachment } from '../../../serializers/v2/attachment';
 import { articleAccessRequired } from '../../middlewares/article-access-required';
 import type { Article } from '../../../models/article';
 import { serializeFeed } from '../../../serializers/v2/post';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  NotFoundException,
+  ServerErrorException,
+} from '../../../support/exceptions';
 
 import { createArticleSchema } from './data-schemes/articles';
 
@@ -29,6 +36,10 @@ export const create = compose([
       body: body.body,
     });
 
+    if (body.tags.length) {
+      await article.setTags(body.tags);
+    }
+
     ctx.body = await fullArticleResponse(user, article, apiVersion);
   },
 ]);
@@ -38,6 +49,51 @@ export const getById = compose([
   monitored('articles.getById'),
   async (ctx: Ctx<{ user: User; article: Article; apiVersion: number }>) => {
     const { user, article, apiVersion } = ctx.state;
+    ctx.body = await fullArticleResponse(user, article, apiVersion);
+  },
+]);
+
+export const update = compose([
+  authRequired(),
+  articleAccessRequired(true),
+  inputSchemaRequired(createArticleSchema),
+  monitored('articles.update'),
+  async (ctx: Ctx<{ user: User; article: Article; apiVersion: number }>) => {
+    const { user, article, apiVersion } = ctx.state;
+    const expectedVersion =
+      typeof ctx.request.query.version === 'string'
+        ? parseInt(ctx.request.query.version, 10)
+        : article.version;
+
+    if (article.authorId !== user?.id) {
+      throw new ForbiddenException('You are not allowed to update this article');
+    }
+
+    if (!Number.isFinite(expectedVersion) || expectedVersion <= 0) {
+      throw new BadRequestException('Invalid expected version');
+    }
+
+    const body = ctx.request.body as z.infer<typeof createArticleSchema>;
+    const result = await article.update(expectedVersion, {
+      title: body.title,
+      digest: body.digest,
+      body: body.body,
+    });
+
+    switch (result.status) {
+      case 'updated':
+      case 'unchanged':
+        break;
+      case 'conflict':
+        throw new ConflictException('Article version is mismatched');
+      case 'not-found':
+        throw new NotFoundException('Article not found');
+      default:
+        throw new ServerErrorException('Unknown update result');
+    }
+
+    await article.setTags(body.tags);
+
     ctx.body = await fullArticleResponse(user, article, apiVersion);
   },
 ]);
