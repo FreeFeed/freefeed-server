@@ -4,6 +4,7 @@ import expect from 'unexpected';
 import { dbAdapter } from '../../app/models';
 import type { Article, ArticleDbRowContent } from '../../app/models/article';
 import type { UUID } from '../../app/support/types';
+import { UNDO_ARTICLE_DELETE, UndoArticleDelete } from '../../app/support/undo/article-delete';
 import cleanDB from '../dbCleaner';
 import { createPost } from '../integration/helpers/posts-and-comments';
 
@@ -440,6 +441,132 @@ describe('Articles API', () => {
         version: 1,
       });
       expect(await article.getRevisions(10, 0), 'to be empty');
+    });
+  });
+
+  describe('Delete and restore', () => {
+    let article: Article;
+
+    beforeEach(async () => {
+      article = await dbAdapter.createArticle({ author_id: luna.user.id, ...content });
+    });
+
+    it('should soft-delete an article and return an undo token', async () => {
+      const response = await performJSONRequest(
+        'DELETE',
+        `/v4/articles/${article.uid}`,
+        undefined,
+        authHeaders(luna),
+      );
+
+      expect(response, 'to satisfy', {
+        __httpCode: 200,
+        undo: [
+          {
+            subject: UNDO_ARTICLE_DELETE,
+            message: 'You deleted your article',
+            messageParams: {},
+            expiresInSec: UndoArticleDelete.ttlSec,
+            token: expect.it('to be a string'),
+          },
+        ],
+      });
+      expect(await dbAdapter.getArticleById(article.uid), 'to satisfy', {
+        toDelete: true,
+        version: 1,
+      });
+
+      const getResponse = await performJSONRequest(
+        'GET',
+        `/v4/articles/${article.uid}`,
+        undefined,
+        authHeaders(luna),
+      );
+      expect(getResponse, 'to satisfy', { __httpCode: 404, err: 'Article not found' });
+    });
+
+    it('should restore an article using its undo token', async () => {
+      const deletion = await performJSONRequest(
+        'DELETE',
+        `/v4/articles/${article.uid}`,
+        undefined,
+        authHeaders(luna),
+      );
+      const [{ token }] = (deletion as typeof deletion & { undo: [{ token: string }] }).undo;
+
+      const response = await performJSONRequest(
+        'POST',
+        `/v4/undo/${UNDO_ARTICLE_DELETE}`,
+        { token },
+        authHeaders(luna),
+      );
+
+      expect(response, 'to satisfy', {
+        __httpCode: 200,
+        article: { id: article.uid, version: 1, ...content },
+      });
+      expect(await dbAdapter.getArticleById(article.uid), 'to satisfy', { toDelete: false });
+      expect(await article.getRevisions(10, 0), 'to be empty');
+
+      const getResponse = await performJSONRequest(
+        'GET',
+        `/v4/articles/${article.uid}`,
+        undefined,
+        authHeaders(luna),
+      );
+      expect(getResponse, 'to satisfy', { __httpCode: 200, article: { id: article.uid } });
+    });
+
+    it('should reject deletion by another user', async () => {
+      const mars = await createTestUser('mars');
+      const response = await performJSONRequest(
+        'DELETE',
+        `/v4/articles/${article.uid}`,
+        undefined,
+        authHeaders(mars),
+      );
+
+      expect(response, 'to satisfy', { __httpCode: 403 });
+      expect(await dbAdapter.getArticleById(article.uid), 'to satisfy', { toDelete: false });
+    });
+
+    it('should return 404 on repeated deletion', async () => {
+      const first = await performJSONRequest(
+        'DELETE',
+        `/v4/articles/${article.uid}`,
+        undefined,
+        authHeaders(luna),
+      );
+      expect(first, 'to satisfy', { __httpCode: 200 });
+
+      const second = await performJSONRequest(
+        'DELETE',
+        `/v4/articles/${article.uid}`,
+        undefined,
+        authHeaders(luna),
+      );
+      expect(second, 'to satisfy', { __httpCode: 404, err: 'Article not found' });
+    });
+
+    it('should not let another user restore the article', async () => {
+      const mars = await createTestUser('mars');
+      const deletion = await performJSONRequest(
+        'DELETE',
+        `/v4/articles/${article.uid}`,
+        undefined,
+        authHeaders(luna),
+      );
+      const [{ token }] = (deletion as typeof deletion & { undo: [{ token: string }] }).undo;
+
+      const response = await performJSONRequest(
+        'POST',
+        `/v4/undo/${UNDO_ARTICLE_DELETE}`,
+        { token },
+        authHeaders(mars),
+      );
+
+      expect(response, 'to satisfy', { __httpCode: 403, err: 'Invalid or expired undo token' });
+      expect(await dbAdapter.getArticleById(article.uid), 'to satisfy', { toDelete: true });
     });
   });
 });

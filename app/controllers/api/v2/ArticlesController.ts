@@ -19,6 +19,7 @@ import {
   NotFoundException,
   ServerErrorException,
 } from '../../../support/exceptions';
+import { UndoArticleDelete } from '../../../support/undo/article-delete';
 
 import { createArticleSchema } from './data-schemes/articles';
 
@@ -98,7 +99,30 @@ export const update = compose([
   },
 ]);
 
-async function fullArticleResponse(viewer: User, article: Article, apiVersion: number) {
+export const deactivate = compose([
+  authRequired(),
+  articleAccessRequired(true),
+  monitored('articles.delete'),
+  async (ctx: Ctx<{ user: User; article: Article; apiVersion: number }>) => {
+    const { user, article } = ctx.state;
+
+    if (article.authorId !== user?.id) {
+      throw new ForbiddenException('You are not allowed to delete this article');
+    }
+
+    const undo = [];
+
+    if (await article.deactivate()) {
+      undo.push(
+        new UndoArticleDelete(article.uid).serialize(user.id, 'You deleted your article', {}),
+      );
+    }
+
+    ctx.body = { undo };
+  },
+]);
+
+export async function fullArticleResponse(viewer: User, article: Article, apiVersion: number) {
   const feedOutput = await serializeFeed(article.postId ? [article.postId] : [], viewer?.id);
   const { timelines: _timelines, isLastPage: _isLastPage, ...output } = feedOutput;
 

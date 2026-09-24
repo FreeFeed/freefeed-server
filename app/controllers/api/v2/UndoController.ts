@@ -16,6 +16,9 @@ import { UNDO_POST_DELETE } from '../../../support/undo/post-delete';
 import { UNDO_COMMENT_DELETE } from '../../../support/undo/comment-delete';
 import { serializeSinglePost } from '../../../serializers/v2/post';
 import { serializeCommentFull } from '../../../serializers/v2/comment';
+import { UNDO_ARTICLE_DELETE } from '../../../support/undo/article-delete';
+
+import { fullArticleResponse } from './ArticlesController';
 
 const undoInputSchema = z.object({ token: z.jwt() });
 type UndoInput = z.infer<typeof undoInputSchema>;
@@ -57,6 +60,15 @@ export const undo = compose([
 
       await comment.activate(user);
       ctx.body = await serializeCommentFull(comment, user.id);
+    } else if (subject === UNDO_ARTICLE_DELETE) {
+      const article = await dbAdapter.getArticleById(data.articleId);
+
+      if (!article) {
+        throw new NotFoundException('Article not found');
+      }
+
+      await article.activate();
+      ctx.body = await fullArticleResponse(user, article, apiVersion);
     } else {
       throw new BadRequestException(`Unknown undo subject: ${subject}`);
     }

@@ -242,6 +242,6 @@ export const appTokensScopes = [
   {
     name: 'manage-articles',
     title: 'Manage (read, write and delete) my articles',
-    routes: ['POST /vN/articles', 'PUT /vN/articles/:articleId'],
+    routes: ['POST /vN/articles', 'PUT /vN/articles/:articleId', 'DELETE /vN/articles/:articleId'],
   },
 ];
