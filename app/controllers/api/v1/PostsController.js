@@ -50,9 +50,6 @@ export default class PostsController {
         }
       }
 
-      const article =
-        articleId != null ? await validateArticleAssociation(articleId, author.id) : null;
-
       const newPost = new Post({
         userId: author.id,
         body,
@@ -62,11 +59,7 @@ export default class PostsController {
       });
 
       try {
-        await newPost.create();
-
-        if (article && !(await article.setPost(newPost.id))) {
-          throw new ConflictException('Article association has changed');
-        }
+        await newPost.create({ articleId });
       } catch (e) {
         if (e instanceof ValidationException || e instanceof ConflictException) {
           throw e;
@@ -381,24 +374,6 @@ export default class PostsController {
       ctx.body = {};
     },
   ]);
-}
-
-async function validateArticleAssociation(articleId, authorId) {
-  const article = await dbAdapter.getArticleById(articleId);
-
-  if (!article || article.authorId !== authorId || article.toDelete) {
-    throw new ValidationException('Article is unavailable');
-  }
-
-  if (article.postId !== null) {
-    const post = await dbAdapter.getPostById(article.postId);
-
-    if (post && !post.toDelete) {
-      throw new ConflictException('Article is already linked to another post');
-    }
-  }
-
-  return article;
 }
 
 /**

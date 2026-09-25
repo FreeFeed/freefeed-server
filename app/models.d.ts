@@ -152,6 +152,10 @@ type PostUserState = {
   hidden: boolean;
 };
 
+export type PostCreateAdditionalParams = {
+  articleId?: UUID | null;
+};
+
 export class Post {
   id: UUID;
   intId: number;
@@ -168,7 +172,7 @@ export class Post {
     timelineIds: UUID[];
     commentsDisabled?: '0' | '1';
   });
-  create(): Promise<this>;
+  create(additionalParams?: PostCreateAdditionalParams): Promise<this>;
   inactivate(destroyedBy?: User): Promise<boolean>;
   activate(restoredBy?: User): Promise<boolean>;
   destroy(): Promise<void>;

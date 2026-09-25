@@ -1,6 +1,7 @@
 import type { DbAdapter } from '../support/DbAdapter';
 import type { UUID } from '../support/types';
 import { scheduleArticleDeletion } from '../jobs/delete-article';
+import { PubSub as pubSub } from '../models';
 import type { User } from '../models';
 
 import type { ArticleBody } from './article-body';
@@ -89,6 +90,7 @@ export class Article extends ArticleContent {
   }
 
   async setPost(postId: UUID | null): Promise<boolean> {
+    const previousPostId = this.postId;
     const result = await this.dba.setArticlePost(this.uid, postId);
 
     if (!result) {
@@ -96,6 +98,14 @@ export class Article extends ArticleContent {
     }
 
     this.postId = postId;
+
+    if (previousPostId !== postId) {
+      const updatedPostId = postId ?? previousPostId;
+
+      if (updatedPostId) {
+        await pubSub.updatePost(updatedPostId);
+      }
+    }
 
     return true;
   }

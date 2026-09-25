@@ -25,6 +25,8 @@ import {
  * @typedef { import("../models").User } User
  * @typedef { import("../models").Timeline } Timeline
  * @typedef { import("../support/DbAdapter").DbAdapter } DbAdapter
+ * @typedef { import("../support/types").UUID } UUID
+ * @typedef {{ articleId?: UUID | null }} PostCreateAdditionalParams
  */
 
 /**
@@ -125,7 +127,10 @@ export function addModel(dbAdapter) {
       }
     }
 
-    async create() {
+    /**
+     * @param {PostCreateAdditionalParams} [additionalParams]
+     */
+    async create(additionalParams = {}) {
       this.validate();
 
       const payload = {
@@ -141,7 +146,7 @@ export function addModel(dbAdapter) {
       this.destinationFeedIds = this.feedIntIds.slice();
 
       // save post to the database
-      this.id = await dbAdapter.createPost(payload, this.feedIntIds);
+      this.id = await dbAdapter.createPost(payload, this.feedIntIds, additionalParams);
 
       const newPost = await dbAdapter.getPostById(this.id);
       const fieldsToUpdate = [

@@ -3,6 +3,7 @@ import validator from 'validator';
 import pgFormat from 'pg-format';
 
 import { Post } from '../../models';
+import { ConflictException, ValidationException } from '../exceptions';
 import { toTSVector } from '../search/to-tsvector';
 import { currentConfig } from '../app-async-context';
 
@@ -15,7 +16,7 @@ import { createShortId } from './short-ids';
 
 const postsTrait = (superClass) =>
   class extends superClass {
-    async createPost(payload, destinationsIntIds) {
+    async createPost(payload, destinationsIntIds, { articleId = null } = {}) {
       const preparedPayload = prepareModelPayload(payload, POST_COLUMNS, POST_COLUMNS_MAPPING);
       preparedPayload.destination_feed_ids = destinationsIntIds;
       preparedPayload.feed_ids = destinationsIntIds;
@@ -28,6 +29,31 @@ const postsTrait = (superClass) =>
       const postId = await this.database.transaction(async (trx) => {
         // Lock post_short_ids table to prevent any updates
         await trx.raw('lock table post_short_ids in share row exclusive mode');
+
+        let article = null;
+
+        if (articleId) {
+          article = await trx('articles')
+            .select('author_id', 'post_id', 'to_delete')
+            .where({ uid: articleId })
+            .forUpdate()
+            .first();
+
+          if (!article || article.author_id !== payload.userId || article.to_delete) {
+            throw new ValidationException('Article is unavailable');
+          }
+
+          if (article.post_id) {
+            const currentPost = await trx('posts')
+              .select('to_delete')
+              .where({ uid: article.post_id })
+              .first();
+
+            if (!currentPost?.to_delete) {
+              throw new ConflictException('Article is already linked to another post');
+            }
+          }
+        }
 
         // Create post
         const [{ uid: longId }] = await trx('posts').insert(preparedPayload).returning('uid');
@@ -42,6 +68,10 @@ const postsTrait = (superClass) =>
             )
             .then((res) => !!res),
         );
+
+        if (articleId) {
+          await trx('articles').where({ uid: articleId }).update({ post_id: longId });
+        }
 
         return longId;
       });

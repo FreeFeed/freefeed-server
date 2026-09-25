@@ -1,8 +1,12 @@
-import { beforeEach, describe, it } from 'mocha';
+import { afterEach, before, beforeEach, describe, it } from 'mocha';
 import expect from 'unexpected';
 
-import { dbAdapter } from '../../app/models';
+import { getSingleton } from '../../app/app';
+import { dbAdapter, PubSub } from '../../app/models';
 import type { Article, ArticleDbRowContent } from '../../app/models/article';
+import { DummyPublisher } from '../../app/pubsub';
+import { connect as redisConnection } from '../../app/setup/database';
+import { eventNames, PubSubAdapter } from '../../app/support/PubSubAdapter';
 import type { UUID } from '../../app/support/types';
 import { UNDO_ARTICLE_DELETE, UndoArticleDelete } from '../../app/support/undo/article-delete';
 import cleanDB from '../dbCleaner';
@@ -15,6 +19,7 @@ import {
   performJSONRequest,
 } from './functional_test_helper';
 import type { UserCtx } from './functional_test_helper';
+import Session from './realtime-session';
 
 const content = {
   title: 'Test article',
@@ -348,6 +353,71 @@ describe('Articles API', () => {
 
       expect(response, 'to satisfy', { __httpCode: 403 });
       expect(await dbAdapter.getArticleById(article.uid), 'to satisfy', { postId });
+    });
+
+    describe('Realtime', () => {
+      let port: string | number;
+      let session: Session;
+
+      before(async () => {
+        const app = await getSingleton();
+        port = process.env.PEPYATKA_SERVER_PORT || app.context.config.port;
+      });
+
+      beforeEach(async () => {
+        PubSub.setPublisher(new PubSubAdapter(redisConnection()));
+        session = await Session.create(port, 'Luna');
+        await session.sendAsync('auth', { authToken: luna.authToken });
+        const postsTimeline = await luna.user.getPostsTimeline();
+
+        if (!postsTimeline) {
+          throw new Error('Posts timeline not found');
+        }
+
+        await session.sendAsync('subscribe', { timeline: [postsTimeline.id] });
+      });
+
+      afterEach(() => {
+        session.disconnect();
+        PubSub.setPublisher(new DummyPublisher());
+      });
+
+      it(`should publish '${eventNames.POST_UPDATED}' for the detached post`, async () => {
+        const event = session.receiveWhile(eventNames.POST_UPDATED, () =>
+          performJSONRequest(
+            'DELETE',
+            `/v4/articles/${article.uid}/post`,
+            undefined,
+            authHeaders(luna),
+          ),
+        );
+
+        await expect(event, 'when fulfilled', 'to satisfy', {
+          posts: { id: postId, articleId: null },
+        });
+      });
+
+      it(`should include the article in '${eventNames.POST_CREATED}'`, async () => {
+        const unpublishedArticle = await dbAdapter.createArticle({
+          author_id: luna.user.id,
+          ...content,
+        });
+        const event = session.receiveWhile(eventNames.POST_CREATED, () =>
+          performJSONRequest(
+            'POST',
+            '/v4/posts',
+            {
+              post: { body: 'New post', articleId: unpublishedArticle.uid },
+              meta: { feeds: [luna.username] },
+            },
+            authHeaders(luna),
+          ),
+        );
+
+        await expect(event, 'when fulfilled', 'to satisfy', {
+          posts: { articleId: unpublishedArticle.uid },
+        });
+      });
     });
   });
 
