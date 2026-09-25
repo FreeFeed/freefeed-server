@@ -12,6 +12,11 @@ const articleBlockSchema = z
     z.discriminatedUnion('type', [
       z.object({ type: z.literal('text'), content: z.string() }),
       z.object({
+        type: z.literal('heading'),
+        level: z.number().min(2).max(6), // 1st level is the article title itself
+        content: z.string(),
+      }),
+      z.object({
         type: z.literal('list'),
         items: z.array(z.string()),
       }),
