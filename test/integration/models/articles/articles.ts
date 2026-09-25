@@ -67,7 +67,7 @@ describe('Articles model', () => {
     expect(shortId, 'to be a string');
     expect(shortId, 'to match', RegExp(`^[a-f0-9]{${initialLength.article},${maxLength}}$`));
     expect(await dbAdapter.getArticleByShortId(shortId), 'to satisfy', {
-      uid: article.uid,
+      id: article.id,
     });
   });
 
@@ -123,11 +123,11 @@ describe('Articles model', () => {
 
     const mediaArticle = await dbAdapter.createArticle({ author_id: luna.id, ...content });
 
-    expect(await dbAdapter.getArticleById(mediaArticle.uid), 'to satisfy', {
+    expect(await dbAdapter.getArticleById(mediaArticle.id), 'to satisfy', {
       body: content.body,
     });
     expect(await dbAdapter.getAttachmentById(video.id), 'to satisfy', {
-      articleId: mediaArticle.uid,
+      articleId: mediaArticle.id,
     });
   });
 
@@ -145,7 +145,7 @@ describe('Articles model', () => {
       version: 2,
     });
     expect(article, 'to satisfy', { ...UPDATED_CONTENT, version: 2 });
-    expect(await dbAdapter.getArticleById(article.uid), 'to satisfy', {
+    expect(await dbAdapter.getArticleById(article.id), 'to satisfy', {
       ...UPDATED_CONTENT,
       version: 2,
     });
@@ -154,7 +154,7 @@ describe('Articles model', () => {
 
     expect(revisions, 'to satisfy', [
       {
-        articleId: article.uid,
+        articleId: article.id,
         ...ARTICLE_CONTENT,
         createdAt: expect.it('to be a date'),
         version: 1,
@@ -168,7 +168,7 @@ describe('Articles model', () => {
       message: /type/,
     });
 
-    expect(await dbAdapter.getArticleById(article.uid), 'to satisfy', {
+    expect(await dbAdapter.getArticleById(article.id), 'to satisfy', {
       ...ARTICLE_CONTENT,
       version: 1,
     });
@@ -182,7 +182,7 @@ describe('Articles model', () => {
       { status: 422, message: /Block IDs must be unique/ },
     );
 
-    expect(await dbAdapter.getArticleById(article.uid), 'to satisfy', {
+    expect(await dbAdapter.getArticleById(article.id), 'to satisfy', {
       ...ARTICLE_CONTENT,
       version: 1,
     });
@@ -194,7 +194,7 @@ describe('Articles model', () => {
       status: 'unchanged',
     });
 
-    const stored = await dbAdapter.getArticleById(article.uid);
+    const stored = await dbAdapter.getArticleById(article.id);
 
     expect(stored, 'to satisfy', { ...ARTICLE_CONTENT, version: 1 });
     expect(stored?.updatedAt.getTime(), 'to be', article.updatedAt.getTime());
@@ -202,7 +202,7 @@ describe('Articles model', () => {
   });
 
   it('should reject an update based on a stale version', async () => {
-    const staleArticle = await dbAdapter.getArticleById(article.uid);
+    const staleArticle = await dbAdapter.getArticleById(article.id);
 
     expect(staleArticle, 'not to be null');
     expect(await article.update(1, UPDATED_CONTENT), 'to equal', {
@@ -210,7 +210,7 @@ describe('Articles model', () => {
       version: 2,
     });
     expect(await staleArticle?.update(1, OTHER_CONTENT), 'to equal', { status: 'conflict' });
-    expect(await dbAdapter.getArticleById(article.uid), 'to satisfy', {
+    expect(await dbAdapter.getArticleById(article.id), 'to satisfy', {
       ...UPDATED_CONTENT,
       version: 2,
     });
@@ -218,8 +218,8 @@ describe('Articles model', () => {
   });
 
   it('should serialize concurrent updates of the same version', async () => {
-    const firstArticle = await dbAdapter.getArticleById(article.uid);
-    const secondArticle = await dbAdapter.getArticleById(article.uid);
+    const firstArticle = await dbAdapter.getArticleById(article.id);
+    const secondArticle = await dbAdapter.getArticleById(article.id);
 
     expect(firstArticle, 'not to be null');
     expect(secondArticle, 'not to be null');
@@ -232,7 +232,7 @@ describe('Articles model', () => {
     const winningContent = results[0]?.status === 'updated' ? UPDATED_CONTENT : OTHER_CONTENT;
 
     expect(statuses, 'to equal', ['conflict', 'updated']);
-    expect(await dbAdapter.getArticleById(article.uid), 'to satisfy', {
+    expect(await dbAdapter.getArticleById(article.id), 'to satisfy', {
       ...winningContent,
       version: 2,
     });
@@ -259,11 +259,11 @@ describe('Articles model', () => {
     );
     expect(await article.getRevisions(1, 1), 'to satisfy', [{ version: 2 }]);
     expect(await dbAdapter.getArticleRevisionById(descending[0].uid), 'to satisfy', {
-      articleId: article.uid,
+      articleId: article.id,
       ...OTHER_CONTENT,
       version: 3,
     });
-    expect(await dbAdapter.getArticleById(article.uid), 'to satisfy', {
+    expect(await dbAdapter.getArticleById(article.id), 'to satisfy', {
       ...FINAL_CONTENT,
       version: 4,
     });
@@ -272,14 +272,14 @@ describe('Articles model', () => {
   it('should set ordered tags without changing the article version', async () => {
     await article.setTags(['Second', 'First']);
 
-    expect(await getArticleTagState(article.uid), 'to equal', {
+    expect(await getArticleTagState(article.id), 'to equal', {
       articleTags: [
         { name: 'second', ord: 1 },
         { name: 'first', ord: 2 },
       ],
       usageTags: ['first', 'second'],
     });
-    expect(await dbAdapter.getArticleById(article.uid), 'to satisfy', { version: 1 });
+    expect(await dbAdapter.getArticleById(article.id), 'to satisfy', { version: 1 });
     expect(await article.getRevisions(10, 0), 'to be empty');
   });
 
@@ -287,7 +287,7 @@ describe('Articles model', () => {
     await article.setTags(['one', 'two']);
     await article.setTags(['two', 'three']);
 
-    expect(await getArticleTagState(article.uid), 'to equal', {
+    expect(await getArticleTagState(article.id), 'to equal', {
       articleTags: [
         { name: 'two', ord: 1 },
         { name: 'three', ord: 2 },
@@ -300,7 +300,7 @@ describe('Articles model', () => {
     await article.setTags(['one', 'two']);
     await article.setTags([]);
 
-    expect(await getArticleTagState(article.uid), 'to equal', {
+    expect(await getArticleTagState(article.id), 'to equal', {
       articleTags: [],
       usageTags: [],
     });
@@ -321,7 +321,7 @@ describe('Articles model', () => {
     await article.setTags(['Test']);
     await article.setTags(['TEST', 'Other']);
 
-    expect(await getArticleTagState(article.uid), 'to equal', {
+    expect(await getArticleTagState(article.id), 'to equal', {
       articleTags: [
         { name: 'test', ord: 1 },
         { name: 'other', ord: 2 },
@@ -333,7 +333,7 @@ describe('Articles model', () => {
   it('should serialize concurrent tag replacements', async () => {
     await Promise.all([article.setTags(['one', 'two']), article.setTags(['three', 'four'])]);
 
-    const state = await getArticleTagState(article.uid);
+    const state = await getArticleTagState(article.id);
     const orderedNames = state.articleTags.map(({ name }) => name);
 
     expect(['one,two', 'three,four'], 'to contain', orderedNames.join(','));
@@ -347,10 +347,10 @@ describe('Articles model', () => {
 
     expect(await article.destroy(), 'to be', true);
     expect(await article.destroy(), 'to be', false);
-    expect(await dbAdapter.getArticleById(article.uid), 'to be null');
+    expect(await dbAdapter.getArticleById(article.id), 'to be null');
     expect(await dbAdapter.getArticleByShortId(shortId), 'to be null');
     expect(await article.getRevisions(10, 0), 'to be empty');
-    expect(await getArticleTagState(article.uid), 'to equal', {
+    expect(await getArticleTagState(article.id), 'to equal', {
       articleTags: [],
       usageTags: [],
     });

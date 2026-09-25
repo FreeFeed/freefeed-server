@@ -186,7 +186,7 @@ describe('Articles API: mutations', () => {
 
       const response = await performJSONRequest(
         'PUT',
-        `/v4/articles/${article.uid}?expectedVersion=1`,
+        `/v4/articles/${article.id}?expectedVersion=1`,
         updated,
         authHeaders(luna),
       );
@@ -194,7 +194,7 @@ describe('Articles API: mutations', () => {
       expect(response, 'to satisfy', {
         __httpCode: 200,
         article: {
-          id: article.uid,
+          id: article.id,
           version: 2,
           title: updated.title,
           digest: updated.digest,
@@ -204,7 +204,7 @@ describe('Articles API: mutations', () => {
         },
         attachments: [{ id: attachment.id }],
       });
-      expect(await dbAdapter.getArticleById(article.uid), 'to satisfy', {
+      expect(await dbAdapter.getArticleById(article.id), 'to satisfy', {
         title: updated.title,
         digest: updated.digest,
         body: updated.body,
@@ -212,21 +212,21 @@ describe('Articles API: mutations', () => {
       });
       expect(await article.getRevisions(10, 0), 'to satisfy', [{ version: 1, ...content }]);
       expect(await dbAdapter.getAttachmentById(attachment.id), 'to satisfy', {
-        articleId: article.uid,
+        articleId: article.id,
       });
     });
 
     it('should update only tags without creating a revision', async () => {
       const response = await performJSONRequest(
         'PUT',
-        `/v4/articles/${article.uid}?expectedVersion=1`,
+        `/v4/articles/${article.id}?expectedVersion=1`,
         { ...content, tags: ['New'] },
         authHeaders(luna),
       );
 
       expect(response, 'to satisfy', {
         __httpCode: 200,
-        article: { id: article.uid, version: 1, tags: ['new'] },
+        article: { id: article.id, version: 1, tags: ['new'] },
       });
       expect(await article.getRevisions(10, 0), 'to be empty');
     });
@@ -236,7 +236,7 @@ describe('Articles API: mutations', () => {
       const second = { ...content, title: 'Second update', tags: ['Second'] };
       const firstResponse = await performJSONRequest(
         'PUT',
-        `/v4/articles/${article.uid}?expectedVersion=1`,
+        `/v4/articles/${article.id}?expectedVersion=1`,
         first,
         authHeaders(luna),
       );
@@ -244,7 +244,7 @@ describe('Articles API: mutations', () => {
 
       const response = await performJSONRequest(
         'PUT',
-        `/v4/articles/${article.uid}?expectedVersion=1`,
+        `/v4/articles/${article.id}?expectedVersion=1`,
         second,
         authHeaders(luna),
       );
@@ -253,7 +253,7 @@ describe('Articles API: mutations', () => {
         __httpCode: 409,
         err: 'Article version is mismatched',
       });
-      expect(await dbAdapter.getArticleById(article.uid), 'to satisfy', {
+      expect(await dbAdapter.getArticleById(article.id), 'to satisfy', {
         title: first.title,
         version: 2,
       });
@@ -264,7 +264,7 @@ describe('Articles API: mutations', () => {
     it('should require the expected version', async () => {
       const response = await performJSONRequest(
         'PUT',
-        `/v4/articles/${article.uid}`,
+        `/v4/articles/${article.id}`,
         { ...content, title: 'Updated without a version', tags: [] },
         authHeaders(luna),
       );
@@ -273,7 +273,7 @@ describe('Articles API: mutations', () => {
         __httpCode: 400,
         err: 'Invalid expected version',
       });
-      expect(await dbAdapter.getArticleById(article.uid), 'to satisfy', {
+      expect(await dbAdapter.getArticleById(article.id), 'to satisfy', {
         title: content.title,
         version: 1,
       });
@@ -284,13 +284,13 @@ describe('Articles API: mutations', () => {
       const mars = await createTestUser('mars');
       const response = await performJSONRequest(
         'PUT',
-        `/v4/articles/${article.uid}?expectedVersion=1`,
+        `/v4/articles/${article.id}?expectedVersion=1`,
         { ...content, title: 'Unauthorized update', tags: [] },
         authHeaders(mars),
       );
 
       expect(response, 'to satisfy', { __httpCode: 403 });
-      expect(await dbAdapter.getArticleById(article.uid), 'to satisfy', {
+      expect(await dbAdapter.getArticleById(article.id), 'to satisfy', {
         title: content.title,
         version: 1,
       });
@@ -300,7 +300,7 @@ describe('Articles API: mutations', () => {
     it('should reject an invalid body without changing the article', async () => {
       const response = await performJSONRequest(
         'PUT',
-        `/v4/articles/${article.uid}?expectedVersion=1`,
+        `/v4/articles/${article.id}?expectedVersion=1`,
         {
           ...content,
           tags: [],
@@ -312,7 +312,7 @@ describe('Articles API: mutations', () => {
       );
 
       expect(response, 'to satisfy', { __httpCode: 422, err: /Block IDs must be unique/ });
-      expect(await dbAdapter.getArticleById(article.uid), 'to satisfy', {
+      expect(await dbAdapter.getArticleById(article.id), 'to satisfy', {
         ...content,
         version: 1,
       });
@@ -330,7 +330,7 @@ describe('Articles API: mutations', () => {
     it('should soft-delete an article and return an undo token', async () => {
       const response = await performJSONRequest(
         'DELETE',
-        `/v4/articles/${article.uid}`,
+        `/v4/articles/${article.id}`,
         undefined,
         authHeaders(luna),
       );
@@ -347,14 +347,14 @@ describe('Articles API: mutations', () => {
           },
         ],
       });
-      expect(await dbAdapter.getArticleById(article.uid), 'to satisfy', {
+      expect(await dbAdapter.getArticleById(article.id), 'to satisfy', {
         toDelete: true,
         version: 1,
       });
 
       const getResponse = await performJSONRequest(
         'GET',
-        `/v4/articles/${article.uid}`,
+        `/v4/articles/${article.id}`,
         undefined,
         authHeaders(luna),
       );
@@ -364,7 +364,7 @@ describe('Articles API: mutations', () => {
     it('should restore an article using its undo token', async () => {
       const deletion = await performJSONRequest<{ undo: [{ token: string }] }>(
         'DELETE',
-        `/v4/articles/${article.uid}`,
+        `/v4/articles/${article.id}`,
         undefined,
         authHeaders(luna),
       );
@@ -379,37 +379,37 @@ describe('Articles API: mutations', () => {
 
       expect(response, 'to satisfy', {
         __httpCode: 200,
-        article: { id: article.uid, version: 1, ...content },
+        article: { id: article.id, version: 1, ...content },
       });
-      expect(await dbAdapter.getArticleById(article.uid), 'to satisfy', { toDelete: false });
+      expect(await dbAdapter.getArticleById(article.id), 'to satisfy', { toDelete: false });
       expect(await article.getRevisions(10, 0), 'to be empty');
 
       const getResponse = await performJSONRequest(
         'GET',
-        `/v4/articles/${article.uid}`,
+        `/v4/articles/${article.id}`,
         undefined,
         authHeaders(luna),
       );
-      expect(getResponse, 'to satisfy', { __httpCode: 200, article: { id: article.uid } });
+      expect(getResponse, 'to satisfy', { __httpCode: 200, article: { id: article.id } });
     });
 
     it('should reject deletion by another user', async () => {
       const mars = await createTestUser('mars');
       const response = await performJSONRequest(
         'DELETE',
-        `/v4/articles/${article.uid}`,
+        `/v4/articles/${article.id}`,
         undefined,
         authHeaders(mars),
       );
 
       expect(response, 'to satisfy', { __httpCode: 403 });
-      expect(await dbAdapter.getArticleById(article.uid), 'to satisfy', { toDelete: false });
+      expect(await dbAdapter.getArticleById(article.id), 'to satisfy', { toDelete: false });
     });
 
     it('should return 404 on repeated deletion', async () => {
       const first = await performJSONRequest(
         'DELETE',
-        `/v4/articles/${article.uid}`,
+        `/v4/articles/${article.id}`,
         undefined,
         authHeaders(luna),
       );
@@ -417,7 +417,7 @@ describe('Articles API: mutations', () => {
 
       const second = await performJSONRequest(
         'DELETE',
-        `/v4/articles/${article.uid}`,
+        `/v4/articles/${article.id}`,
         undefined,
         authHeaders(luna),
       );
@@ -428,7 +428,7 @@ describe('Articles API: mutations', () => {
       const mars = await createTestUser('mars');
       const deletion = await performJSONRequest<{ undo: [{ token: string }] }>(
         'DELETE',
-        `/v4/articles/${article.uid}`,
+        `/v4/articles/${article.id}`,
         undefined,
         authHeaders(luna),
       );
@@ -442,7 +442,7 @@ describe('Articles API: mutations', () => {
       );
 
       expect(response, 'to satisfy', { __httpCode: 403, err: 'Invalid or expired undo token' });
-      expect(await dbAdapter.getArticleById(article.uid), 'to satisfy', { toDelete: true });
+      expect(await dbAdapter.getArticleById(article.id), 'to satisfy', { toDelete: true });
     });
 
     it('should restore an article with a manage-articles app token', async () => {
@@ -454,7 +454,7 @@ describe('Articles API: mutations', () => {
       const headers = { Authorization: `Bearer ${appToken.tokenString()}` as const };
       const deletion = await performJSONRequest<{ undo: [{ token: string }] }>(
         'DELETE',
-        `/v4/articles/${article.uid}`,
+        `/v4/articles/${article.id}`,
         undefined,
         headers,
       );
@@ -469,9 +469,9 @@ describe('Articles API: mutations', () => {
 
       expect(response, 'to satisfy', {
         __httpCode: 200,
-        article: { id: article.uid },
+        article: { id: article.id },
       });
-      expect(await dbAdapter.getArticleById(article.uid), 'to satisfy', { toDelete: false });
+      expect(await dbAdapter.getArticleById(article.id), 'to satisfy', { toDelete: false });
     });
   });
 });

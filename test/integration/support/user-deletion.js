@@ -66,8 +66,8 @@ describe('User data deletion', () => {
 
     await deleteAllUserData(luna.id, afterHour());
 
-    expect(await dbAdapter.getArticleById(article.uid), 'to be null');
-    expect(await dbAdapter.getArticleById(marsArticle.uid), 'not to be null');
+    expect(await dbAdapter.getArticleById(article.id), 'to be null');
+    expect(await dbAdapter.getArticleById(marsArticle.id), 'not to be null');
   });
 
   it(`should delete user personal data`, async () => {

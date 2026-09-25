@@ -144,7 +144,7 @@ export const getRevisionById = compose([
 
     const revision = await dbAdapter.getArticleRevisionById(revisionId.data);
 
-    if (!revision || revision.articleId !== article.uid) {
+    if (!revision || revision.articleId !== article.id) {
       throw new NotFoundException('Article revision not found');
     }
 
@@ -221,7 +221,7 @@ export const deactivate = compose([
 
     if (await article.deactivate()) {
       undo.push(
-        new UndoArticleDelete(article.uid).serialize(user.id, 'You deleted your article', {}),
+        new UndoArticleDelete(article.id).serialize(user.id, 'You deleted your article', {}),
       );
     }
 

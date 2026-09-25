@@ -31,7 +31,7 @@ describe('Article.setPost', () => {
 
     expect(await article.setPost(post.id), 'to equal', true);
     expect(article.postId, 'to equal', post.id);
-    expect(await dbAdapter.getArticleById(article.uid), 'to satisfy', { postId: post.id });
+    expect(await dbAdapter.getArticleById(article.id), 'to satisfy', { postId: post.id });
   });
 
   it('should not replace an active associated post', async () => {
@@ -41,7 +41,7 @@ describe('Article.setPost', () => {
     await article.setPost(firstPost.id);
     expect(await article.setPost(secondPost.id), 'to equal', false);
     expect(article.postId, 'to equal', firstPost.id);
-    expect(await dbAdapter.getArticleById(article.uid), 'to satisfy', {
+    expect(await dbAdapter.getArticleById(article.id), 'to satisfy', {
       postId: firstPost.id,
     });
   });
@@ -54,13 +54,13 @@ describe('Article.setPost', () => {
     await firstPost.inactivate();
     expect(await article.setPost(secondPost.id), 'to equal', true);
     expect(article.postId, 'to equal', secondPost.id);
-    expect(await dbAdapter.getArticleById(article.uid), 'to satisfy', {
+    expect(await dbAdapter.getArticleById(article.id), 'to satisfy', {
       postId: secondPost.id,
     });
 
     expect(await article.setPost(null), 'to equal', true);
     expect(article.postId, 'to be null');
-    expect(await dbAdapter.getArticleById(article.uid), 'to satisfy', { postId: null });
+    expect(await dbAdapter.getArticleById(article.id), 'to satisfy', { postId: null });
   });
 
   it('should clear the association when the post is deleted', async () => {
@@ -69,7 +69,7 @@ describe('Article.setPost', () => {
 
     await post.destroy();
 
-    expect(await dbAdapter.getArticleById(article.uid), 'to satisfy', { postId: null });
+    expect(await dbAdapter.getArticleById(article.id), 'to satisfy', { postId: null });
   });
 
   it('should not create a revision or change the article version', async () => {
@@ -77,7 +77,7 @@ describe('Article.setPost', () => {
 
     await article.setPost(post.id);
 
-    expect(await dbAdapter.getArticleById(article.uid), 'to satisfy', { version: 1 });
+    expect(await dbAdapter.getArticleById(article.id), 'to satisfy', { version: 1 });
     expect(await article.getRevisions(10, 0), 'to be empty');
   });
 
@@ -87,7 +87,7 @@ describe('Article.setPost', () => {
     await article.deactivate();
 
     expect(await article.setPost(null), 'to equal', false);
-    expect(await dbAdapter.getArticleById(article.uid), 'to satisfy', { postId: post.id });
+    expect(await dbAdapter.getArticleById(article.id), 'to satisfy', { postId: post.id });
   });
 
   it('should reject an unknown post without changing the association', async () => {
@@ -96,7 +96,7 @@ describe('Article.setPost', () => {
     await article.setPost(post.id);
 
     expect(await article.setPost(unknownId), 'to equal', false);
-    expect(await dbAdapter.getArticleById(article.uid), 'to satisfy', { postId: post.id });
+    expect(await dbAdapter.getArticleById(article.id), 'to satisfy', { postId: post.id });
   });
 
   it(`should reject another author's post without changing the association`, async () => {
@@ -106,7 +106,7 @@ describe('Article.setPost', () => {
     await article.setPost(ownPost.id);
 
     expect(await article.setPost(anotherPost.id), 'to equal', false);
-    expect(await dbAdapter.getArticleById(article.uid), 'to satisfy', { postId: ownPost.id });
+    expect(await dbAdapter.getArticleById(article.id), 'to satisfy', { postId: ownPost.id });
   });
 
   it('should not associate one post with two articles', async () => {
@@ -118,7 +118,7 @@ describe('Article.setPost', () => {
     await article.setPost(post.id);
 
     await expect(secondArticle.setPost(post.id), 'to be rejected');
-    expect(await dbAdapter.getArticleById(article.uid), 'to satisfy', { postId: post.id });
-    expect(await dbAdapter.getArticleById(secondArticle.uid), 'to satisfy', { postId: null });
+    expect(await dbAdapter.getArticleById(article.id), 'to satisfy', { postId: post.id });
+    expect(await dbAdapter.getArticleById(secondArticle.id), 'to satisfy', { postId: null });
   });
 });

@@ -53,7 +53,7 @@ describe('articleAccessRequired', () => {
   });
 
   it('should let the author access an unpublished article', async () => {
-    const ctx = context(article.uid, luna);
+    const ctx = context(article.id, luna);
     let nextCalled = false;
 
     await articleAccessRequired()(ctx, () => {
@@ -62,13 +62,13 @@ describe('articleAccessRequired', () => {
     });
 
     expect(nextCalled, 'to be', true);
-    expect(ctx.state.article, 'to satisfy', { uid: article.uid });
+    expect(ctx.state.article, 'to satisfy', { id: article.id });
   });
 
   it('should deny access to an unpublished article for others', async () => {
     await Promise.all(
       [undefined, mars].map(async (viewer) => {
-        const ctx = context(article.uid, viewer);
+        const ctx = context(article.id, viewer);
         await expect(checkAccess(ctx), 'to be rejected with', { status: 403 });
         expect(ctx.state.article, 'to be undefined');
       }),
@@ -81,7 +81,7 @@ describe('articleAccessRequired', () => {
 
     await checkAccess(ctx, true);
 
-    expect(ctx.state.article, 'to satisfy', { uid: article.uid });
+    expect(ctx.state.article, 'to satisfy', { id: article.id });
   });
 
   it('should allow anonymous and another user to access an article with a public post', async () => {
@@ -90,9 +90,9 @@ describe('articleAccessRequired', () => {
 
     await Promise.all(
       [undefined, mars].map(async (viewer) => {
-        const ctx = context(article.uid, viewer);
+        const ctx = context(article.id, viewer);
         await checkAccess(ctx);
-        expect(ctx.state.article, 'to satisfy', { uid: article.uid, postId: post.id });
+        expect(ctx.state.article, 'to satisfy', { id: article.id, postId: post.id });
       }),
     );
   });
@@ -102,11 +102,11 @@ describe('articleAccessRequired', () => {
     await article.setPost(post.id);
     await luna.update({ isProtected: '1' });
 
-    await expect(checkAccess(context(article.uid)), 'to be rejected with', {
+    await expect(checkAccess(context(article.id)), 'to be rejected with', {
       status: 403,
       message: 'Please sign in to view this article',
     });
-    await expect(checkAccess(context(article.uid, mars)), 'to be fulfilled');
+    await expect(checkAccess(context(article.id, mars)), 'to be fulfilled');
   });
 
   it('should allow a subscriber but not a stranger to access a private article post', async () => {
@@ -114,9 +114,9 @@ describe('articleAccessRequired', () => {
     await article.setPost(post.id);
     await luna.update({ isPrivate: '1' });
 
-    await expect(checkAccess(context(article.uid, mars)), 'to be rejected with', { status: 403 });
+    await expect(checkAccess(context(article.id, mars)), 'to be rejected with', { status: 403 });
     await mars.subscribeTo(luna);
-    await expect(checkAccess(context(article.uid, mars)), 'to be fulfilled');
+    await expect(checkAccess(context(article.id, mars)), 'to be fulfilled');
   });
 
   it('should deny a banned viewer access to an article with a public post', async () => {
@@ -124,18 +124,18 @@ describe('articleAccessRequired', () => {
     await article.setPost(post.id);
     await luna.ban(mars.username);
 
-    await expect(checkAccess(context(article.uid, mars)), 'to be rejected with', { status: 403 });
+    await expect(checkAccess(context(article.id, mars)), 'to be rejected with', { status: 403 });
   });
 
   it('should hide a deactivated article even from its author', async () => {
     await article.deactivate();
 
-    await expect(checkAccess(context(article.uid, luna)), 'to be rejected with', { status: 404 });
+    await expect(checkAccess(context(article.id, luna)), 'to be rejected with', { status: 404 });
   });
 
   it('should hide an article while its author is inactive', async () => {
     await luna.setGoneStatus(GONE_SUSPENDED);
 
-    await expect(checkAccess(context(article.uid, luna)), 'to be rejected with', { status: 404 });
+    await expect(checkAccess(context(article.id, luna)), 'to be rejected with', { status: 404 });
   });
 });

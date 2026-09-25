@@ -48,13 +48,13 @@ describe('Articles API: reading', () => {
       await dbAdapter.createArticle({ author_id: mars.user.id, ...content });
       await dbAdapter
         .database('articles')
-        .where({ uid: older.uid })
+        .where({ uid: older.id })
         .update({
           created_at: new Date('2026-01-01T00:00:00Z'),
         });
       await dbAdapter
         .database('articles')
-        .where({ uid: newer.uid })
+        .where({ uid: newer.id })
         .update({
           created_at: new Date('2026-01-02T00:00:00Z'),
         });
@@ -75,7 +75,7 @@ describe('Articles API: reading', () => {
       expect(
         response.articles.map(({ id }) => id),
         'to equal',
-        [newer.uid, older.uid],
+        [newer.id, older.id],
       );
       expect(response.articles[0], 'to satisfy', { title: 'Newer', tags: ['draft'] });
       expect(response.articles[0], 'not to have key', 'body');
@@ -114,19 +114,19 @@ describe('Articles API: reading', () => {
 
       await dbAdapter
         .database('articles')
-        .where({ uid: lunaArticle.uid })
+        .where({ uid: lunaArticle.id })
         .update({
           created_at: new Date('2026-01-01T00:00:00Z'),
         });
       await dbAdapter
         .database('articles')
-        .where({ uid: jupiterArticle.uid })
+        .where({ uid: jupiterArticle.id })
         .update({
           created_at: new Date('2026-01-02T00:00:00Z'),
         });
       await dbAdapter
         .database('articles')
-        .where({ uid: marsPrivateArticle.uid })
+        .where({ uid: marsPrivateArticle.id })
         .update({
           created_at: new Date('2026-01-03T00:00:00Z'),
         });
@@ -162,27 +162,27 @@ describe('Articles API: reading', () => {
 
       expect(firstPage, 'to satisfy', {
         __httpCode: 200,
-        articles: [{ id: jupiterArticle.uid }],
+        articles: [{ id: jupiterArticle.id }],
         isLastPage: false,
       });
       expect(secondPage, 'to satisfy', {
         __httpCode: 200,
-        articles: [{ id: lunaArticle.uid }],
+        articles: [{ id: lunaArticle.id }],
         isLastPage: true,
       });
       expect(byAuthor, 'to satisfy', {
         __httpCode: 200,
-        articles: [{ id: jupiterArticle.uid }],
+        articles: [{ id: jupiterArticle.id }],
         isLastPage: true,
       });
       expect(
         anonymous.articles.map(({ id }) => id),
         'to equal',
-        [jupiterArticle.uid, lunaArticle.uid],
+        [jupiterArticle.id, lunaArticle.id],
       );
       expect(privateAuthor, 'to satisfy', {
         __httpCode: 200,
-        articles: [{ id: marsPrivateArticle.uid }],
+        articles: [{ id: marsPrivateArticle.id }],
         isLastPage: true,
       });
     });
@@ -221,7 +221,7 @@ describe('Articles API: reading', () => {
     it('should return the author’s unpublished article by UUID', async () => {
       const response = await performJSONRequest(
         'GET',
-        `/v4/articles/${article.uid}`,
+        `/v4/articles/${article.id}`,
         undefined,
         authHeaders(luna),
       );
@@ -229,7 +229,7 @@ describe('Articles API: reading', () => {
       expect(response, 'to satisfy', {
         __httpCode: 200,
         article: {
-          id: article.uid,
+          id: article.id,
           authorId: luna.user.id,
           postId: null,
           shortId: await article.getShortId(),
@@ -252,7 +252,7 @@ describe('Articles API: reading', () => {
         authHeaders(luna),
       );
 
-      expect(response, 'to satisfy', { __httpCode: 200, article: { id: article.uid } });
+      expect(response, 'to satisfy', { __httpCode: 200, article: { id: article.id } });
     });
 
     it('should include article attachments', async () => {
@@ -265,14 +265,14 @@ describe('Articles API: reading', () => {
 
       const response = await performJSONRequest(
         'GET',
-        `/v4/articles/${mediaArticle.uid}`,
+        `/v4/articles/${mediaArticle.id}`,
         undefined,
         authHeaders(luna),
       );
 
       expect(response, 'to satisfy', {
         __httpCode: 200,
-        article: { id: mediaArticle.uid, attachmentIds: [attachment.id] },
+        article: { id: mediaArticle.id, attachmentIds: [attachment.id] },
         attachments: [{ id: attachment.id, createdBy: luna.user.id }],
       });
     });
@@ -292,7 +292,7 @@ describe('Articles API: reading', () => {
       const mars = await createTestUser('mars');
       const response = await performJSONRequest(
         'GET',
-        `/v4/articles/${article.uid}`,
+        `/v4/articles/${article.id}`,
         undefined,
         authHeaders(mars),
       );
@@ -301,7 +301,7 @@ describe('Articles API: reading', () => {
     });
 
     it('should deny anonymous access to an unpublished article', async () => {
-      const response = await performJSONRequest('GET', `/v4/articles/${article.uid}`);
+      const response = await performJSONRequest('GET', `/v4/articles/${article.id}`);
 
       expect(response, 'to satisfy', { __httpCode: 403 });
     });
@@ -313,14 +313,14 @@ describe('Articles API: reading', () => {
 
       const response = await performJSONRequest(
         'GET',
-        `/v4/articles/${article.uid}`,
+        `/v4/articles/${article.id}`,
         undefined,
         authHeaders(mars),
       );
 
       expect(response, 'to satisfy', {
         __httpCode: 200,
-        article: { id: article.uid, postId: post.id },
+        article: { id: article.id, postId: post.id },
         posts: [{ id: post.id }],
         users: [{ id: luna.user.id }],
       });
@@ -330,11 +330,11 @@ describe('Articles API: reading', () => {
       const post = await createPost(luna.user, 'Public post');
       await article.setPost(post.id);
 
-      const response = await performJSONRequest('GET', `/v4/articles/${article.uid}`);
+      const response = await performJSONRequest('GET', `/v4/articles/${article.id}`);
 
       expect(response, 'to satisfy', {
         __httpCode: 200,
-        article: { id: article.uid, postId: post.id },
+        article: { id: article.id, postId: post.id },
         posts: [{ id: post.id }],
       });
     });
@@ -344,7 +344,7 @@ describe('Articles API: reading', () => {
 
       const response = await performJSONRequest(
         'GET',
-        `/v4/articles/${article.uid}`,
+        `/v4/articles/${article.id}`,
         undefined,
         authHeaders(luna),
       );
@@ -366,13 +366,13 @@ describe('Articles API: reading', () => {
       const revisions = await article.getRevisions(10, 0);
       const firstPage = await performJSONRequest(
         'GET',
-        `/v4/articles/${article.uid}/revisions?limit=1`,
+        `/v4/articles/${article.id}/revisions?limit=1`,
         undefined,
         authHeaders(luna),
       );
       const secondPage = await performJSONRequest(
         'GET',
-        `/v4/articles/${article.uid}/revisions?limit=1&offset=1`,
+        `/v4/articles/${article.id}/revisions?limit=1&offset=1`,
         undefined,
         authHeaders(luna),
       );
@@ -402,7 +402,7 @@ describe('Articles API: reading', () => {
       const response = await performJSONRequest<{
         revisions: unknown[];
         isLastPage: boolean;
-      }>('GET', `/v4/articles/${article.uid}/revisions?limit=101`, undefined, authHeaders(luna));
+      }>('GET', `/v4/articles/${article.id}/revisions?limit=101`, undefined, authHeaders(luna));
 
       expect(response, 'to satisfy', { __httpCode: 200, isLastPage: false });
       expect(response.revisions, 'to have length', 100);
@@ -424,7 +424,7 @@ describe('Articles API: reading', () => {
 
       const response = await performJSONRequest(
         'GET',
-        `/v4/articles/${mediaArticle.uid}/revisions/${revision.uid}`,
+        `/v4/articles/${mediaArticle.id}/revisions/${revision.uid}`,
         undefined,
         authHeaders(luna),
       );
@@ -433,7 +433,7 @@ describe('Articles API: reading', () => {
         __httpCode: 200,
         revision: {
           id: revision.uid,
-          articleId: mediaArticle.uid,
+          articleId: mediaArticle.id,
           version: 1,
           title: mediaContent.title,
           digest: mediaContent.digest,
@@ -456,7 +456,7 @@ describe('Articles API: reading', () => {
 
       const response = await performJSONRequest(
         'GET',
-        `/v4/articles/${article.uid}/revisions/${otherRevision.uid}`,
+        `/v4/articles/${article.id}/revisions/${otherRevision.uid}`,
         undefined,
         authHeaders(luna),
       );
@@ -475,13 +475,13 @@ describe('Articles API: reading', () => {
 
       const listResponse = await performJSONRequest(
         'GET',
-        `/v4/articles/${article.uid}/revisions`,
+        `/v4/articles/${article.id}/revisions`,
         undefined,
         authHeaders(mars),
       );
       const revisionResponse = await performJSONRequest(
         'GET',
-        `/v4/articles/${article.uid}/revisions/${revision.uid}`,
+        `/v4/articles/${article.id}/revisions/${revision.uid}`,
         undefined,
         authHeaders(mars),
       );

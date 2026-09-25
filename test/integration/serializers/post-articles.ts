@@ -35,19 +35,15 @@ describe('Articles in serialized feeds', () => {
     const postsById = new Map(result.posts.map((post) => [post.id, post]));
     const articlesById = new Map(result.articles.map((article) => [article.id, article]));
 
-    expect(postsById.get(firstPost.id), 'to satisfy', { articleId: firstArticle.uid });
-    expect(postsById.get(secondPost.id), 'to satisfy', { articleId: secondArticle.uid });
+    expect(postsById.get(firstPost.id), 'to satisfy', { articleId: firstArticle.id });
+    expect(postsById.get(secondPost.id), 'to satisfy', { articleId: secondArticle.id });
     expect(postsById.get(plainPost.id), 'to satisfy', { articleId: null });
-    expect(
-      [...articlesById.keys()].sort(),
-      'to equal',
-      [firstArticle.uid, secondArticle.uid].sort(),
-    );
-    expect(articlesById.get(firstArticle.uid), 'to satisfy', {
+    expect([...articlesById.keys()].sort(), 'to equal', [firstArticle.id, secondArticle.id].sort());
+    expect(articlesById.get(firstArticle.id), 'to satisfy', {
       title: content.title,
       digest: content.digest,
     });
-    expect(articlesById.get(secondArticle.uid), 'to satisfy', {
+    expect(articlesById.get(secondArticle.id), 'to satisfy', {
       title: 'Second article',
       digest: content.digest,
     });

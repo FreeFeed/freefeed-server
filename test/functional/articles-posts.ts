@@ -43,29 +43,29 @@ describe('Articles API: post association', () => {
     it('should detach the article from its post', async () => {
       const response = await performJSONRequest(
         'DELETE',
-        `/v4/articles/${article.uid}/post`,
+        `/v4/articles/${article.id}/post`,
         undefined,
         authHeaders(luna),
       );
 
       expect(response, 'to satisfy', {
         __httpCode: 200,
-        article: { id: article.uid, postId: null },
+        article: { id: article.id, postId: null },
       });
-      expect(await dbAdapter.getArticleById(article.uid), 'to satisfy', { postId: null });
+      expect(await dbAdapter.getArticleById(article.id), 'to satisfy', { postId: null });
     });
 
     it('should not let another user detach the article', async () => {
       const mars = await createTestUser('mars');
       const response = await performJSONRequest(
         'DELETE',
-        `/v4/articles/${article.uid}/post`,
+        `/v4/articles/${article.id}/post`,
         undefined,
         authHeaders(mars),
       );
 
       expect(response, 'to satisfy', { __httpCode: 403 });
-      expect(await dbAdapter.getArticleById(article.uid), 'to satisfy', { postId });
+      expect(await dbAdapter.getArticleById(article.id), 'to satisfy', { postId });
     });
 
     describe('Realtime', () => {
@@ -99,7 +99,7 @@ describe('Articles API: post association', () => {
         const event = session.receiveWhile(eventNames.POST_UPDATED, () =>
           performJSONRequest(
             'DELETE',
-            `/v4/articles/${article.uid}/post`,
+            `/v4/articles/${article.id}/post`,
             undefined,
             authHeaders(luna),
           ),
@@ -120,7 +120,7 @@ describe('Articles API: post association', () => {
             'POST',
             '/v4/posts',
             {
-              post: { body: 'New post', articleId: unpublishedArticle.uid },
+              post: { body: 'New post', articleId: unpublishedArticle.id },
               meta: { feeds: [luna.username] },
             },
             authHeaders(luna),
@@ -128,7 +128,7 @@ describe('Articles API: post association', () => {
         );
 
         await expect(event, 'when fulfilled', 'to satisfy', {
-          posts: { articleId: unpublishedArticle.uid },
+          posts: { articleId: unpublishedArticle.id },
         });
       });
     });

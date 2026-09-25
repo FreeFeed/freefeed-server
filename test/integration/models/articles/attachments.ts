@@ -37,7 +37,7 @@ describe('Article body attachments', () => {
     });
 
     expect(await dbAdapter.getAttachmentById(attachment.id), 'to satisfy', {
-      articleId: article.uid,
+      articleId: article.id,
       postId: null,
     });
   });
@@ -70,7 +70,7 @@ describe('Article body attachments', () => {
     expect(await dbAdapter.database('articles').where({ author_id: luna.id }), 'to have length', 1);
     expect(await dbAdapter.getAttachmentById(own.id), 'to satisfy', { articleId: null });
     expect(await dbAdapter.getAttachmentById(occupied.id), 'to satisfy', {
-      articleId: otherArticle.uid,
+      articleId: otherArticle.id,
     });
   });
 
@@ -88,7 +88,7 @@ describe('Article body attachments', () => {
     });
     expect(await dbAdapter.getAttachmentById(first.id), 'to satisfy', { articleId: null });
     expect(await dbAdapter.getAttachmentById(second.id), 'to satisfy', {
-      articleId: article.uid,
+      articleId: article.id,
     });
 
     expect(await article.update(2, content([])), 'to equal', { status: 'updated', version: 3 });
@@ -112,14 +112,14 @@ describe('Article body attachments', () => {
     });
 
     expect(await dbAdapter.getAttachmentById(attachment.id), 'to satisfy', {
-      articleId: article.uid,
+      articleId: article.id,
     });
     expect(await article.update(1, { ...content([]), body: { blocks: [gallery] } }), 'to equal', {
       status: 'updated',
       version: 2,
     });
     expect(await dbAdapter.getAttachmentById(attachment.id), 'to satisfy', {
-      articleId: article.uid,
+      articleId: article.id,
     });
     expect(await article.update(2, content([])), 'to equal', { status: 'updated', version: 3 });
     expect(await dbAdapter.getAttachmentById(attachment.id), 'to satisfy', { articleId: null });
@@ -150,10 +150,10 @@ describe('Article body attachments', () => {
       ),
     );
 
-    expect(await dbAdapter.getArticleById(article.uid), 'to satisfy', { version: 1 });
+    expect(await dbAdapter.getArticleById(article.id), 'to satisfy', { version: 1 });
     expect(await article.getRevisions(10, 0), 'to be empty');
     expect(await dbAdapter.getAttachmentById(own.id), 'to satisfy', {
-      articleId: article.uid,
+      articleId: article.id,
     });
     expect(await dbAdapter.getAttachmentById(foreign.id), 'to satisfy', { articleId: null });
     expect(await dbAdapter.getAttachmentById(occupied.id), 'to satisfy', {
@@ -161,7 +161,7 @@ describe('Article body attachments', () => {
       postId: post.id,
     });
     expect(await dbAdapter.getAttachmentById(linked.id), 'to satisfy', {
-      articleId: otherArticle.uid,
+      articleId: otherArticle.id,
     });
   });
 
@@ -173,7 +173,7 @@ describe('Article body attachments', () => {
       ...content([attachment.id]),
     });
     expect(await dbAdapter.getAttachmentById(attachment.id), 'to satisfy', {
-      articleId: article.uid,
+      articleId: article.id,
     });
 
     await article.destroy();

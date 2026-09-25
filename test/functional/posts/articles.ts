@@ -40,7 +40,7 @@ describe('Post article association', () => {
         'POST',
         '/v4/posts',
         {
-          post: { body: 'Post body', articleId: article.uid },
+          post: { body: 'Post body', articleId: article.id },
           meta: { feeds: [luna.username] },
         },
         authHeaders(luna),
@@ -50,11 +50,11 @@ describe('Post article association', () => {
 
       expect(response, 'to satisfy', {
         __httpCode: 200,
-        posts: { articleId: article.uid },
+        posts: { articleId: article.id },
       });
       expect(response.articles, 'to exhaustively satisfy', [
         {
-          id: article.uid,
+          id: article.id,
           authorId: luna.user.id,
           postId,
           shortId: await article.getShortId(),
@@ -66,7 +66,7 @@ describe('Post article association', () => {
           tags: ['first', 'second'],
         },
       ]);
-      expect(await dbAdapter.getArticleById(article.uid), 'to satisfy', {
+      expect(await dbAdapter.getArticleById(article.id), 'to satisfy', {
         postId,
       });
     });
@@ -80,7 +80,7 @@ describe('Post article association', () => {
         'POST',
         '/v4/posts',
         {
-          post: { body: 'Post body', articleId: article.uid },
+          post: { body: 'Post body', articleId: article.id },
           meta: { feeds: [luna.username] },
         },
         authHeaders(luna),
@@ -100,7 +100,7 @@ describe('Post article association', () => {
         'POST',
         '/v4/posts',
         {
-          post: { body: 'Post body', articleId: article.uid },
+          post: { body: 'Post body', articleId: article.id },
           meta: { feeds: [luna.username] },
         },
         authHeaders(luna),
@@ -111,7 +111,7 @@ describe('Post article association', () => {
         err: 'Article is already linked to another post',
       });
       expect(await dbAdapter.getUserPostsCount(luna.user.id), 'to be', 1);
-      expect(await dbAdapter.getArticleById(article.uid), 'to satisfy', {
+      expect(await dbAdapter.getArticleById(article.id), 'to satisfy', {
         postId: existingPost.id,
       });
     });
@@ -127,15 +127,15 @@ describe('Post article association', () => {
         'POST',
         '/v4/posts',
         {
-          post: { body: 'New post', articleId: article.uid },
+          post: { body: 'New post', articleId: article.id },
           meta: { feeds: [luna.username] },
         },
         authHeaders(luna),
       );
 
-      expect(response, 'to satisfy', { __httpCode: 200, posts: { articleId: article.uid } });
+      expect(response, 'to satisfy', { __httpCode: 200, posts: { articleId: article.id } });
       const postId = response.posts.id;
-      expect(await dbAdapter.getArticleById(article.uid), 'to satisfy', { postId });
+      expect(await dbAdapter.getArticleById(article.id), 'to satisfy', { postId });
     });
   });
 
@@ -147,7 +147,7 @@ describe('Post article association', () => {
     const response = await performJSONRequest(
       'PUT',
       `/v4/posts/${post.id}`,
-      { post: { articleId: article.uid } },
+      { post: { articleId: article.id } },
       authHeaders(luna),
     );
 
@@ -155,6 +155,6 @@ describe('Post article association', () => {
       __httpCode: 422,
       err: 'Article can only be associated when creating a post',
     });
-    expect(await dbAdapter.getArticleById(article.uid), 'to satisfy', { postId: null });
+    expect(await dbAdapter.getArticleById(article.id), 'to satisfy', { postId: null });
   });
 });

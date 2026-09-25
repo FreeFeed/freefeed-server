@@ -40,7 +40,7 @@ export type ArticleUpdateResult =
   | { status: 'unchanged' };
 
 export class Article extends ArticleContent {
-  uid: UUID;
+  id: UUID;
   authorId: UUID;
   postId: UUID | null;
   createdAt: Date;
@@ -51,7 +51,7 @@ export class Article extends ArticleContent {
   constructor(dba: DbAdapter, dbRow: ArticleDbRow) {
     super(dba, dbRow);
 
-    this.uid = dbRow.uid;
+    this.id = dbRow.uid;
     this.authorId = dbRow.author_id;
     this.postId = dbRow.post_id;
     this.toDelete = dbRow.to_delete;
@@ -61,7 +61,7 @@ export class Article extends ArticleContent {
   }
 
   async update(expectedVersion: number, params: ArticleDbRowContent): Promise<ArticleUpdateResult> {
-    const result = await this.dba.updateArticle(this.uid, expectedVersion, params);
+    const result = await this.dba.updateArticle(this.id, expectedVersion, params);
 
     if (result.status !== 'updated') {
       return result;
@@ -78,20 +78,20 @@ export class Article extends ArticleContent {
   }
 
   setTags(tags: string[]): Promise<void> {
-    return this.dba.setArticleTags(this.uid, tags);
+    return this.dba.setArticleTags(this.id, tags);
   }
 
   getTags(): Promise<readonly string[]> {
-    return this.dba.getArticleTags(this.uid);
+    return this.dba.getArticleTags(this.id);
   }
 
   getAttachmentIds(): Promise<UUID[]> {
-    return this.dba.getArticleAttachmentIds(this.uid);
+    return this.dba.getArticleAttachmentIds(this.id);
   }
 
   async setPost(postId: UUID | null): Promise<boolean> {
     const previousPostId = this.postId;
-    const result = await this.dba.setArticlePost(this.uid, postId);
+    const result = await this.dba.setArticlePost(this.id, postId);
 
     if (!result) {
       return false;
@@ -111,20 +111,20 @@ export class Article extends ArticleContent {
   }
 
   async deactivate(): Promise<boolean> {
-    const result = await this.dba.deactivateArticle(this.uid);
+    const result = await this.dba.deactivateArticle(this.id);
 
     if (!result) {
       return false;
     }
 
     this.toDelete = true;
-    await scheduleArticleDeletion(this.uid);
+    await scheduleArticleDeletion(this.id);
 
     return true;
   }
 
   async activate(): Promise<boolean> {
-    const result = await this.dba.activateArticle(this.uid);
+    const result = await this.dba.activateArticle(this.id);
 
     if (!result) {
       return false;
@@ -181,15 +181,15 @@ export class Article extends ArticleContent {
   }
 
   destroy(): Promise<boolean> {
-    return this.dba.destroyArticle(this.uid);
+    return this.dba.destroyArticle(this.id);
   }
 
   getRevisions(limit: number, offset: number, descOrder = true) {
-    return this.dba.getArticleRevisions(this.uid, limit, offset, descOrder);
+    return this.dba.getArticleRevisions(this.id, limit, offset, descOrder);
   }
 
   getShortId(): Promise<string> {
-    return this.dba.getArticleShortId(this.uid);
+    return this.dba.getArticleShortId(this.id);
   }
 }
 

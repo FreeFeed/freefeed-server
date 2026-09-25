@@ -32,25 +32,25 @@ describe('Articles in to-delete state', () => {
 
   it(`should be in 'toDelete' state`, async () => {
     expect(article.toDelete, 'to equal', true);
-    expect(await dbAdapter.getArticleById(article.uid), 'to satisfy', { toDelete: true });
+    expect(await dbAdapter.getArticleById(article.id), 'to satisfy', { toDelete: true });
   });
 
   it('should ignore repeated deactivation', async () => {
     expect(await article.deactivate(), 'to equal', false);
-    expect(await dbAdapter.getArticleById(article.uid), 'to satisfy', { toDelete: true });
+    expect(await dbAdapter.getArticleById(article.id), 'to satisfy', { toDelete: true });
   });
 
   it('should ignore repeated activation', async () => {
     expect(await article.activate(), 'to equal', true);
     expect(await article.activate(), 'to equal', false);
-    expect(await dbAdapter.getArticleById(article.uid), 'to satisfy', { toDelete: false });
+    expect(await dbAdapter.getArticleById(article.id), 'to satisfy', { toDelete: false });
   });
 
   it('should schedule one deletion for concurrent deactivation', async () => {
     await article.activate();
     const [oldJob] = await dbAdapter.getAllJobs([DELETE_ARTICLE]);
     await oldJob.delete();
-    const secondArticle = await dbAdapter.getArticleById(article.uid);
+    const secondArticle = await dbAdapter.getArticleById(article.id);
 
     expect(secondArticle, 'not to be null');
     const results = await Promise.all([article.deactivate(), secondArticle?.deactivate()]);
@@ -59,7 +59,7 @@ describe('Articles in to-delete state', () => {
     expect(await dbAdapter.getAllJobs([DELETE_ARTICLE]), 'to satisfy', [
       {
         name: DELETE_ARTICLE,
-        payload: { articleId: article.uid },
+        payload: { articleId: article.id },
       },
     ]);
   });
@@ -70,7 +70,7 @@ describe('Articles in to-delete state', () => {
       expect(jobs, 'to satisfy', [
         {
           name: DELETE_ARTICLE,
-          payload: { articleId: article.uid },
+          payload: { articleId: article.id },
         },
       ]);
       expect(
@@ -103,7 +103,7 @@ describe('Articles in to-delete state', () => {
 
       const jm = await initJobProcessing();
       await jm.fetchAndProcess(1);
-      expect(await dbAdapter.getArticleById(article.uid), 'to be null');
+      expect(await dbAdapter.getArticleById(article.id), 'to be null');
     });
 
     it(`should not delete restored article`, async () => {
@@ -114,7 +114,7 @@ describe('Articles in to-delete state', () => {
 
       const jm = await initJobProcessing();
       await jm.fetchAndProcess(1);
-      expect(await dbAdapter.getArticleById(article.uid), 'to satisfy', { toDelete: false });
+      expect(await dbAdapter.getArticleById(article.id), 'to satisfy', { toDelete: false });
     });
   });
 });

@@ -59,7 +59,7 @@ export async function serializeArticleFull(article: Article): Promise<Serialized
 
   return {
     ...serializeArticle({
-      uid: article.uid,
+      uid: article.id,
       authorId: article.authorId,
       postId: article.postId,
       shortId,
