@@ -1,16 +1,11 @@
-import { afterEach, before, beforeEach, describe, it } from 'mocha';
+import { beforeEach, describe, it } from 'mocha';
 import expect from 'unexpected';
 
-import { getSingleton } from '../../app/app';
-import { dbAdapter, PubSub } from '../../app/models';
+import { dbAdapter } from '../../app/models';
 import type { Article, ArticleDbRowContent } from '../../app/models/article';
-import { DummyPublisher } from '../../app/pubsub';
-import { connect as redisConnection } from '../../app/setup/database';
-import { eventNames, PubSubAdapter } from '../../app/support/PubSubAdapter';
 import type { UUID } from '../../app/support/types';
 import { UNDO_ARTICLE_DELETE, UndoArticleDelete } from '../../app/support/undo/article-delete';
 import cleanDB from '../dbCleaner';
-import { createPost } from '../integration/helpers/posts-and-comments';
 
 import {
   authHeaders,
@@ -19,7 +14,6 @@ import {
   performJSONRequest,
 } from './functional_test_helper';
 import type { UserCtx } from './functional_test_helper';
-import Session from './realtime-session';
 
 const content = {
   title: 'Test article',
@@ -27,7 +21,7 @@ const content = {
   body: { blocks: [{ id: 'text', type: 'text', content: 'Hello' }] },
 } satisfies ArticleDbRowContent;
 
-describe('Articles API', () => {
+describe('Articles API: mutations', () => {
   let luna: UserCtx;
 
   beforeEach(async () => {
@@ -172,253 +166,6 @@ describe('Articles API', () => {
     });
     expect(await dbAdapter.database('articles'), 'to be empty');
     expect(await dbAdapter.getAttachmentById(own.id), 'to satisfy', { articleId: null });
-  });
-
-  describe('Get by ID', () => {
-    let article: Article;
-
-    beforeEach(async () => {
-      article = await dbAdapter.createArticle({ author_id: luna.user.id, ...content });
-    });
-
-    it('should return the author’s unpublished article by UUID', async () => {
-      const response = await performJSONRequest(
-        'GET',
-        `/v4/articles/${article.uid}`,
-        undefined,
-        authHeaders(luna),
-      );
-
-      expect(response, 'to satisfy', {
-        __httpCode: 200,
-        article: {
-          id: article.uid,
-          authorId: luna.user.id,
-          postId: null,
-          shortId: await article.getShortId(),
-          version: 1,
-          ...content,
-          tags: [],
-          attachmentIds: [],
-        },
-        posts: [],
-        attachments: [],
-        users: [{ id: luna.user.id }],
-      });
-    });
-
-    it('should return the article by short ID', async () => {
-      const response = await performJSONRequest(
-        'GET',
-        `/v4/articles/${await article.getShortId()}`,
-        undefined,
-        authHeaders(luna),
-      );
-
-      expect(response, 'to satisfy', { __httpCode: 200, article: { id: article.uid } });
-    });
-
-    it('should include article attachments', async () => {
-      const attachment = await createMockAttachmentAsync(luna);
-      const mediaArticle = await dbAdapter.createArticle({
-        author_id: luna.user.id,
-        ...content,
-        body: { blocks: [{ id: 'media', type: 'media', attachmentId: attachment.id }] },
-      });
-
-      const response = await performJSONRequest(
-        'GET',
-        `/v4/articles/${mediaArticle.uid}`,
-        undefined,
-        authHeaders(luna),
-      );
-
-      expect(response, 'to satisfy', {
-        __httpCode: 200,
-        article: { id: mediaArticle.uid, attachmentIds: [attachment.id] },
-        attachments: [{ id: attachment.id, createdBy: luna.user.id }],
-      });
-    });
-
-    it('should return 404 for an unknown article', async () => {
-      const response = await performJSONRequest(
-        'GET',
-        '/v4/articles/00000000-0000-0000-0000-000000000000',
-        undefined,
-        authHeaders(luna),
-      );
-
-      expect(response, 'to satisfy', { __httpCode: 404, err: 'Article not found' });
-    });
-
-    it('should deny access to another author’s unpublished article', async () => {
-      const mars = await createTestUser('mars');
-      const response = await performJSONRequest(
-        'GET',
-        `/v4/articles/${article.uid}`,
-        undefined,
-        authHeaders(mars),
-      );
-
-      expect(response, 'to satisfy', { __httpCode: 403 });
-    });
-
-    it('should deny anonymous access to an unpublished article', async () => {
-      const response = await performJSONRequest('GET', `/v4/articles/${article.uid}`);
-
-      expect(response, 'to satisfy', { __httpCode: 403 });
-    });
-
-    it('should return the associated public post to another user', async () => {
-      const mars = await createTestUser('mars');
-      const post = await createPost(luna.user, 'Public post');
-      await article.setPost(post.id);
-
-      const response = await performJSONRequest(
-        'GET',
-        `/v4/articles/${article.uid}`,
-        undefined,
-        authHeaders(mars),
-      );
-
-      expect(response, 'to satisfy', {
-        __httpCode: 200,
-        article: { id: article.uid, postId: post.id },
-        posts: [{ id: post.id }],
-        users: [{ id: luna.user.id }],
-      });
-    });
-
-    it('should allow anonymous access when the associated post is public', async () => {
-      const post = await createPost(luna.user, 'Public post');
-      await article.setPost(post.id);
-
-      const response = await performJSONRequest('GET', `/v4/articles/${article.uid}`);
-
-      expect(response, 'to satisfy', {
-        __httpCode: 200,
-        article: { id: article.uid, postId: post.id },
-        posts: [{ id: post.id }],
-      });
-    });
-
-    it('should hide a deactivated article', async () => {
-      await article.deactivate();
-
-      const response = await performJSONRequest(
-        'GET',
-        `/v4/articles/${article.uid}`,
-        undefined,
-        authHeaders(luna),
-      );
-
-      expect(response, 'to satisfy', { __httpCode: 404, err: 'Article not found' });
-    });
-  });
-
-  describe('Detach from post', () => {
-    let article: Article;
-    let postId: UUID;
-
-    beforeEach(async () => {
-      article = await dbAdapter.createArticle({ author_id: luna.user.id, ...content });
-      const post = await createPost(luna.user, 'Public post');
-      postId = post.id;
-      await article.setPost(postId);
-    });
-
-    it('should detach the article from its post', async () => {
-      const response = await performJSONRequest(
-        'DELETE',
-        `/v4/articles/${article.uid}/post`,
-        undefined,
-        authHeaders(luna),
-      );
-
-      expect(response, 'to satisfy', {
-        __httpCode: 200,
-        article: { id: article.uid, postId: null },
-      });
-      expect(await dbAdapter.getArticleById(article.uid), 'to satisfy', { postId: null });
-    });
-
-    it('should not let another user detach the article', async () => {
-      const mars = await createTestUser('mars');
-      const response = await performJSONRequest(
-        'DELETE',
-        `/v4/articles/${article.uid}/post`,
-        undefined,
-        authHeaders(mars),
-      );
-
-      expect(response, 'to satisfy', { __httpCode: 403 });
-      expect(await dbAdapter.getArticleById(article.uid), 'to satisfy', { postId });
-    });
-
-    describe('Realtime', () => {
-      let port: string | number;
-      let session: Session;
-
-      before(async () => {
-        const app = await getSingleton();
-        port = process.env.PEPYATKA_SERVER_PORT || app.context.config.port;
-      });
-
-      beforeEach(async () => {
-        PubSub.setPublisher(new PubSubAdapter(redisConnection()));
-        session = await Session.create(port, 'Luna');
-        await session.sendAsync('auth', { authToken: luna.authToken });
-        const postsTimeline = await luna.user.getPostsTimeline();
-
-        if (!postsTimeline) {
-          throw new Error('Posts timeline not found');
-        }
-
-        await session.sendAsync('subscribe', { timeline: [postsTimeline.id] });
-      });
-
-      afterEach(() => {
-        session.disconnect();
-        PubSub.setPublisher(new DummyPublisher());
-      });
-
-      it(`should publish '${eventNames.POST_UPDATED}' for the detached post`, async () => {
-        const event = session.receiveWhile(eventNames.POST_UPDATED, () =>
-          performJSONRequest(
-            'DELETE',
-            `/v4/articles/${article.uid}/post`,
-            undefined,
-            authHeaders(luna),
-          ),
-        );
-
-        await expect(event, 'when fulfilled', 'to satisfy', {
-          posts: { id: postId, articleId: null },
-        });
-      });
-
-      it(`should include the article in '${eventNames.POST_CREATED}'`, async () => {
-        const unpublishedArticle = await dbAdapter.createArticle({
-          author_id: luna.user.id,
-          ...content,
-        });
-        const event = session.receiveWhile(eventNames.POST_CREATED, () =>
-          performJSONRequest(
-            'POST',
-            '/v4/posts',
-            {
-              post: { body: 'New post', articleId: unpublishedArticle.uid },
-              meta: { feeds: [luna.username] },
-            },
-            authHeaders(luna),
-          ),
-        );
-
-        await expect(event, 'when fulfilled', 'to satisfy', {
-          posts: { articleId: unpublishedArticle.uid },
-        });
-      });
-    });
   });
 
   describe('Update', () => {

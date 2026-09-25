@@ -541,6 +541,16 @@ export class DbAdapter {
     params: ArticleDbRowContent,
   ): Promise<ArticleUpdateResult>;
   setArticlePost(uid: UUID, postId: UUID | null): Promise<boolean>;
+  getVisibleArticleIds(
+    viewerId: UUID | null,
+    params: {
+      authorId: UUID | null;
+      published: boolean;
+      limit: number;
+      offset: number;
+    },
+  ): Promise<UUID[]>;
+  getArticleSummariesByIds(articleIds: UUID[]): Promise<Map<UUID, ArticleSummaryData>>;
   getArticleSummariesByPostIds(postIds: UUID[]): Promise<Map<UUID, ArticleSummaryData>>;
   deactivateArticle(uid: UUID): Promise<boolean>;
   activateArticle(uid: UUID): Promise<boolean>;

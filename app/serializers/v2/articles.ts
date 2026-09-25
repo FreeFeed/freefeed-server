@@ -1,4 +1,5 @@
-import type { Article, ArticleSummaryData } from '../../models/article';
+import type { Article, ArticleRevision, ArticleSummaryData } from '../../models/article';
+import { extractAttachmentIds } from '../../models/article-body';
 import type { ArticleBody } from '../../models/article-body';
 import type { UUID } from '../../support/types';
 
@@ -16,6 +17,20 @@ export type SerializedArticle = {
 };
 
 export type SerializedArticleFull = SerializedArticle & {
+  body: ArticleBody;
+  attachmentIds: UUID[];
+};
+
+export type SerializedArticleRevision = {
+  id: UUID;
+  createdAt: string;
+};
+
+export type SerializedArticleRevisionFull = SerializedArticleRevision & {
+  articleId: UUID;
+  version: number;
+  title: string;
+  digest: string;
   body: ArticleBody;
   attachmentIds: UUID[];
 };
@@ -57,5 +72,26 @@ export async function serializeArticleFull(article: Article): Promise<Serialized
     }),
     body: article.body,
     attachmentIds,
+  };
+}
+
+export function serializeArticleRevision(revision: ArticleRevision): SerializedArticleRevision {
+  return {
+    id: revision.uid,
+    createdAt: revision.createdAt.toISOString(),
+  };
+}
+
+export function serializeArticleRevisionFull(
+  revision: ArticleRevision,
+): SerializedArticleRevisionFull {
+  return {
+    ...serializeArticleRevision(revision),
+    articleId: revision.articleId,
+    version: revision.version,
+    title: revision.title,
+    digest: revision.digest,
+    body: revision.body,
+    attachmentIds: extractAttachmentIds(revision.body),
   };
 }

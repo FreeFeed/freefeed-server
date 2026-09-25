@@ -368,6 +368,78 @@ const articlesTrait = (superClass: typeof DbAdapter) =>
       });
     }
 
+    async getVisibleArticleIds(
+      viewerId: UUID | null,
+      {
+        authorId,
+        published,
+        limit,
+        offset,
+      }: {
+        authorId: UUID | null;
+        published: boolean;
+        limit: number;
+        offset: number;
+      },
+    ): Promise<UUID[]> {
+      if (!published && viewerId === null) {
+        return [];
+      }
+
+      const authorFilter = authorId ? 'a.author_id = :authorId' : 'true';
+      const bindings = { authorId, viewerId, limit, offset };
+
+      if (!published) {
+        return this.database.getCol<UUID>(
+          `select a.uid
+            from articles a join users u on u.uid = a.author_id
+            where not a.to_delete and u.gone_status is null
+              and a.post_id is null and a.author_id = :viewerId
+              and ${authorFilter}
+            order by a.created_at desc, a.uid desc
+            limit :limit offset :offset`,
+          bindings,
+        );
+      }
+
+      const visibility = await this.postsVisibilitySQL(viewerId ?? undefined);
+      return this.database.getCol<UUID>(
+        `select a.uid
+          from articles a
+          join users au on au.uid = a.author_id
+          join posts p on p.uid = a.post_id
+          join users u on u.uid = p.user_id
+          where not a.to_delete and au.gone_status is null
+            and ${authorFilter} and ${visibility}
+          order by a.created_at desc, a.uid desc
+          limit :limit offset :offset`,
+        bindings,
+      );
+    }
+
+    async getArticleSummariesByIds(articleIds: UUID[]): Promise<Map<UUID, ArticleSummaryData>> {
+      if (articleIds.length === 0) {
+        return new Map();
+      }
+
+      const rows = await this.database.getAll<z.infer<typeof articleSummarySchema>>(
+        `select
+          a.uid, a.author_id, a.post_id, s.short_id, a.version, a.title, a.digest,
+          a.created_at, a.updated_at,
+          coalesce(
+            (select array_agg(t.name order by at.ord)
+              from article_tags at join hashtags t on t.id = at.tag_id
+              where at.article_id = a.uid),
+            array[]::text[]
+          ) as tags
+          from articles a
+          join article_short_ids s on s.long_id = a.uid
+          where a.uid = any(:articleIds) and not a.to_delete`,
+        { articleIds },
+      );
+      return new Map(rows.map((row) => [row.uid, articleSummaryFromRow(row)]));
+    }
+
     async getArticleSummariesByPostIds(postIds: UUID[]): Promise<Map<UUID, ArticleSummaryData>> {
       if (postIds.length === 0) {
         return new Map();
@@ -388,23 +460,7 @@ const articlesTrait = (superClass: typeof DbAdapter) =>
           join article_short_ids s on s.long_id = a.uid
           where a.post_id = any(${sql.array(postIds, 'uuid')}) and not a.to_delete`,
       );
-      return new Map(
-        rows.map((row) => [
-          row.post_id,
-          {
-            uid: row.uid,
-            authorId: row.author_id,
-            postId: row.post_id,
-            shortId: row.short_id,
-            version: row.version,
-            title: row.title,
-            digest: row.digest,
-            createdAt: row.created_at,
-            updatedAt: row.updated_at,
-            tags: row.tags,
-          },
-        ]),
-      );
+      return new Map(rows.map((row) => [row.post_id as UUID, articleSummaryFromRow(row)]));
     }
 
     async deactivateArticle(uid: UUID): Promise<boolean> {
@@ -474,20 +530,34 @@ const articlePostStateQuery = sql.type(
 const postStateQuery = sql.type(
   z.object({ uid: z.uuid(), user_id: z.uuid(), to_delete: z.boolean() }),
 );
-const articleSummaryQuery = sql.type(
-  z.object({
-    uid: z.uuid(),
-    author_id: z.uuid(),
-    post_id: z.uuid(),
-    short_id: z.string(),
-    version: z.number().int().positive(),
-    title: z.string(),
-    digest: z.string(),
-    created_at: z.date(),
-    updated_at: z.date(),
-    tags: z.array(z.string()),
-  }),
-);
+const articleSummarySchema = z.object({
+  uid: z.uuid(),
+  author_id: z.uuid(),
+  post_id: z.uuid().nullable(),
+  short_id: z.string(),
+  version: z.number().int().positive(),
+  title: z.string(),
+  digest: z.string(),
+  created_at: z.date(),
+  updated_at: z.date(),
+  tags: z.array(z.string()),
+});
+const articleSummaryQuery = sql.type(articleSummarySchema);
+
+function articleSummaryFromRow(row: z.infer<typeof articleSummarySchema>): ArticleSummaryData {
+  return {
+    uid: row.uid,
+    authorId: row.author_id,
+    postId: row.post_id,
+    shortId: row.short_id,
+    version: row.version,
+    title: row.title,
+    digest: row.digest,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    tags: row.tags,
+  };
+}
 
 const versionSchema = z.number().int().positive();
 const versionQuery = sql.type(z.object({ version: versionSchema }));

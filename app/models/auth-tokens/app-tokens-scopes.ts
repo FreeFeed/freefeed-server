@@ -111,6 +111,7 @@ export const appTokensScopes = [
       'GET /vN/attachments/:attId',
       'GET /vN/attachments/:attId/:type',
       'POST /vN/attachments/byIds',
+      'GET /vN/articles',
       'GET /vN/articles/:articleId',
     ],
   },
@@ -244,6 +245,8 @@ export const appTokensScopes = [
     title: 'Manage (read, write and delete) my articles',
     routes: [
       'POST /vN/articles',
+      'GET /vN/articles/:articleId/revisions',
+      'GET /vN/articles/:articleId/revisions/:revisionId',
       'PUT /vN/articles/:articleId',
       'DELETE /vN/articles/:articleId/post',
       'DELETE /vN/articles/:articleId',

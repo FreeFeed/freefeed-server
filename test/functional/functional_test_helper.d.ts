@@ -31,6 +31,8 @@ export function authHeaders(userCtx: Pick<UserCtx, 'authToken'> | null): {
   Authorization?: `Bearer ${string}`;
 };
 
+export function goPrivate(userCtx: UserCtx): Promise<unknown>;
+
 export function fileFrom(filePath: string, mimeType: string): Promise<File>;
 
 export function cmpBy<T>(key: keyof T): (a: T, b: T) => number;

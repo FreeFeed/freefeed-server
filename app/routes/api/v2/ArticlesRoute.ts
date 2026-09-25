@@ -5,11 +5,17 @@ import {
   deactivate,
   detachPost,
   getById,
+  getRevisionById,
+  getRevisions,
+  list,
   update,
 } from '../../../controllers/api/v2/ArticlesController';
 
 export default function addRoutes(app: Router) {
   app.post('/articles', create);
+  app.get('/articles', list);
+  app.get('/articles/:articleId/revisions', getRevisions);
+  app.get('/articles/:articleId/revisions/:revisionId', getRevisionById);
   app.get('/articles/:articleId', getById);
   app.put('/articles/:articleId', update);
   app.delete('/articles/:articleId/post', detachPost);
