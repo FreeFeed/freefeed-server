@@ -43,7 +43,7 @@ describe('Articles API', () => {
       },
     };
 
-    const response = await performJSONRequest(
+    const response = await performJSONRequest<{ article: { id: UUID } }>(
       'POST',
       '/v4/articles',
       articleContent,
@@ -70,7 +70,7 @@ describe('Articles API', () => {
       users: [{ id: luna.user.id }],
     });
 
-    const { id } = (response as typeof response & { article: { id: UUID } }).article;
+    const { id } = response.article;
     expect(await dbAdapter.getArticleById(id), 'to satisfy', {
       authorId: luna.user.id,
       version: 1,
@@ -545,13 +545,13 @@ describe('Articles API', () => {
     });
 
     it('should restore an article using its undo token', async () => {
-      const deletion = await performJSONRequest(
+      const deletion = await performJSONRequest<{ undo: [{ token: string }] }>(
         'DELETE',
         `/v4/articles/${article.uid}`,
         undefined,
         authHeaders(luna),
       );
-      const [{ token }] = (deletion as typeof deletion & { undo: [{ token: string }] }).undo;
+      const [{ token }] = deletion.undo;
 
       const response = await performJSONRequest(
         'POST',
@@ -609,13 +609,13 @@ describe('Articles API', () => {
 
     it('should not let another user restore the article', async () => {
       const mars = await createTestUser('mars');
-      const deletion = await performJSONRequest(
+      const deletion = await performJSONRequest<{ undo: [{ token: string }] }>(
         'DELETE',
         `/v4/articles/${article.uid}`,
         undefined,
         authHeaders(luna),
       );
-      const [{ token }] = (deletion as typeof deletion & { undo: [{ token: string }] }).undo;
+      const [{ token }] = deletion.undo;
 
       const response = await performJSONRequest(
         'POST',
@@ -635,13 +635,13 @@ describe('Articles API', () => {
         scopes: ['manage-articles'],
       });
       const headers = { Authorization: `Bearer ${appToken.tokenString()}` as const };
-      const deletion = await performJSONRequest(
+      const deletion = await performJSONRequest<{ undo: [{ token: string }] }>(
         'DELETE',
         `/v4/articles/${article.uid}`,
         undefined,
         headers,
       );
-      const [{ token }] = (deletion as typeof deletion & { undo: [{ token: string }] }).undo;
+      const [{ token }] = deletion.undo;
 
       const response = await performJSONRequest(
         'POST',

@@ -20,12 +20,12 @@ export function createUserAsync(
   attributes?: object,
 ): Promise<UserCtx>;
 
-export function performJSONRequest(
+export function performJSONRequest<T extends object = object>(
   method: string,
   path: string,
   body?: unknown,
   header?: Record<string, string>,
-): Promise<{ __httpCode: number }>;
+): Promise<T & { __httpCode: number }>;
 
 export function authHeaders(userCtx: Pick<UserCtx, 'authToken'> | null): {
   Authorization?: `Bearer ${string}`;

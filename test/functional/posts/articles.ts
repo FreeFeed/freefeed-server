@@ -33,7 +33,10 @@ describe('Post article association', () => {
       });
       await article.setTags(['first', 'second']);
 
-      const response = await performJSONRequest(
+      const response = await performJSONRequest<{
+        posts: { id: UUID };
+        articles: unknown;
+      }>(
         'POST',
         '/v4/posts',
         {
@@ -43,17 +46,13 @@ describe('Post article association', () => {
         authHeaders(luna),
       );
 
-      const typedResponse = response as typeof response & {
-        posts: { id: UUID };
-        articles: unknown;
-      };
-      const postId = typedResponse.posts.id;
+      const postId = response.posts.id;
 
       expect(response, 'to satisfy', {
         __httpCode: 200,
         posts: { articleId: article.uid },
       });
-      expect(typedResponse.articles, 'to exhaustively satisfy', [
+      expect(response.articles, 'to exhaustively satisfy', [
         {
           id: article.uid,
           authorId: luna.user.id,
@@ -124,7 +123,7 @@ describe('Post article association', () => {
       await article.setPost(deletingPost.id);
       await deletingPost.inactivate();
 
-      const response = await performJSONRequest(
+      const response = await performJSONRequest<{ posts: { id: UUID } }>(
         'POST',
         '/v4/posts',
         {
@@ -135,7 +134,7 @@ describe('Post article association', () => {
       );
 
       expect(response, 'to satisfy', { __httpCode: 200, posts: { articleId: article.uid } });
-      const postId = (response as typeof response & { posts: { id: UUID } }).posts.id;
+      const postId = response.posts.id;
       expect(await dbAdapter.getArticleById(article.uid), 'to satisfy', { postId });
     });
   });
