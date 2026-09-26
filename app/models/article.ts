@@ -3,6 +3,7 @@ import type { UUID } from '../support/types';
 import { scheduleArticleDeletion } from '../jobs/delete-article';
 import { PubSub as pubSub } from '../models';
 import type { User } from '../models';
+import { EventService } from '../support/EventService';
 
 import type { ArticleBody } from './article-body';
 
@@ -74,6 +75,8 @@ export class Article extends ArticleContent {
       (this as Record<keyof ArticleDbRowContent, unknown>)[key] = params[key];
     }
 
+    await EventService.onArticlePublished(this.id);
+
     return result;
   }
 
@@ -105,6 +108,10 @@ export class Article extends ArticleContent {
       if (updatedPostId) {
         await pubSub.updatePost(updatedPostId);
       }
+    }
+
+    if (postId) {
+      await EventService.onArticlePublished(this.id);
     }
 
     return true;

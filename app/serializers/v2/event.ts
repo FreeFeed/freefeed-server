@@ -69,6 +69,7 @@ export async function serializeEvents(events: EventRecord[], viewerId: Nullable<
       post_author_id: (e.post_author_id && accountId2UIDs[e.post_author_id]) || null,
       target_post_id: e.target_post_id,
       target_comment_id: e.target_comment_id,
+      article_id: e.article_id,
     };
 
     // Do not show posts from inactive authors

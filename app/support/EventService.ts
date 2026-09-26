@@ -1,6 +1,7 @@
 import { difference, intersectionBy, uniq, uniqBy } from 'lodash-es';
 
 import { dbAdapter, User, Group, Post, Comment, PubSub as pubSub, Timeline } from '../models';
+import { extractMentions as extractArticleMentions } from '../models/article-body';
 
 import { extractMentions, extractMentionsWithOffsets } from './mentions';
 import { ALLOWED_EVENT_TYPES, COUNTABLE_EVENT_TYPES, EVENT_TYPES } from './EventTypes';
@@ -222,8 +223,41 @@ export class EventService {
   ) {
     const destinationFeeds = await dbAdapter.getTimelinesByIds(destinationFeedIds);
     await this._processDirectMessagesForPost(post, destinationFeeds, author);
-    await this._processMentionsInPost(post, destinationFeeds, author);
+    await this._processMentions(
+      post,
+      destinationFeeds,
+      author,
+      uniq(extractMentions(post.body)),
+      EVENT_TYPES.MENTION_IN_POST,
+    );
     await processBacklinks(post, prevBody);
+  }
+
+  static async onArticlePublished(articleId: UUID) {
+    const article = await dbAdapter.getArticleById(articleId);
+
+    if (!article?.postId || article.toDelete) {
+      return;
+    }
+
+    const [post, author] = await Promise.all([
+      dbAdapter.getPostById(article.postId),
+      dbAdapter.getUserById(article.authorId),
+    ]);
+
+    if (!post || !author || post.toDelete) {
+      return;
+    }
+
+    const destinationFeeds = await dbAdapter.getTimelinesByIntIds(post.destinationFeedIds);
+    await this._processMentions(
+      post,
+      destinationFeeds,
+      author,
+      extractArticleMentions(article.body),
+      EVENT_TYPES.MENTION_IN_ARTICLE,
+      article.id,
+    );
   }
 
   static async onCommentRestored(comment: Comment, restoredBy: User) {
@@ -835,9 +869,14 @@ export class EventService {
     }
   }
 
-  static async _processMentionsInPost(post: Post, destinationFeeds: Timeline[], author: User) {
-    const mentionedUsernames = uniq(extractMentions(post.body));
-
+  static async _processMentions(
+    post: Post,
+    destinationFeeds: Timeline[],
+    author: User,
+    mentionedUsernames: string[],
+    eventType: T_EVENT_TYPE,
+    articleId: Nullable<UUID> = null,
+  ) {
     if (mentionedUsernames.length === 0) {
       return;
     }
@@ -906,13 +945,16 @@ export class EventService {
 
       await createEvent(
         user.intId,
-        EVENT_TYPES.MENTION_IN_POST,
+        eventType,
         author.intId,
         user.intId,
         postGroupIntId,
         post.id,
         null,
         author.intId,
+        null,
+        null,
+        articleId,
       );
     });
     await Promise.all(promises);
@@ -1073,6 +1115,7 @@ async function createEvent(
   postAuthorIntId: Nullable<number> = null,
   targetPostId: Nullable<UUID> = null,
   targetCommentId: Nullable<UUID> = null,
+  articleId: Nullable<UUID> = null,
 ) {
   // Somebody else's action over the post: we should check, is the post visible
   // for the recipient.
@@ -1099,6 +1142,7 @@ async function createEvent(
     postAuthorIntId,
     targetPostId,
     targetCommentId,
+    articleId,
   );
 
   // It is possible if event is conflicting with existing by unique key

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import type { UUID } from '../support/types';
+import { extractMentions as extractMentionsFromText } from '../support/mentions';
 
 const articleBlockSchema = z
   .object({
@@ -75,4 +76,27 @@ export function extractAttachmentIds(body: ArticleBody): UUID[] {
   }
 
   return Array.from(ids);
+}
+
+export function extractMentions(body: ArticleBody): string[] {
+  const mentions = new Set<string>();
+  const addText = (text: string) => {
+    for (const mention of extractMentionsFromText(text)) {
+      mentions.add(mention);
+    }
+  };
+
+  for (const block of body.blocks) {
+    if (block.type === 'text' || block.type === 'heading') {
+      addText(block.content);
+    } else if (block.type === 'media') {
+      addText(block.caption ?? '');
+    } else if (block.type === 'gallery') {
+      addText(block.items.map((item) => item.caption ?? '').join(' '));
+    } else if (block.type === 'list') {
+      addText(block.items.join(' '));
+    }
+  }
+
+  return Array.from(mentions);
 }

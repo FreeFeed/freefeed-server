@@ -33,6 +33,8 @@ An article revision is a snapshot of the previous `title`, `digest`, and `body`,
 
 An unpublished article has no `postId` and is visible only to its author. A published article has a linked post and follows that post's privacy and ban rules.
 
+Publishing an article notifies mentioned users who can see its post. Later updates notify newly mentioned users. Each user receives at most one mention notification per article, including after republishing.
+
 An article can be linked only while creating a post:
 
 ```json

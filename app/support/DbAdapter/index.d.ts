@@ -82,6 +82,7 @@ export type EventRecord = {
   post_author_id: Nullable<number>;
   target_post_id: Nullable<UUID>;
   target_comment_id: Nullable<UUID>;
+  article_id: Nullable<UUID>;
 };
 
 type ListAttachmentsOptions = { userId: UUID; limit: number } & (
@@ -392,6 +393,7 @@ export class DbAdapter {
     postAuthorIntId?: Nullable<number>,
     targetPostId?: Nullable<UUID>,
     targetCommentId?: Nullable<UUID>,
+    articleId?: Nullable<UUID>,
   ): Promise<EventRecord>;
   getEventById(eventId: UUID): Promise<Nullable<EventRecord>>;
   getUserEvents(

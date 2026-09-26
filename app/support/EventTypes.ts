@@ -2,6 +2,7 @@ import * as _ from 'lodash-es';
 
 export const EVENT_TYPES = {
   MENTION_IN_POST: 'mention_in_post',
+  MENTION_IN_ARTICLE: 'mention_in_article',
   MENTION_IN_COMMENT: 'mention_in_comment',
   MENTION_COMMENT_TO: 'mention_comment_to',
   USER_BANNED: 'banned_user',
