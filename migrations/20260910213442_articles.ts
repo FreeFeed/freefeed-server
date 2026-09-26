@@ -1,5 +1,9 @@
 import type { Knex } from 'knex';
 
+import { eventTypesSQLs } from '../app/support/migrations';
+
+const [eventTypesUp, eventTypesDown] = eventTypesSQLs('mention_in_article');
+
 export const up = (knex: Knex) =>
   knex.schema.raw(`
         ------------
@@ -122,7 +126,19 @@ export const up = (knex: Knex) =>
 
         CREATE INDEX article_tags_tag_idx
             ON article_tags (tag_id, article_id);
-    `);
+
+        -----------------
+        -- EVENT TYPES --
+        -----------------
+        ${eventTypesUp}
+
+        alter table events add column article_id uuid
+        references articles (uid) on delete set null on update cascade;
+
+        create unique index events_unique_mention_in_article_idx
+        on events (article_id, user_id)
+        where event_type = 'mention_in_article';
+`);
 
 export const down = (knex: Knex) =>
   knex.schema.raw(`
@@ -130,5 +146,10 @@ export const down = (knex: Knex) =>
         DROP TABLE IF EXISTS article_short_ids;
         DROP TABLE IF EXISTS article_tags;
         DROP TABLE IF EXISTS article_revisions;
+        
+        DROP INDEX events_unique_mention_in_article_idx;
+        ${eventTypesDown}
+        ALTER TABLE events DROP COLUMN article_id;
+
         DROP TABLE IF EXISTS articles;
     `);
