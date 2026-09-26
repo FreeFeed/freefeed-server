@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.32.0] - Not released
 
+### Fixed
+- Prevented duplicate per-post comment sequence numbers when database timestamps
+  are not monotonic, and made comments-by-ID ordering deterministic for equal timestamps.
+
 ## [2.31.4] - 2026-09-17
 ### Fixed
 - Applied the primary image's EXIF orientation to HDR gain maps when generating
