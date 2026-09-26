@@ -162,6 +162,26 @@ describe('Articles model', () => {
     ]);
   });
 
+  it('should update title and digest search vectors', async () => {
+    const createdVectors = await getArticleSearchVectors(article.id);
+
+    expect(createdVectors.title, 'to contain', '=article');
+    expect(createdVectors.digest, 'to contain', '=digest');
+
+    await article.update(1, {
+      ...UPDATED_CONTENT,
+      title: 'Quasar',
+      digest: 'Nebula',
+    });
+
+    const updatedVectors = await getArticleSearchVectors(article.id);
+
+    expect(updatedVectors.title, 'to contain', '=quasar');
+    expect(updatedVectors.title, 'not to contain', '=article');
+    expect(updatedVectors.digest, 'to contain', '=nebula');
+    expect(updatedVectors.digest, 'not to contain', '=digest');
+  });
+
   it('should reject an invalid body without updating the article', async () => {
     await expect(article.update(1, INVALID_CONTENT), 'to be rejected with error satisfying', {
       status: 422,
@@ -378,6 +398,15 @@ function makeContent(prefix: string, id: string): ArticleDbRowContent {
 
 const articleTagQuery = sql.type(z.object({ name: z.string(), ord: z.number().int() }));
 const hashtagNameQuery = sql.type(z.object({ name: z.string() }));
+const articleSearchVectorQuery = sql.type(z.object({ title: z.string(), digest: z.string() }));
+
+async function getArticleSearchVectors(articleId: UUID) {
+  const pool = await dbAdapter.getSlonik();
+  return pool.one(
+    articleSearchVectorQuery`select title_tsvector::text as title,
+      digest_tsvector::text as digest from articles where uid = ${articleId}`,
+  );
+}
 
 async function getArticleTagState(articleId: UUID) {
   const pool = await dbAdapter.getSlonik();

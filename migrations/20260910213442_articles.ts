@@ -11,7 +11,9 @@ export const up = (knex: Knex) =>
             post_id     uuid NULL,
 
             title       text NOT NULL,
+            title_tsvector tsvector NOT NULL,
             digest      text NOT NULL DEFAULT '',
+            digest_tsvector tsvector NOT NULL,
             body        jsonb NOT NULL,
             version     integer NOT NULL DEFAULT 1,
 
@@ -104,6 +106,12 @@ export const up = (knex: Knex) =>
 
         CREATE INDEX articles_to_delete_idx
             ON articles (to_delete);
+
+        CREATE INDEX articles_title_tsvector_idx
+            ON articles USING GIN (title_tsvector);
+
+        CREATE INDEX articles_digest_tsvector_idx
+            ON articles USING GIN (digest_tsvector);
 
         CREATE UNIQUE INDEX articles_post_unique_idx
             ON articles (post_id)

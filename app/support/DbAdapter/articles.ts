@@ -17,6 +17,7 @@ import type { UUID } from '../types';
 import { currentConfig } from '../app-async-context';
 import { ValidationException } from '../exceptions';
 import { articleBodySchema, extractAttachmentIds } from '../../models/article-body';
+import { toTSVector } from '../search/to-tsvector';
 
 import { createShortId } from './short-ids';
 
@@ -69,10 +70,10 @@ const articlesTrait = (superClass: typeof DbAdapter) =>
       const { createdId, attachmentIds } = await pool.transaction(async (trx) => {
         const id = await trx.oneFirst(
           uidQuery`insert into articles
-          (author_id, title, digest, body)
+          (author_id, title, title_tsvector, digest, digest_tsvector, body)
           values
-          (${params.author_id}, ${params.title}, ${params.digest},
-            ${sql.jsonb(params.body)})
+          (${params.author_id}, ${params.title}, ${toTSVectorFragment(params.title)},
+            ${params.digest}, ${toTSVectorFragment(params.digest)}, ${sql.jsonb(params.body)})
           returning uid`,
         );
 
@@ -276,7 +277,9 @@ const articlesTrait = (superClass: typeof DbAdapter) =>
         const version = await trx.oneFirst(
           versionQuery`update articles
             set title = ${params.title},
+                title_tsvector = ${toTSVectorFragment(params.title)},
                 digest = ${params.digest},
+                digest_tsvector = ${toTSVectorFragment(params.digest)},
                 body = ${sql.jsonb(params.body)},
                 version = version + 1,
                 updated_at = now()
@@ -513,6 +516,11 @@ const articlesTrait = (superClass: typeof DbAdapter) =>
   };
 
 export default articlesTrait;
+
+function toTSVectorFragment(text: string) {
+  const query = toTSVector(text);
+  return sql.fragment(Object.assign([query], { raw: Object.freeze([query]) }));
+}
 
 const uidQuery = sql.type(z.object({ uid: z.uuid() }));
 const tagQuery = sql.type(z.object({ name: z.string() }));
