@@ -175,6 +175,10 @@ describe('search:parseQuery', () => {
         new Condition(true, 'has', ['audio', 'image']),
       ],
     },
+    {
+      query: 'has:article -has:articles',
+      result: [new Condition(false, 'has', ['article']), new Condition(true, 'has', ['article'])],
+    },
   ];
 
   for (const { query, comment, result } of testData) {

@@ -4,7 +4,7 @@ import expect from 'unexpected';
 import cleanDB from '../dbCleaner';
 import { getSingleton } from '../../app/app';
 import { DummyPublisher } from '../../app/pubsub';
-import { PubSub } from '../../app/models';
+import { dbAdapter, PubSub } from '../../app/models';
 
 import * as funcTestHelper from './functional_test_helper';
 
@@ -47,6 +47,24 @@ describe('SearchController', () => {
     it('should search posts', async () => {
       const response = await funcTestHelper.performSearch(venusContext, 'hello');
       expect(response, 'to satisfy', { posts: [{}, {}] });
+    });
+
+    it('should return the linked article when its title matches', async () => {
+      const article = await dbAdapter.createArticle({
+        author_id: lunaContext.user.id,
+        title: 'Quasar article',
+        digest: 'Nebula digest',
+        body: { blocks: [] },
+      });
+      const post = await funcTestHelper.justCreatePost(lunaContext, 'Article announcement');
+      await article.setPost(post.id);
+
+      const response = await funcTestHelper.performSearch(venusContext, 'quasar');
+
+      expect(response, 'to satisfy', {
+        posts: [{ id: post.id, articleId: article.id }],
+        articles: [{ id: article.id, title: 'Quasar article', digest: 'Nebula digest' }],
+      });
     });
 
     it('should return empty response on empty query', async () => {
