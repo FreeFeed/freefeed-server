@@ -1,10 +1,17 @@
 import pgFormat from 'pg-format';
 import { type Knex } from 'knex';
 
-const tablesToKeep = ['admin_roles', 'event_types'];
+const tablesToKeep = ['admin_roles', 'event_types', 'knex_migrations', 'knex_migrations_lock'];
 
-export default function cleanDB(knex: Knex) {
-  return knex.raw(
+export default async function cleanDB(knex: Knex) {
+  if (process.env.NODE_ENV !== 'test') {
+    throw new Error(
+      `Refusing to clean a database with NODE_ENV="${process.env.NODE_ENV ?? ''}"; expected "test". ` +
+        `Run tests with NODE_ENV=test.`,
+    );
+  }
+
+  await knex.raw(
     `
     do $$
       declare
