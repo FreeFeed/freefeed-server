@@ -52,9 +52,8 @@ describe('SearchController', () => {
     it('should return the linked article when its title matches', async () => {
       const article = await dbAdapter.createArticle({
         author_id: lunaContext.user.id,
-        title: 'Quasar article',
         digest: 'Nebula digest',
-        body: { blocks: [] },
+        body: '# Quasar article',
       });
       const post = await funcTestHelper.justCreatePost(lunaContext, 'Article announcement');
       await article.setPost(post.id);

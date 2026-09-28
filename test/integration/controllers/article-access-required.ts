@@ -22,9 +22,8 @@ describe('articleAccessRequired', () => {
     [luna, mars] = await createUsers(['luna', 'mars']);
     article = await dbAdapter.createArticle({
       author_id: luna.id,
-      title: 'Test article',
       digest: '',
-      body: { blocks: [] },
+      body: '# Test article',
     });
   });
 

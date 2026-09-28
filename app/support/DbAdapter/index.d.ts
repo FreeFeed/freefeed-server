@@ -29,7 +29,7 @@ import {
   Article,
   ArticleRevision,
   ArticleCreationParams,
-  ArticleDbRowContent,
+  ArticleEditableContent,
   ArticleSummaryData,
   ArticleUpdateResult,
 } from '../../models/article';
@@ -540,7 +540,7 @@ export class DbAdapter {
   updateArticle(
     uid: UUID,
     expectedVersion: number,
-    params: ArticleDbRowContent,
+    params: ArticleEditableContent,
   ): Promise<ArticleUpdateResult>;
   setArticlePost(uid: UUID, postId: UUID | null): Promise<boolean>;
   getVisibleArticleIds(
@@ -567,5 +567,4 @@ export class DbAdapter {
   ): Promise<ArticleRevision[]>;
   setArticleTags(articleId: UUID, tags: string[]): Promise<void>;
   getArticleTags(articleId: UUID): Promise<readonly string[]>;
-  getArticleAttachmentIds(articleId: UUID): Promise<UUID[]>;
 }

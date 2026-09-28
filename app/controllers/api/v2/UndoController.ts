@@ -68,7 +68,7 @@ export const undo = compose([
       }
 
       await article.activate();
-      ctx.body = await fullArticleResponse(user, article, apiVersion);
+      ctx.body = await fullArticleResponse(user, article);
     } else {
       throw new BadRequestException(`Unknown undo subject: ${subject}`);
     }

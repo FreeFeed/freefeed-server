@@ -2,7 +2,7 @@ import { beforeEach, describe, it } from 'mocha';
 import expect from 'unexpected';
 
 import { dbAdapter } from '../../app/models';
-import type { Article, ArticleDbRowContent } from '../../app/models/article';
+import type { Article, ArticleEditableContent } from '../../app/models/article';
 import { EVENT_TYPES } from '../../app/support/EventTypes';
 import type { UUID } from '../../app/support/types';
 import cleanDB from '../dbCleaner';
@@ -10,10 +10,9 @@ import cleanDB from '../dbCleaner';
 import { authHeaders, createTestUser, performJSONRequest } from './functional_test_helper';
 import type { UserCtx } from './functional_test_helper';
 
-const content = (text: string): ArticleDbRowContent => ({
-  title: 'Test article',
+const content = (text: string): ArticleEditableContent => ({
   digest: 'Test digest',
-  body: { blocks: [{ id: 'heading', type: 'heading', level: 2, content: text }] },
+  body: `# Test article\n\n${text}`,
 });
 
 describe('Article mention notifications', () => {

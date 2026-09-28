@@ -1,22 +1,18 @@
-import { isDeepStrictEqual } from 'node:util';
-
 import { sql } from 'slonik';
-import type { CommonQueryMethods } from 'slonik';
 import { z } from 'zod';
 import { fromError } from 'zod-validation-error';
-import { pick } from 'lodash-es';
 
-import { Article, ARTICLE_CONTENT_KEYS, ArticleRevision } from '../../models/article';
+import { Article, ArticleRevision } from '../../models/article';
 import type {
   ArticleCreationParams,
-  ArticleDbRowContent,
+  ArticleEditableContent,
   ArticleSummaryData,
   ArticleUpdateResult,
 } from '../../models/article';
 import type { UUID } from '../types';
 import { currentConfig } from '../app-async-context';
 import { ValidationException } from '../exceptions';
-import { articleBodySchema, extractAttachmentIds } from '../../models/article-body';
+import { articleBodySchema, extractTitle } from '../../models/article-body';
 import { toTSVector } from '../search/to-tsvector';
 
 import { createShortId } from './short-ids';
@@ -40,7 +36,7 @@ const articlesTrait = (superClass: typeof DbAdapter) =>
       const row = await pool.maybeOne(
         articleRevisionQuery`select * from article_revisions where uid = ${uid}`,
       );
-      return row ? new ArticleRevision(this, row) : null;
+      return row ? new ArticleRevision(row) : null;
     }
 
     async getArticleRevisions(
@@ -56,7 +52,7 @@ const articlesTrait = (superClass: typeof DbAdapter) =>
           article_id = ${articleId} order by version ${order}
           limit ${limit} offset ${offset}`,
       );
-      return rows.map((row) => new ArticleRevision(this, row));
+      return rows.map((row) => new ArticleRevision(row));
     }
 
     async createArticle(params: ArticleCreationParams): Promise<Article> {
@@ -66,31 +62,17 @@ const articlesTrait = (superClass: typeof DbAdapter) =>
         throw new ValidationException(fromError(bodyResult.error).message);
       }
 
+      const title = extractTitle(params.body);
       const pool = await this.getSlonik();
-      const { createdId, attachmentIds } = await pool.transaction(async (trx) => {
+      const createdId = await pool.transaction(async (trx) => {
         const id = await trx.oneFirst(
           uidQuery`insert into articles
           (author_id, title, title_tsvector, digest, digest_tsvector, body)
           values
-          (${params.author_id}, ${params.title}, ${toTSVectorFragment(params.title)},
-            ${params.digest}, ${toTSVectorFragment(params.digest)}, ${sql.jsonb(params.body)})
+          (${params.author_id}, ${title}, ${toTSVectorFragment(title)},
+            ${params.digest}, ${toTSVectorFragment(params.digest)}, ${params.body})
           returning uid`,
         );
-
-        // Extract attachment IDs from the article body
-        const linkedAttachmentIds = await this.checkArticleAttachments(
-          trx,
-          id,
-          params.author_id,
-          extractAttachmentIds(params.body),
-        );
-
-        if (linkedAttachmentIds.length > 0) {
-          await trx.query(
-            voidQuery`update attachments set article_id = ${id}
-                    where uid = any(${sql.array(linkedAttachmentIds, 'uuid')})`,
-          );
-        }
 
         // Create a short ID for the article
         await createShortId(currentConfig().shortLinks.initialLength.article, (shortId) =>
@@ -102,10 +84,8 @@ const articlesTrait = (superClass: typeof DbAdapter) =>
             .then((res) => !!res),
         );
 
-        return { createdId: id, attachmentIds: linkedAttachmentIds };
+        return id;
       });
-
-      await Promise.all(attachmentIds.map((id) => this.dropCachedAttachmentData(id)));
 
       const article = await this.getArticleById(createdId);
 
@@ -190,50 +170,13 @@ const articlesTrait = (superClass: typeof DbAdapter) =>
       });
     }
 
-    async getArticleAttachmentIds(articleId: UUID): Promise<UUID[]> {
-      const pool = await this.getSlonik();
-      const ids = await pool.anyFirst(
-        uidQuery`select uid from attachments where article_id = ${articleId} order by uid`,
-      );
-      return [...ids];
-    }
-
-    private async checkArticleAttachments(
-      trx: CommonQueryMethods,
-      articleId: UUID,
-      authorId: UUID,
-      attachmentIds: UUID[],
-    ): Promise<UUID[]> {
-      const uniqueAttachmentIds = [...new Set(attachmentIds)];
-
-      if (uniqueAttachmentIds.length === 0) {
-        return [];
-      }
-
-      const attachments = await trx.any(
-        uidQuery`select uid from attachments where
-          uid = any(${sql.array(uniqueAttachmentIds, 'uuid')})
-          and user_id = ${authorId}
-          and (article_id is null or article_id = ${articleId})
-          and post_id is null
-          order by uid for update`,
-      );
-
-      if (attachments.length !== uniqueAttachmentIds.length) {
-        throw new ValidationException('Some article attachments are unavailable');
-      }
-
-      return uniqueAttachmentIds;
-    }
-
     async updateArticle(
       uid: UUID,
       expectedVersion: number,
-      params: ArticleDbRowContent,
+      params: ArticleEditableContent,
     ): Promise<ArticleUpdateResult> {
       const pool = await this.getSlonik();
-      const updatedAttachmentIds: UUID[] = [];
-      const result = await pool.transaction(async (trx): Promise<ArticleUpdateResult> => {
+      return pool.transaction(async (trx): Promise<ArticleUpdateResult> => {
         const currentData = await trx.maybeOne(
           articleQuery`select * from articles where uid = ${uid} for update`,
         );
@@ -246,10 +189,7 @@ const articlesTrait = (superClass: typeof DbAdapter) =>
           return { status: 'conflict' };
         }
 
-        const currentContent = pick(currentData, ...ARTICLE_CONTENT_KEYS);
-        const newContent = pick(params, ...ARTICLE_CONTENT_KEYS);
-
-        if (isDeepStrictEqual(currentContent, newContent)) {
+        if (currentData.digest === params.digest && currentData.body === params.body) {
           return { status: 'unchanged' };
         }
 
@@ -259,64 +199,32 @@ const articlesTrait = (superClass: typeof DbAdapter) =>
           throw new ValidationException(fromError(bodyResult.error).message);
         }
 
-        const newAttachmentIds = await this.checkArticleAttachments(
-          trx,
-          currentData.uid,
-          currentData.author_id,
-          extractAttachmentIds(params.body),
-        );
+        if (currentData.body !== params.body) {
+          await trx.oneFirst(
+            uidQuery`insert into article_revisions
+              (article_id, title, body, version)
+              select uid, title, body, version from articles
+              where articles.uid = ${uid} returning uid`,
+          );
+        }
 
-        await trx.oneFirst(
-          uidQuery`insert into article_revisions
-            (article_id, title, digest, body, version)
-            select 
-            uid, title, digest, body, version from articles
-            where articles.uid = ${uid} returning uid`,
-        );
+        const title = extractTitle(params.body);
 
         const version = await trx.oneFirst(
           versionQuery`update articles
-            set title = ${params.title},
-                title_tsvector = ${toTSVectorFragment(params.title)},
+            set title = ${title},
+                title_tsvector = ${toTSVectorFragment(title)},
                 digest = ${params.digest},
                 digest_tsvector = ${toTSVectorFragment(params.digest)},
-                body = ${sql.jsonb(params.body)},
+                body = ${params.body},
                 version = version + 1,
                 updated_at = now()
             where uid = ${uid} and version = ${expectedVersion}
             returning version`,
         );
 
-        const prevAttachmentIds = extractAttachmentIds(currentData.body);
-
-        const addedAttachmentIds = newAttachmentIds.filter((id) => !prevAttachmentIds.includes(id));
-        const removedAttachmentIds = prevAttachmentIds.filter(
-          (id) => !newAttachmentIds.includes(id),
-        );
-
-        if (addedAttachmentIds.length > 0) {
-          await trx.query(
-            voidQuery`update attachments set article_id = ${currentData.uid}
-              where uid = any(${sql.array(addedAttachmentIds, 'uuid')})`,
-          );
-          updatedAttachmentIds.push(...addedAttachmentIds);
-        }
-
-        if (removedAttachmentIds.length > 0) {
-          await trx.query(
-            voidQuery`update attachments set article_id = null
-              where uid = any(${sql.array(removedAttachmentIds, 'uuid')})
-              and article_id = ${currentData.uid}`,
-          );
-          updatedAttachmentIds.push(...removedAttachmentIds);
-        }
-
         return { status: 'updated', version };
       });
-
-      await Promise.all(updatedAttachmentIds.map((id) => this.dropCachedAttachmentData(id)));
-
-      return result;
     }
 
     /**
@@ -486,7 +394,7 @@ const articlesTrait = (superClass: typeof DbAdapter) =>
 
     async destroyArticle(uid: UUID): Promise<boolean> {
       const pool = await this.getSlonik();
-      const attachmentIds = await pool.transaction(async (trx) => {
+      const deleted = await pool.transaction(async (trx) => {
         const articleId = await trx.maybeOneFirst(
           uidQuery`select uid from articles where uid = ${uid} for update`,
         );
@@ -495,23 +403,14 @@ const articlesTrait = (superClass: typeof DbAdapter) =>
           return null;
         }
 
-        const linkedAttachmentIds = await trx.anyFirst(
-          uidQuery`select uid from attachments where article_id = ${uid}`,
-        );
-
         await trx.query(
           voidQuery`delete from hashtag_usages where entity_id = ${uid} and type = ${'article'}`,
         );
         await trx.query(voidQuery`delete from articles where uid = ${uid}`);
-        return linkedAttachmentIds;
+        return true;
       });
 
-      if (attachmentIds === null) {
-        return false;
-      }
-
-      await Promise.all(attachmentIds.map((id) => this.dropCachedAttachmentData(id)));
-      return true;
+      return deleted ?? false;
     }
   };
 
@@ -592,6 +491,7 @@ const articleRevisionQuery = sql.type(
     article_id: z.uuid(),
     created_at: z.date(),
     version: versionSchema,
-    ...articleContentSchema,
+    title: z.string(),
+    body: articleBodySchema,
   }),
 );

@@ -2,17 +2,16 @@ import { beforeEach, describe, it } from 'mocha';
 import expect from 'unexpected';
 
 import { dbAdapter } from '../../../app/models';
-import type { ArticleDbRowContent } from '../../../app/models/article';
+import type { ArticleEditableContent } from '../../../app/models/article';
 import { serializeFeed } from '../../../app/serializers/v2/post';
 import cleanDB from '../../dbCleaner';
 import { createPost } from '../helpers/posts-and-comments';
 import { createUsers } from '../helpers/users';
 
 const content = {
-  title: 'Article title',
   digest: 'Article digest',
-  body: { blocks: [{ id: 'text', type: 'text', content: 'Article body' }] },
-} satisfies ArticleDbRowContent;
+  body: '# Article title\n\nArticle body',
+} satisfies ArticleEditableContent;
 
 describe('Articles in serialized feeds', () => {
   beforeEach(() => cleanDB(dbAdapter.database));
@@ -26,7 +25,7 @@ describe('Articles in serialized feeds', () => {
     const secondArticle = await dbAdapter.createArticle({
       author_id: luna.id,
       ...content,
-      title: 'Second article',
+      body: '# Second article\n\nArticle body',
     });
     await firstArticle.setPost(firstPost.id);
     await secondArticle.setPost(secondPost.id);
@@ -40,7 +39,7 @@ describe('Articles in serialized feeds', () => {
     expect(postsById.get(plainPost.id), 'to satisfy', { articleId: null });
     expect([...articlesById.keys()].sort(), 'to equal', [firstArticle.id, secondArticle.id].sort());
     expect(articlesById.get(firstArticle.id), 'to satisfy', {
-      title: content.title,
+      title: 'Article title',
       digest: content.digest,
     });
     expect(articlesById.get(secondArticle.id), 'to satisfy', {

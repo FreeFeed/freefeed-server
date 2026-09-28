@@ -2,14 +2,13 @@ import { beforeEach, describe, it } from 'mocha';
 import expect from 'unexpected';
 
 import { dbAdapter } from '../../app/models';
-import type { Article, ArticleDbRowContent } from '../../app/models/article';
+import type { Article, ArticleEditableContent } from '../../app/models/article';
 import type { UUID } from '../../app/support/types';
 import cleanDB from '../dbCleaner';
 import { createPost } from '../integration/helpers/posts-and-comments';
 
 import {
   authHeaders,
-  createMockAttachmentAsync,
   createTestUser,
   goPrivate,
   justCreateGroup,
@@ -18,10 +17,9 @@ import {
 import type { UserCtx } from './functional_test_helper';
 
 const content = {
-  title: 'Test article',
   digest: 'Test digest',
-  body: { blocks: [{ id: 'text', type: 'text', content: 'Hello' }] },
-} satisfies ArticleDbRowContent;
+  body: '# Test article\n\nHello',
+} satisfies ArticleEditableContent;
 
 describe('Articles API: reading', () => {
   let luna: UserCtx;
@@ -37,12 +35,12 @@ describe('Articles API: reading', () => {
       const older = await dbAdapter.createArticle({
         author_id: luna.user.id,
         ...content,
-        title: 'Older',
+        body: '# Older',
       });
       const newer = await dbAdapter.createArticle({
         author_id: luna.user.id,
         ...content,
-        title: 'Newer',
+        body: '# Newer',
       });
       await newer.setTags(['draft']);
       await dbAdapter.createArticle({ author_id: mars.user.id, ...content });
@@ -90,7 +88,7 @@ describe('Articles API: reading', () => {
       const lunaArticle = await dbAdapter.createArticle({
         author_id: luna.user.id,
         ...content,
-        title: 'Luna public',
+        body: '# Luna public',
       });
       const lunaPost = await createPost(luna.user, 'Luna public post');
       await lunaArticle.setPost(lunaPost.id);
@@ -98,7 +96,7 @@ describe('Articles API: reading', () => {
       const jupiterArticle = await dbAdapter.createArticle({
         author_id: jupiter.user.id,
         ...content,
-        title: 'Jupiter public',
+        body: '# Jupiter public',
       });
       const jupiterPost = await createPost(jupiter.user, 'Jupiter public post');
       await jupiterArticle.setPost(jupiterPost.id);
@@ -107,7 +105,7 @@ describe('Articles API: reading', () => {
       const marsPrivateArticle = await dbAdapter.createArticle({
         author_id: mars.user.id,
         ...content,
-        title: 'Mars private',
+        body: '# Mars private',
       });
       const marsPrivatePost = await createPost(mars.user, 'Mars private post');
       await marsPrivateArticle.setPost(marsPrivatePost.id);
@@ -234,9 +232,9 @@ describe('Articles API: reading', () => {
           postId: null,
           shortId: await article.getShortId(),
           version: 1,
+          title: 'Test article',
           ...content,
           tags: [],
-          attachmentIds: [],
         },
         posts: [],
         attachments: [],
@@ -253,28 +251,6 @@ describe('Articles API: reading', () => {
       );
 
       expect(response, 'to satisfy', { __httpCode: 200, article: { id: article.id } });
-    });
-
-    it('should include article attachments', async () => {
-      const attachment = await createMockAttachmentAsync(luna);
-      const mediaArticle = await dbAdapter.createArticle({
-        author_id: luna.user.id,
-        ...content,
-        body: { blocks: [{ id: 'media', type: 'media', attachmentId: attachment.id }] },
-      });
-
-      const response = await performJSONRequest(
-        'GET',
-        `/v4/articles/${mediaArticle.id}`,
-        undefined,
-        authHeaders(luna),
-      );
-
-      expect(response, 'to satisfy', {
-        __httpCode: 200,
-        article: { id: mediaArticle.id, attachmentIds: [attachment.id] },
-        attachments: [{ id: attachment.id, createdBy: luna.user.id }],
-      });
     });
 
     it('should return 404 for an unknown article', async () => {
@@ -358,8 +334,8 @@ describe('Articles API: reading', () => {
 
     beforeEach(async () => {
       article = await dbAdapter.createArticle({ author_id: luna.user.id, ...content });
-      await article.update(1, { ...content, title: 'Second version' });
-      await article.update(2, { ...content, title: 'Third version' });
+      await article.update(1, { ...content, body: '# Second version' });
+      await article.update(2, { ...content, body: '# Third version' });
     });
 
     it('should return paginated revision IDs and dates', async () => {
@@ -395,7 +371,7 @@ describe('Articles API: reading', () => {
         // eslint-disable-next-line no-await-in-loop
         await article.update(expectedVersion, {
           ...content,
-          title: `Version ${expectedVersion + 1}`,
+          body: `# Version ${expectedVersion + 1}`,
         });
       }
 
@@ -409,22 +385,20 @@ describe('Articles API: reading', () => {
     });
 
     it('should return the full revision', async () => {
-      const attachment = await createMockAttachmentAsync(luna);
-      const mediaContent = {
+      const firstContent = {
         ...content,
-        title: 'Version with attachment',
-        body: { blocks: [{ id: 'media', type: 'media', attachmentId: attachment.id }] },
-      } satisfies ArticleDbRowContent;
-      const mediaArticle = await dbAdapter.createArticle({
+        body: '# First version\n\nArticle body',
+      } satisfies ArticleEditableContent;
+      const versionedArticle = await dbAdapter.createArticle({
         author_id: luna.user.id,
-        ...mediaContent,
+        ...firstContent,
       });
-      await mediaArticle.update(1, content);
-      const [revision] = await mediaArticle.getRevisions(1, 0);
+      await versionedArticle.update(1, content);
+      const [revision] = await versionedArticle.getRevisions(1, 0);
 
       const response = await performJSONRequest(
         'GET',
-        `/v4/articles/${mediaArticle.id}/revisions/${revision.uid}`,
+        `/v4/articles/${versionedArticle.id}/revisions/${revision.uid}`,
         undefined,
         authHeaders(luna),
       );
@@ -433,17 +407,14 @@ describe('Articles API: reading', () => {
         __httpCode: 200,
         revision: {
           id: revision.uid,
-          articleId: mediaArticle.id,
+          articleId: versionedArticle.id,
           version: 1,
-          title: mediaContent.title,
-          digest: mediaContent.digest,
-          body: mediaContent.body,
+          title: 'First version',
+          body: firstContent.body,
           createdAt: revision.createdAt.toISOString(),
-          attachmentIds: [attachment.id],
         },
-        attachments: [{ id: attachment.id }],
       });
-      expect(Object.keys(response).sort(), 'to equal', ['__httpCode', 'attachments', 'revision']);
+      expect(Object.keys(response).sort(), 'to equal', ['__httpCode', 'revision']);
     });
 
     it('should not return a revision of another article', async () => {
@@ -451,7 +422,7 @@ describe('Articles API: reading', () => {
         author_id: luna.user.id,
         ...content,
       });
-      await otherArticle.update(1, { ...content, title: 'Other version' });
+      await otherArticle.update(1, { ...content, body: '# Other version' });
       const [otherRevision] = await otherArticle.getRevisions(1, 0);
 
       const response = await performJSONRequest(

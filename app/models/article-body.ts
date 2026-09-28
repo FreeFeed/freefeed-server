@@ -1,102 +1,62 @@
+import { fromMarkdown } from 'mdast-util-from-markdown';
 import { z } from 'zod';
 
-import type { UUID } from '../support/types';
 import { extractMentions as extractMentionsFromText } from '../support/mentions';
 
-const articleBlockSchema = z
-  .object({
-    // All blocks must have an ID
-    id: z.string(),
-  })
-  .and(
-    // Discriminated union for different block types
-    z.discriminatedUnion('type', [
-      z.object({ type: z.literal('text'), content: z.string() }),
-      z.object({
-        type: z.literal('heading'),
-        level: z.number().min(2).max(6), // 1st level is the article title itself
-        content: z.string(),
-      }),
-      z.object({
-        type: z.literal('list'),
-        items: z.array(z.string()),
-      }),
-      z.object({
-        type: z.literal('code'),
-        language: z.string().optional(),
-        content: z.string(),
-      }),
-      z.object({
-        type: z.literal('media'),
-        attachmentId: z.uuid(),
-        alt: z.string().optional(),
-        caption: z.string().optional(),
-      }),
-      z.object({
-        type: z.literal('gallery'),
-        items: z.array(
-          z.object({
-            attachmentId: z.uuid(),
-            alt: z.string().optional(),
-            caption: z.string().optional(),
-          }),
-        ),
-      }),
-      // ...other block types can be added here
-    ]),
-  );
-
-export const articleBodySchema = z.object({
-  blocks: z
-    .array(articleBlockSchema)
-    .refine((blocks) => new Set(blocks.map(({ id }) => id)).size === blocks.length, {
-      message: 'Block IDs must be unique',
-    }),
-});
+export const articleBodySchema = z.string();
 
 export type ArticleBody = z.infer<typeof articleBodySchema>;
 
-/**
- * Extracts all attachment IDs from the given article body
- *
- * @param body The article body from which to extract attachment IDs.
- * @returns An array of unique (!) attachment IDs found in the article body.
- */
-export function extractAttachmentIds(body: ArticleBody): UUID[] {
-  const ids = new Set<UUID>();
+const TITLE_MAX_LENGTH = 255;
 
-  for (const block of body.blocks) {
-    if (block.type === 'media') {
-      ids.add(block.attachmentId);
-    } else if (block.type === 'gallery') {
-      for (const item of block.items) {
-        ids.add(item.attachmentId);
-      }
-    }
-  }
-
-  return Array.from(ids);
+export function extractTitle(body: ArticleBody): string {
+  const root = fromMarkdown(body);
+  const heading = root.children.find((node) => node.type === 'heading' && node.depth === 1);
+  return (heading ? nodeText(heading) : body).slice(0, TITLE_MAX_LENGTH);
 }
 
 export function extractMentions(body: ArticleBody): string[] {
   const mentions = new Set<string>();
-  const addText = (text: string) => {
+
+  visitText(fromMarkdown(body), (text) => {
     for (const mention of extractMentionsFromText(text)) {
       mentions.add(mention);
     }
-  };
+  });
 
-  for (const block of body.blocks) {
-    if (block.type === 'text' || block.type === 'heading') {
-      addText(block.content);
-    } else if (block.type === 'media') {
-      addText(block.caption ?? '');
-    } else if (block.type === 'gallery') {
-      addText(block.items.map((item) => item.caption ?? '').join(' '));
-    } else if (block.type === 'list') {
-      addText(block.items.join(' '));
-    }
+  return [...mentions];
+}
+
+function nodeText(node: unknown): string {
+  if (!node || typeof node !== 'object') {
+    return '';
   }
 
-  return Array.from(mentions);
+  if ('value' in node && typeof node.value === 'string') {
+    return node.value;
+  }
+
+  if ('alt' in node && typeof node.alt === 'string') {
+    return node.alt;
+  }
+
+  if ('children' in node && Array.isArray(node.children)) {
+    return node.children.map(nodeText).join('');
+  }
+
+  return '';
+}
+
+function visitText(node: unknown, visitor: (text: string) => void): void {
+  if (!node || typeof node !== 'object') {
+    return;
+  }
+
+  if ('type' in node && node.type === 'text' && 'value' in node && typeof node.value === 'string') {
+    visitor(node.value);
+  }
+
+  if ('children' in node && Array.isArray(node.children)) {
+    node.children.forEach((child) => visitText(child, visitor));
+  }
 }

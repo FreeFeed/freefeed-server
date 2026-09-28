@@ -5,6 +5,7 @@ import { PubSub as pubSub } from '../models';
 import type { User } from '../models';
 import { EventService } from '../support/EventService';
 
+import { extractTitle } from './article-body';
 import type { ArticleBody } from './article-body';
 
 abstract class ArticleContent {
@@ -28,11 +29,7 @@ export type ArticleDbRowContent = {
   body: ArticleBody;
 };
 
-export const ARTICLE_CONTENT_KEYS = [
-  'title',
-  'digest',
-  'body',
-] as const satisfies (keyof ArticleDbRowContent)[];
+export type ArticleEditableContent = Pick<ArticleDbRowContent, 'digest' | 'body'>;
 
 export type ArticleUpdateResult =
   | { status: 'updated'; version: number }
@@ -61,7 +58,10 @@ export class Article extends ArticleContent {
     this.version = dbRow.version;
   }
 
-  async update(expectedVersion: number, params: ArticleDbRowContent): Promise<ArticleUpdateResult> {
+  async update(
+    expectedVersion: number,
+    params: ArticleEditableContent,
+  ): Promise<ArticleUpdateResult> {
     const result = await this.dba.updateArticle(this.id, expectedVersion, params);
 
     if (result.status !== 'updated') {
@@ -70,10 +70,9 @@ export class Article extends ArticleContent {
 
     this.version = result.version;
 
-    // Update the instance properties with the new values
-    for (const key of ARTICLE_CONTENT_KEYS) {
-      (this as Record<keyof ArticleDbRowContent, unknown>)[key] = params[key];
-    }
+    this.title = extractTitle(params.body);
+    this.digest = params.digest;
+    this.body = params.body;
 
     await EventService.onArticlePublished(this.id);
 
@@ -86,10 +85,6 @@ export class Article extends ArticleContent {
 
   getTags(): Promise<readonly string[]> {
     return this.dba.getArticleTags(this.id);
-  }
-
-  getAttachmentIds(): Promise<UUID[]> {
-    return this.dba.getArticleAttachmentIds(this.id);
   }
 
   async setPost(postId: UUID | null): Promise<boolean> {
@@ -202,7 +197,7 @@ export class Article extends ArticleContent {
 
 export type ArticleCreationParams = {
   author_id: UUID;
-} & ArticleDbRowContent;
+} & ArticleEditableContent;
 
 export type ArticleDbRow = {
   uid: UUID;
@@ -229,14 +224,17 @@ export type ArticleSummaryData = {
 
 // Revisions of articles
 
-export class ArticleRevision extends ArticleContent {
+export class ArticleRevision {
+  title: string;
+  body: ArticleBody;
   uid: UUID;
   articleId: UUID;
   createdAt: Date;
   version: number;
 
-  constructor(dba: DbAdapter, dbRow: ArticleRevisionDbRow) {
-    super(dba, dbRow);
+  constructor(dbRow: ArticleRevisionDbRow) {
+    this.title = dbRow.title;
+    this.body = dbRow.body;
     this.uid = dbRow.uid;
     this.articleId = dbRow.article_id;
     this.createdAt = dbRow.created_at;
@@ -249,4 +247,6 @@ export type ArticleRevisionDbRow = {
   article_id: UUID;
   created_at: Date;
   version: number;
-} & ArticleDbRowContent;
+  title: string;
+  body: ArticleBody;
+};

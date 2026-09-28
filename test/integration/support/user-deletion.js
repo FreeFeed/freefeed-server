@@ -53,15 +53,13 @@ describe('User data deletion', () => {
   it(`should delete user articles`, async () => {
     const article = await dbAdapter.createArticle({
       author_id: luna.id,
-      title: 'Luna article',
       digest: '',
-      body: { blocks: [{ id: '1', type: 'text', content: 'Article body' }] },
+      body: '# Luna article\n\nArticle body',
     });
     const marsArticle = await dbAdapter.createArticle({
       author_id: mars.id,
-      title: 'Mars article',
       digest: '',
-      body: { blocks: [{ id: '2', type: 'text', content: 'Article body' }] },
+      body: '# Mars article\n\nArticle body',
     });
 
     await deleteAllUserData(luna.id, afterHour());

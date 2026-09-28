@@ -18,7 +18,7 @@ export const up = (knex: Knex) =>
             title_tsvector tsvector NOT NULL,
             digest      text NOT NULL DEFAULT '',
             digest_tsvector tsvector NOT NULL,
-            body        jsonb NOT NULL,
+            body        text NOT NULL,
             version     integer NOT NULL DEFAULT 1,
 
             created_at  timestamptz NOT NULL DEFAULT now(),
@@ -45,8 +45,7 @@ export const up = (knex: Knex) =>
             created_at  timestamptz NOT NULL DEFAULT now(),
 
             title       text NOT NULL,
-            digest      text NOT NULL DEFAULT '',
-            body        jsonb NOT NULL,
+            body        text NOT NULL,
             version     integer NOT NULL,
 
             CONSTRAINT article_revisions_article_fk
@@ -90,15 +89,6 @@ export const up = (knex: Knex) =>
                 ON DELETE SET NULL
         );
 
-        ALTER TABLE attachments
-            ADD COLUMN article_id uuid NULL,
-            ADD CONSTRAINT attachments_article_fk
-                FOREIGN KEY (article_id)
-                REFERENCES articles(uid)
-                ON DELETE SET NULL,
-            ADD CONSTRAINT attachments_single_parent
-                CHECK (post_id IS NULL OR article_id IS NULL);
-
         -------------
         -- INDEXES --
         -------------
@@ -121,9 +111,6 @@ export const up = (knex: Knex) =>
             ON articles (post_id)
             WHERE post_id IS NOT NULL;
 
-        CREATE INDEX attachments_article_idx
-            ON attachments (article_id);
-
         CREATE INDEX article_tags_tag_idx
             ON article_tags (tag_id, article_id);
 
@@ -142,7 +129,6 @@ export const up = (knex: Knex) =>
 
 export const down = (knex: Knex) =>
   knex.schema.raw(`
-        ALTER TABLE attachments DROP COLUMN article_id;
         DROP TABLE IF EXISTS article_short_ids;
         DROP TABLE IF EXISTS article_tags;
         DROP TABLE IF EXISTS article_revisions;

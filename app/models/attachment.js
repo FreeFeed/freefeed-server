@@ -55,7 +55,6 @@ export function addModel(dbAdapter) {
 
       this.userId = params.userId;
       this.postId = params.postId;
-      this.articleId = params.articleId;
 
       this.sanitized = params.sanitized || SANITIZE_NONE;
 

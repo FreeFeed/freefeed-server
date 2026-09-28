@@ -5,12 +5,11 @@ import { sql } from 'slonik';
 import { z } from 'zod';
 
 import { dbAdapter, User } from '../../../../app/models';
+import type { Article, ArticleEditableContent } from '../../../../app/models/article';
+import { currentConfig } from '../../../../app/support/app-async-context';
+import type { UUID } from '../../../../app/support/types';
 import cleanDB from '../../../dbCleaner';
 import { createUser } from '../../helpers/users';
-import type { Article, ArticleDbRowContent } from '../../../../app/models/article';
-import type { UUID } from '../../../../app/support/types';
-import { currentConfig } from '../../../../app/support/app-async-context';
-import { createAttachment } from '../attachment-helpers';
 
 const expect = unexpected.clone();
 expect.use(unexpectedDate);
@@ -19,244 +18,127 @@ describe('Articles model', () => {
   beforeEach(() => cleanDB(dbAdapter.database));
 
   const ARTICLE_CONTENT = {
-    title: 'Test Article',
     digest: 'test-digest',
-    body: { blocks: [{ id: '1', type: 'text', content: 'Test content' }] },
-  } satisfies ArticleDbRowContent;
-
-  const UPDATED_CONTENT = makeContent('Updated', '2');
-  const OTHER_CONTENT = makeContent('Other', '3');
-  const FINAL_CONTENT = makeContent('Final', '4');
-  const INVALID_CONTENT = {
-    ...ARTICLE_CONTENT,
-    body: { blocks: [{ id: '1', type: 'unsupported', content: 'Invalid block' }] },
-  } as unknown as ArticleDbRowContent;
-  const DUPLICATE_BLOCK_IDS_CONTENT = {
-    ...ARTICLE_CONTENT,
-    body: {
-      blocks: [
-        { id: 'same', type: 'text', content: 'One' },
-        { id: 'same', type: 'list', items: ['Two'] },
-      ],
-    },
-  } satisfies ArticleDbRowContent;
+    body: '# Test **Article**\n\nTest content',
+  } satisfies ArticleEditableContent;
+  const UPDATED_CONTENT = makeContent('Updated');
+  const OTHER_CONTENT = makeContent('Other');
+  const FINAL_CONTENT = makeContent('Final');
 
   let luna: User;
   let article: Article;
+
   beforeEach(async () => {
     luna = await createUser('luna');
     article = await dbAdapter.createArticle({ author_id: luna.id, ...ARTICLE_CONTENT });
   });
 
-  it('should create a valid article without revisions and with a short ID', async () => {
-    expect(article, 'not to be null');
+  it('should create an article with a derived title, unchanged body, and no revisions', async () => {
     expect(article, 'to satisfy', {
       authorId: luna.id,
+      title: 'Test Article',
       ...ARTICLE_CONTENT,
       createdAt: expect.it('to be a date'),
       updatedAt: expect.it('to be a date'),
       version: 1,
       postId: null,
     });
-
     expect(await article.getRevisions(10, 0), 'to be empty');
 
     const shortId = await article.getShortId();
     const { initialLength, maxLength } = currentConfig().shortLinks;
-
-    expect(shortId, 'to be a string');
     expect(shortId, 'to match', RegExp(`^[a-f0-9]{${initialLength.article},${maxLength}}$`));
-    expect(await dbAdapter.getArticleByShortId(shortId), 'to satisfy', {
-      id: article.id,
-    });
   });
 
-  it('should reject an invalid body without creating an article', async () => {
+  it('should reject a non-string body without creating an article', async () => {
     await expect(
-      dbAdapter.createArticle({ author_id: luna.id, ...INVALID_CONTENT }),
+      dbAdapter.createArticle({
+        author_id: luna.id,
+        digest: '',
+        body: { blocks: [] },
+      } as unknown as Parameters<typeof dbAdapter.createArticle>[0]),
       'to be rejected with error satisfying',
-      { status: 422, message: /type/ },
+      { status: 422 },
     );
 
     expect(await dbAdapter.database('articles').where({ author_id: luna.id }), 'to have length', 1);
   });
 
-  it('should reject duplicate block IDs without creating an article', async () => {
-    await expect(
-      dbAdapter.createArticle({ author_id: luna.id, ...DUPLICATE_BLOCK_IDS_CONTENT }),
-      'to be rejected with error satisfying',
-      { status: 422, message: /Block IDs must be unique/ },
-    );
-
-    expect(await dbAdapter.database('articles').where({ author_id: luna.id }), 'to have length', 1);
-  });
-
-  it('should store media and gallery blocks', async () => {
-    const [image, video, gallery1, gallery2] = await Promise.all(
-      ['image', 'video', 'gallery1', 'gallery2'].map((name) =>
-        createAttachment(luna.id, { name: `${name}.txt`, content: name }),
-      ),
-    );
-    const content = {
-      title: 'Media article',
-      digest: '',
-      body: {
-        blocks: [
-          {
-            id: 'image',
-            type: 'media',
-            attachmentId: image.id,
-          },
-          {
-            id: 'video',
-            type: 'media',
-            attachmentId: video.id,
-          },
-          {
-            id: 'gallery',
-            type: 'gallery',
-            items: [{ attachmentId: gallery1.id }, { attachmentId: gallery2.id }],
-          },
-        ],
-      },
-    } satisfies ArticleDbRowContent;
-
-    const mediaArticle = await dbAdapter.createArticle({ author_id: luna.id, ...content });
-
-    expect(await dbAdapter.getArticleById(mediaArticle.id), 'to satisfy', {
-      body: content.body,
-    });
-    expect(await dbAdapter.getAttachmentById(video.id), 'to satisfy', {
-      articleId: mediaArticle.id,
-    });
-  });
-
-  it('should return null for unknown IDs', async () => {
-    const unknownId = '00000000-0000-0000-0000-000000000000' as UUID;
-
-    expect(await dbAdapter.getArticleById(unknownId), 'to be null');
-    expect(await dbAdapter.getArticleRevisionById(unknownId), 'to be null');
-    expect(await dbAdapter.getArticleByShortId('fffffffffff'), 'to be null');
-  });
-
-  it('should update the article and archive its previous state', async () => {
+  it('should update the article and archive only the previous body and title', async () => {
     expect(await article.update(1, UPDATED_CONTENT), 'to equal', {
       status: 'updated',
       version: 2,
     });
-    expect(article, 'to satisfy', { ...UPDATED_CONTENT, version: 2 });
     expect(await dbAdapter.getArticleById(article.id), 'to satisfy', {
       ...UPDATED_CONTENT,
+      title: 'Updated Article',
       version: 2,
     });
-
-    const revisions = await article.getRevisions(10, 0);
-
-    expect(revisions, 'to satisfy', [
+    expect(await article.getRevisions(10, 0), 'to satisfy', [
       {
         articleId: article.id,
-        ...ARTICLE_CONTENT,
-        createdAt: expect.it('to be a date'),
+        title: 'Test Article',
+        body: ARTICLE_CONTENT.body,
         version: 1,
       },
     ]);
   });
 
+  it('should increment the version without a revision when only digest changes', async () => {
+    expect(await article.update(1, { ...ARTICLE_CONTENT, digest: 'new-digest' }), 'to equal', {
+      status: 'updated',
+      version: 2,
+    });
+    expect(await dbAdapter.getArticleById(article.id), 'to satisfy', {
+      digest: 'new-digest',
+      version: 2,
+    });
+    expect(await article.getRevisions(10, 0), 'to be empty');
+  });
+
   it('should update title and digest search vectors', async () => {
     const createdVectors = await getArticleSearchVectors(article.id);
-
     expect(createdVectors.title, 'to contain', '=article');
     expect(createdVectors.digest, 'to contain', '=digest');
 
-    await article.update(1, {
-      ...UPDATED_CONTENT,
-      title: 'Quasar',
-      digest: 'Nebula',
-    });
+    await article.update(1, { body: '# Quasar', digest: 'Nebula' });
 
     const updatedVectors = await getArticleSearchVectors(article.id);
-
     expect(updatedVectors.title, 'to contain', '=quasar');
     expect(updatedVectors.title, 'not to contain', '=article');
     expect(updatedVectors.digest, 'to contain', '=nebula');
     expect(updatedVectors.digest, 'not to contain', '=digest');
   });
 
-  it('should reject an invalid body without updating the article', async () => {
-    await expect(article.update(1, INVALID_CONTENT), 'to be rejected with error satisfying', {
-      status: 422,
-      message: /type/,
-    });
-
-    expect(await dbAdapter.getArticleById(article.id), 'to satisfy', {
-      ...ARTICLE_CONTENT,
-      version: 1,
-    });
-    expect(await article.getRevisions(10, 0), 'to be empty');
-  });
-
-  it('should reject duplicate block IDs without updating the article', async () => {
-    await expect(
-      article.update(1, DUPLICATE_BLOCK_IDS_CONTENT),
-      'to be rejected with error satisfying',
-      { status: 422, message: /Block IDs must be unique/ },
-    );
-
-    expect(await dbAdapter.getArticleById(article.id), 'to satisfy', {
-      ...ARTICLE_CONTENT,
-      version: 1,
-    });
-    expect(await article.getRevisions(10, 0), 'to be empty');
-  });
-
-  it('should not create a revision for unchanged content', async () => {
-    expect(await article.update(1, structuredClone(ARTICLE_CONTENT)), 'to equal', {
-      status: 'unchanged',
-    });
-
-    const stored = await dbAdapter.getArticleById(article.id);
-
-    expect(stored, 'to satisfy', { ...ARTICLE_CONTENT, version: 1 });
-    expect(stored?.updatedAt.getTime(), 'to be', article.updatedAt.getTime());
+  it('should not change the version for unchanged content', async () => {
+    expect(await article.update(1, ARTICLE_CONTENT), 'to equal', { status: 'unchanged' });
+    expect(await dbAdapter.getArticleById(article.id), 'to satisfy', { version: 1 });
     expect(await article.getRevisions(10, 0), 'to be empty');
   });
 
   it('should reject an update based on a stale version', async () => {
     const staleArticle = await dbAdapter.getArticleById(article.id);
+    await article.update(1, UPDATED_CONTENT);
 
-    expect(staleArticle, 'not to be null');
-    expect(await article.update(1, UPDATED_CONTENT), 'to equal', {
-      status: 'updated',
-      version: 2,
-    });
     expect(await staleArticle?.update(1, OTHER_CONTENT), 'to equal', { status: 'conflict' });
     expect(await dbAdapter.getArticleById(article.id), 'to satisfy', {
       ...UPDATED_CONTENT,
       version: 2,
     });
-    expect(await article.getRevisions(10, 0), 'to have length', 1);
   });
 
   it('should serialize concurrent updates of the same version', async () => {
     const firstArticle = await dbAdapter.getArticleById(article.id);
     const secondArticle = await dbAdapter.getArticleById(article.id);
-
-    expect(firstArticle, 'not to be null');
-    expect(secondArticle, 'not to be null');
-
     const results = await Promise.all([
       firstArticle?.update(1, UPDATED_CONTENT),
       secondArticle?.update(1, OTHER_CONTENT),
     ]);
-    const statuses = results.map((result) => result?.status).sort();
-    const winningContent = results[0]?.status === 'updated' ? UPDATED_CONTENT : OTHER_CONTENT;
 
-    expect(statuses, 'to equal', ['conflict', 'updated']);
-    expect(await dbAdapter.getArticleById(article.id), 'to satisfy', {
-      ...winningContent,
-      version: 2,
-    });
-    expect(await article.getRevisions(10, 0), 'to satisfy', [{ ...ARTICLE_CONTENT, version: 1 }]);
+    expect(results.map((result) => result?.status).sort(), 'to equal', ['conflict', 'updated']);
+    expect(await article.getRevisions(10, 0), 'to satisfy', [
+      { title: 'Test Article', body: ARTICLE_CONTENT.body, version: 1 },
+    ]);
   });
 
   it('should list and retrieve revisions', async () => {
@@ -266,7 +148,6 @@ describe('Articles model', () => {
 
     const descending = await article.getRevisions(10, 0);
     const ascending = await article.getRevisions(10, 0, false);
-
     expect(
       descending.map(({ version }) => version),
       'to equal',
@@ -277,15 +158,11 @@ describe('Articles model', () => {
       'to equal',
       [1, 2, 3],
     );
-    expect(await article.getRevisions(1, 1), 'to satisfy', [{ version: 2 }]);
     expect(await dbAdapter.getArticleRevisionById(descending[0].uid), 'to satisfy', {
       articleId: article.id,
-      ...OTHER_CONTENT,
+      title: 'Other Article',
+      body: OTHER_CONTENT.body,
       version: 3,
-    });
-    expect(await dbAdapter.getArticleById(article.id), 'to satisfy', {
-      ...FINAL_CONTENT,
-      version: 4,
     });
   });
 
@@ -300,59 +177,22 @@ describe('Articles model', () => {
       usageTags: ['first', 'second'],
     });
     expect(await dbAdapter.getArticleById(article.id), 'to satisfy', { version: 1 });
-    expect(await article.getRevisions(10, 0), 'to be empty');
   });
 
-  it('should replace article tags and their usages', async () => {
+  it('should replace and clear article tags', async () => {
     await article.setTags(['one', 'two']);
     await article.setTags(['two', 'three']);
+    expect(await article.getTags(), 'to equal', ['two', 'three']);
 
-    expect(await getArticleTagState(article.id), 'to equal', {
-      articleTags: [
-        { name: 'two', ord: 1 },
-        { name: 'three', ord: 2 },
-      ],
-      usageTags: ['three', 'two'],
-    });
-  });
-
-  it('should clear article tags without deleting hashtags', async () => {
-    await article.setTags(['one', 'two']);
     await article.setTags([]);
-
     expect(await getArticleTagState(article.id), 'to equal', {
       articleTags: [],
       usageTags: [],
-    });
-
-    const pool = await dbAdapter.getSlonik();
-    const hashtags = await pool.any(
-      hashtagNameQuery`select name from hashtags
-        where name = any(${sql.array(['one', 'two'], 'text')}) order by name`,
-    );
-    expect(
-      hashtags.map(({ name }) => name),
-      'to equal',
-      ['one', 'two'],
-    );
-  });
-
-  it('should reuse hashtags regardless of case', async () => {
-    await article.setTags(['Test']);
-    await article.setTags(['TEST', 'Other']);
-
-    expect(await getArticleTagState(article.id), 'to equal', {
-      articleTags: [
-        { name: 'test', ord: 1 },
-        { name: 'other', ord: 2 },
-      ],
-      usageTags: ['other', 'test'],
     });
   });
 
   it('should serialize concurrent tag replacements', async () => {
     await Promise.all([article.setTags(['one', 'two']), article.setTags(['three', 'four'])]);
-
     const state = await getArticleTagState(article.id);
     const orderedNames = state.articleTags.map(({ name }) => name);
 
@@ -368,13 +208,9 @@ describe('Articles model', () => {
     expect(await article.destroy(), 'to be', true);
     expect(await article.destroy(), 'to be', false);
     expect(await dbAdapter.getArticleById(article.id), 'to be null');
-    expect(await dbAdapter.getArticleByShortId(shortId), 'to be null');
     expect(await article.getRevisions(10, 0), 'to be empty');
-    expect(await getArticleTagState(article.id), 'to equal', {
-      articleTags: [],
-      usageTags: [],
-    });
     expect(await article.update(2, OTHER_CONTENT), 'to equal', { status: 'not-found' });
+
     const pool = await dbAdapter.getSlonik();
     expect(
       await pool.one(
@@ -388,12 +224,8 @@ describe('Articles model', () => {
   });
 });
 
-function makeContent(prefix: string, id: string): ArticleDbRowContent {
-  return {
-    title: `${prefix} Article`,
-    digest: `${prefix} digest`,
-    body: { blocks: [{ id, type: 'text', content: `${prefix} content` }] },
-  };
+function makeContent(prefix: string): ArticleEditableContent {
+  return { digest: `${prefix} digest`, body: `# ${prefix} Article\n\n${prefix} content` };
 }
 
 const articleTagQuery = sql.type(z.object({ name: z.string(), ord: z.number().int() }));

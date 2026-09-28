@@ -5,7 +5,7 @@ import unexpectedDate from 'unexpected-date';
 import { initJobProcessing } from '../../../../app/jobs';
 import { DELETE_ARTICLE } from '../../../../app/jobs/delete-article';
 import { dbAdapter, User } from '../../../../app/models';
-import type { Article, ArticleDbRowContent } from '../../../../app/models/article';
+import type { Article, ArticleEditableContent } from '../../../../app/models/article';
 import { UndoArticleDelete } from '../../../../app/support/undo/article-delete';
 import cleanDB from '../../../dbCleaner';
 import { createUser } from '../../helpers/users';
@@ -17,10 +17,9 @@ describe('Articles in to-delete state', () => {
   beforeEach(() => cleanDB(dbAdapter.database));
 
   const ARTICLE_CONTENT = {
-    title: 'Test Article',
     digest: 'test-digest',
-    body: { blocks: [{ id: '1', type: 'text', content: 'Test content' }] },
-  } satisfies ArticleDbRowContent;
+    body: '# Test Article\n\nTest content',
+  } satisfies ArticleEditableContent;
 
   let luna: User;
   let article: Article;

@@ -2,7 +2,7 @@ import { beforeEach, describe, it } from 'mocha';
 import unexpected from 'unexpected';
 
 import { dbAdapter, User } from '../../../../app/models';
-import type { Article, ArticleDbRowContent } from '../../../../app/models/article';
+import type { Article, ArticleEditableContent } from '../../../../app/models/article';
 import type { UUID } from '../../../../app/support/types';
 import cleanDB from '../../../dbCleaner';
 import { createPost } from '../../helpers/posts-and-comments';
@@ -14,10 +14,9 @@ describe('Article.setPost', () => {
   beforeEach(() => cleanDB(dbAdapter.database));
 
   const ARTICLE_CONTENT = {
-    title: 'Test Article',
     digest: 'test-digest',
-    body: { blocks: [{ id: '1', type: 'text', content: 'Test content' }] },
-  } satisfies ArticleDbRowContent;
+    body: '# Test Article\n\nTest content',
+  } satisfies ArticleEditableContent;
 
   let luna: User;
   let article: Article;

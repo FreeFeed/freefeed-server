@@ -2,22 +2,20 @@ import { beforeEach, describe, it } from 'mocha';
 import expect from 'unexpected';
 
 import { dbAdapter } from '../../../app/models';
-import type { ArticleDbRowContent } from '../../../app/models/article';
+import type { ArticleEditableContent } from '../../../app/models/article';
 import type { UUID } from '../../../app/support/types';
 import cleanDB from '../../dbCleaner';
 import {
   authHeaders,
-  createMockAttachmentAsync,
   createTestUser,
   justCreatePost,
   performJSONRequest,
 } from '../functional_test_helper';
 
 const content = {
-  title: 'Test article',
   digest: 'Test digest',
-  body: { blocks: [{ id: 'text', type: 'text', content: 'Hello' }] },
-} satisfies ArticleDbRowContent;
+  body: '# Test article\n\nHello',
+} satisfies ArticleEditableContent;
 
 describe('Post article association', () => {
   beforeEach(() => cleanDB(dbAdapter.database));
@@ -25,11 +23,9 @@ describe('Post article association', () => {
   describe('Create', () => {
     it('should create a post associated with an article', async () => {
       const luna = await createTestUser('luna');
-      const attachment = await createMockAttachmentAsync(luna);
       const article = await dbAdapter.createArticle({
         author_id: luna.user.id,
         ...content,
-        body: { blocks: [{ id: 'media', type: 'media', attachmentId: attachment.id }] },
       });
       await article.setTags(['first', 'second']);
 
@@ -59,7 +55,7 @@ describe('Post article association', () => {
           postId,
           shortId: await article.getShortId(),
           version: 1,
-          title: content.title,
+          title: 'Test article',
           digest: content.digest,
           createdAt: article.createdAt.toISOString(),
           updatedAt: article.updatedAt.toISOString(),

@@ -205,7 +205,6 @@ export class Timeline {
 type AttachmentParams = {
   userId: UUID;
   postId?: UUID;
-  articleId?: UUID | null;
   file: {
     name: string;
     type: string;
@@ -247,7 +246,6 @@ export class Attachment {
   updatedAt: Date;
   userId: UUID;
   postId: UUID | null;
-  articleId: UUID | null;
   isLegacyImage: boolean;
 
   constructor(params: AttachmentParams);

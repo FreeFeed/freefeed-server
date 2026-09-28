@@ -10,24 +10,15 @@ An article contains:
 - `authorId`;
 - nullable `postId`;
 - `version` for optimistic updates;
-- `title`, `digest`, and structured `body`;
+- derived `title`, user-provided `digest`, and Markdown `body`;
 - `tags`;
 - `createdAt` and `updatedAt`.
 
-Full article responses also contain `attachmentIds`, derived from the current body. List and feed responses omit `body` and `attachmentIds`.
+The server stores `body` unchanged. It parses Markdown only to derive the title and find user mentions. The title is the text of the first level-one heading, or the first 255 characters of the body when there is no such heading.
 
-Article bodies contain blocks with unique string IDs. Supported block types are:
+Attachments are not associated with articles or extracted from Markdown.
 
-- `text`: text in `content`;
-- `heading`: text in `content` and a `level` from 2 to 6;
-- `list`: strings in `items`;
-- `code`: `content` and an optional `language`;
-- `media`: one `attachmentId` with optional `alt` and `caption`;
-- `gallery`: an array of items containing `attachmentId` and optional `alt` and `caption`.
-
-Media attachments can represent images, video, audio, or general files. There is no separate cover attachment. Attachment associations follow the current body; revisions retain attachment IDs only as part of their stored body.
-
-An article revision is a snapshot of the previous `title`, `digest`, and `body`, together with its version and creation time. Tags are not revisioned.
+An article revision is a snapshot of the previous `title` and `body`, together with its version and creation time. A revision is created only when `body` changes. Other content changes may increment the article version without creating a revision. Tags are not revisioned.
 
 ## Access and publication
 
@@ -61,26 +52,17 @@ Routes below use `/vN` to denote a supported API version. `articleId` accepts ei
 
 `POST /vN/articles`
 
-Requires authentication. The request body contains all four fields:
+Requires authentication. The request body contains three fields:
 
 ```json
 {
-  "title": "Article title",
   "digest": "Short description",
-  "body": {
-    "blocks": [
-      {
-        "id": "intro",
-        "type": "text",
-        "content": "Article text"
-      }
-    ]
-  },
+  "body": "# Article title\n\nArticle text",
   "tags": ["example"]
 }
 ```
 
-Referenced attachments must be available to the author. The response contains the full `article` and related `users`, `posts`, and `attachments` sidecars.
+The response contains the full `article` and related `users`, `posts`, and `attachments` sidecars. The `attachments` sidecar contains attachments from a linked post, if any.
 
 ### List articles
 
@@ -103,7 +85,7 @@ The response is:
 }
 ```
 
-List items contain all serialized article fields except `body` and `attachmentIds`.
+List items contain all serialized article fields except `body`.
 
 ### Get an article
 
@@ -117,7 +99,7 @@ Returns the full article and related sidecars. The author can read a draft; othe
 
 Requires the author. The request body has the same required fields as article creation. `expectedVersion` is a required positive integer. A stale version returns `409 Article version is mismatched` without changing the article.
 
-Changing `title`, `digest`, or `body` increments the version and stores the previous content as a revision. A tags-only change does not create a revision.
+Changing `digest` or `body` increments the version. Changing `body` also stores its previous value and derived title as a revision. A digest-only or tags-only change does not create a revision.
 
 ### Delete and restore an article
 
@@ -153,4 +135,4 @@ Requires the author. Supports `limit` and `offset`, with `limit` capped at 100. 
 
 `GET /vN/articles/:articleId/revisions/:revisionId`
 
-Requires the author. `revisionId` must be a UUID belonging to the requested article. The response contains the stored revision data and attachments referenced by its body.
+Requires the author. `revisionId` must be a UUID belonging to the requested article. The response contains the stored revision ID, article ID, version, creation time, title, and body.

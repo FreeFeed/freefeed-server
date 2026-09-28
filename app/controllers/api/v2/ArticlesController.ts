@@ -13,7 +13,6 @@ import {
   serializeArticleRevisionFull,
 } from '../../../serializers/v2/articles';
 import { serializeUsersByIds } from '../../../serializers/v2/user';
-import { serializeAttachment } from '../../../serializers/v2/attachment';
 import { articleAccessRequired } from '../../middlewares/article-access-required';
 import type { Article } from '../../../models/article';
 import { serializeFeed } from '../../../serializers/v2/post';
@@ -34,11 +33,10 @@ export const create = compose([
   inputSchemaRequired(createArticleSchema),
   monitored('articles.create'),
   async (ctx: Ctx<{ user: User; article: Article; apiVersion: number }>) => {
-    const { user, apiVersion } = ctx.state;
+    const { user } = ctx.state;
     const body = ctx.request.body as z.infer<typeof createArticleSchema>;
     const article = await dbAdapter.createArticle({
       author_id: user.id,
-      title: body.title,
       digest: body.digest,
       body: body.body,
     });
@@ -47,7 +45,7 @@ export const create = compose([
       await article.setTags(body.tags);
     }
 
-    ctx.body = await fullArticleResponse(user, article, apiVersion);
+    ctx.body = await fullArticleResponse(user, article);
   },
 ]);
 
@@ -97,8 +95,8 @@ export const getById = compose([
   articleAccessRequired(true),
   monitored('articles.getById'),
   async (ctx: Ctx<{ user: User; article: Article; apiVersion: number }>) => {
-    const { user, article, apiVersion } = ctx.state;
-    ctx.body = await fullArticleResponse(user, article, apiVersion);
+    const { user, article } = ctx.state;
+    ctx.body = await fullArticleResponse(user, article);
   },
 ]);
 
@@ -130,7 +128,7 @@ export const getRevisionById = compose([
   articleAccessRequired(true),
   monitored('articles.getRevisionById'),
   async (ctx: Ctx<{ user: User; article: Article; apiVersion: number }>) => {
-    const { user, article, apiVersion } = ctx.state;
+    const { user, article } = ctx.state;
 
     if (article.authorId !== user.id) {
       throw new ForbiddenException('You are not allowed to view article revisions');
@@ -148,13 +146,7 @@ export const getRevisionById = compose([
       throw new NotFoundException('Article revision not found');
     }
 
-    const serRevision = serializeArticleRevisionFull(revision);
-    const attachments = compact(await dbAdapter.getAttachmentsByIds(serRevision.attachmentIds));
-
-    ctx.body = {
-      revision: serRevision,
-      attachments: attachments.map((attachment) => serializeAttachment(attachment, apiVersion)),
-    };
+    ctx.body = { revision: serializeArticleRevisionFull(revision) };
   },
 ]);
 
@@ -164,7 +156,7 @@ export const update = compose([
   inputSchemaRequired(createArticleSchema),
   monitored('articles.update'),
   async (ctx: Ctx<{ user: User; article: Article; apiVersion: number }>) => {
-    const { user, article, apiVersion } = ctx.state;
+    const { user, article } = ctx.state;
     const { expectedVersion: expectedVersionParam } = ctx.request.query;
 
     if (article.authorId !== user?.id) {
@@ -183,7 +175,6 @@ export const update = compose([
 
     const body = ctx.request.body as z.infer<typeof createArticleSchema>;
     const result = await article.update(expectedVersion, {
-      title: body.title,
       digest: body.digest,
       body: body.body,
     });
@@ -202,7 +193,7 @@ export const update = compose([
 
     await article.setTags(body.tags);
 
-    ctx.body = await fullArticleResponse(user, article, apiVersion);
+    ctx.body = await fullArticleResponse(user, article);
   },
 ]);
 
@@ -234,30 +225,27 @@ export const detachPost = compose([
   articleAccessRequired(true),
   monitored('articles.detachPost'),
   async (ctx: Ctx<{ user: User; article: Article; apiVersion: number }>) => {
-    const { user, article, apiVersion } = ctx.state;
+    const { user, article } = ctx.state;
 
     if (article.authorId !== user.id) {
       throw new ForbiddenException('You are not allowed to detach this article from its post');
     }
 
     await article.setPost(null);
-    ctx.body = await fullArticleResponse(user, article, apiVersion);
+    ctx.body = await fullArticleResponse(user, article);
   },
 ]);
 
-export async function fullArticleResponse(viewer: User, article: Article, apiVersion: number) {
+export async function fullArticleResponse(viewer: User, article: Article) {
   const feedOutput = await serializeFeed(article.postId ? [article.postId] : [], viewer?.id);
   const { timelines: _timelines, isLastPage: _isLastPage, ...output } = feedOutput;
 
   const serArticle = await serializeArticleFull(article);
   const serUsers = await serializeUsersByIds([article.authorId], viewer?.id);
-  const attachments = compact(await dbAdapter.getAttachmentsByIds(serArticle.attachmentIds));
-  const serAttachments = attachments.map((a) => serializeAttachment(a, apiVersion));
 
   return {
     ...output,
     article: serArticle,
-    attachments: mergeByIds(serAttachments, output.attachments),
     users: mergeByIds(serUsers, output.users),
   };
 }

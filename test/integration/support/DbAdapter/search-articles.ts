@@ -15,15 +15,13 @@ describe('Search articles', () => {
     const luna = await createUser('luna');
     const article = await dbAdapter.createArticle({
       author_id: luna.id,
-      title: 'Quasar article',
       digest: 'Nebula digest',
-      body: { blocks: [] },
+      body: '# Quasar article',
     });
     await dbAdapter.createArticle({
       author_id: luna.id,
-      title: 'Quasar draft',
       digest: 'Nebula draft',
-      body: { blocks: [] },
+      body: '# Quasar draft',
     });
     const post = await createPost(luna, 'Announcement');
     await article.setPost(post.id);
@@ -39,9 +37,8 @@ describe('Search articles', () => {
     const luna = await createUser('luna');
     const article = await dbAdapter.createArticle({
       author_id: luna.id,
-      title: 'Article',
       digest: '',
-      body: { blocks: [] },
+      body: '# Article',
     });
     const articlePost = await createPost(luna, 'Article announcement');
     const regularPost = await createPost(luna, 'Regular post');
@@ -55,9 +52,8 @@ describe('Search articles', () => {
     const luna = await createUser('luna');
     const article = await dbAdapter.createArticle({
       author_id: luna.id,
-      title: 'Quasar article',
       digest: '',
-      body: { blocks: [] },
+      body: '# Quasar article',
     });
     const post = await createPost(luna, 'Announcement');
     await article.setPost(post.id);

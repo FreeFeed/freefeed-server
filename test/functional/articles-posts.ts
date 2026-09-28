@@ -3,7 +3,7 @@ import expect from 'unexpected';
 
 import { getSingleton } from '../../app/app';
 import { dbAdapter, PubSub } from '../../app/models';
-import type { Article, ArticleDbRowContent } from '../../app/models/article';
+import type { Article, ArticleEditableContent } from '../../app/models/article';
 import { DummyPublisher } from '../../app/pubsub';
 import { connect as redisConnection } from '../../app/setup/database';
 import { eventNames, PubSubAdapter } from '../../app/support/PubSubAdapter';
@@ -16,10 +16,9 @@ import type { UserCtx } from './functional_test_helper';
 import Session from './realtime-session';
 
 const content = {
-  title: 'Test article',
   digest: 'Test digest',
-  body: { blocks: [{ id: 'text', type: 'text', content: 'Hello' }] },
-} satisfies ArticleDbRowContent;
+  body: '# Test article\n\nHello',
+} satisfies ArticleEditableContent;
 
 describe('Articles API: post association', () => {
   let luna: UserCtx;
