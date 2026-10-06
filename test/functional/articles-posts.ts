@@ -109,6 +109,49 @@ describe('Articles API: post association', () => {
         });
       });
 
+      it(`should publish '${eventNames.POST_UPDATED}' when the article title changes`, async () => {
+        const event = session.receiveWhile(eventNames.POST_UPDATED, () =>
+          performJSONRequest(
+            'PUT',
+            `/v4/articles/${article.id}?expectedVersion=1`,
+            { ...content, body: '# Updated title\n\nHello', tags: [] },
+            authHeaders(luna),
+          ),
+        );
+
+        await expect(event, 'when fulfilled', 'to satisfy', {
+          posts: { id: postId, articleId: article.id },
+          articles: [{ id: article.id, title: 'Updated title', digest: content.digest }],
+        });
+      });
+
+      it(`should publish '${eventNames.POST_UPDATED}' when the article digest changes`, async () => {
+        const event = session.receiveWhile(eventNames.POST_UPDATED, () =>
+          performJSONRequest(
+            'PUT',
+            `/v4/articles/${article.id}?expectedVersion=1`,
+            { ...content, digest: 'Updated digest', tags: [] },
+            authHeaders(luna),
+          ),
+        );
+
+        await expect(event, 'when fulfilled', 'to satisfy', {
+          posts: { id: postId, articleId: article.id },
+          articles: [{ id: article.id, title: 'Test article', digest: 'Updated digest' }],
+        });
+      });
+
+      it(`should not publish '${eventNames.POST_UPDATED}' for a body-only change`, async () => {
+        await session.notReceiveWhile(eventNames.POST_UPDATED, () =>
+          performJSONRequest(
+            'PUT',
+            `/v4/articles/${article.id}?expectedVersion=1`,
+            { ...content, body: '# Test article\n\nUpdated body', tags: [] },
+            authHeaders(luna),
+          ),
+        );
+      });
+
       it(`should include the article in '${eventNames.POST_CREATED}'`, async () => {
         const unpublishedArticle = await dbAdapter.createArticle({
           author_id: luna.user.id,

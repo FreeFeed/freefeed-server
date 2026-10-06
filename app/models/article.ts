@@ -62,6 +62,8 @@ export class Article extends ArticleContent {
     expectedVersion: number,
     params: ArticleEditableContent,
   ): Promise<ArticleUpdateResult> {
+    const previousTitle = this.title;
+    const previousDigest = this.digest;
     const result = await this.dba.updateArticle(this.id, expectedVersion, params);
 
     if (result.status !== 'updated') {
@@ -75,6 +77,10 @@ export class Article extends ArticleContent {
     this.body = params.body;
 
     await EventService.onArticlePublished(this.id);
+
+    if (this.postId && (this.title !== previousTitle || this.digest !== previousDigest)) {
+      await pubSub.updatePost(this.postId);
+    }
 
     return result;
   }
