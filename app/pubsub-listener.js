@@ -23,6 +23,7 @@ import { serializeEvents } from './serializers/v2/event';
 import { API_VERSION_ACTUAL, API_VERSION_MINIMAL } from './api-versions';
 import { connect as redisConnection } from './setup/database';
 import { serializeAttachment } from './serializers/v2/attachment';
+import { serializeArticle } from './serializers/v2/articles';
 /** @typedef {import('./support/types').UUID} UUID */
 
 const sentryIsEnabled = 'sentryDsn' in config;
@@ -233,6 +234,11 @@ export default class PubsubListener {
 
       [eventNames.ATTACHMENT_CREATED]: this.onAttachmentNew,
       [eventNames.ATTACHMENT_UPDATED]: this.onAttachmentUpdate,
+
+      [eventNames.ARTICLE_CREATED]: this.makeOnArticleChange(eventNames.ARTICLE_CREATED),
+      [eventNames.ARTICLE_UPDATED]: this.makeOnArticleChange(eventNames.ARTICLE_UPDATED),
+      [eventNames.ARTICLE_DESTROYED]: this.onArticleDestroy,
+      [eventNames.ARTICLE_RESTORED]: this.makeOnArticleChange(eventNames.ARTICLE_RESTORED),
     };
 
     try {
@@ -666,6 +672,51 @@ export default class PubsubListener {
           await socket.emit(type, { ...json, attachments, users });
         },
       },
+    );
+  };
+
+  makeOnArticleChange =
+    (type) =>
+    async ({ articleId }) => {
+      const articles = await dbAdapter.getArticleSummariesByIds([articleId]);
+      const article = articles.get(articleId);
+
+      if (!article) {
+        return;
+      }
+
+      const post = article.postId ? await dbAdapter.getPostById(article.postId) : null;
+      const rooms = [`user:${article.authorId}`];
+
+      if (post) {
+        rooms.push(...(await getRoomsOfPost(post)));
+      }
+
+      await this.broadcastMessage(
+        rooms,
+        type,
+        { article: serializeArticle(article) },
+        post ? { post } : { emitter: this._singleUserEmitter(article.authorId) },
+      );
+    };
+
+  onArticleDestroy = async ({ articleId, authorId, postId = null, excludeAuthor = false }) => {
+    const post = postId ? await dbAdapter.getPostById(postId) : null;
+    const rooms = [`user:${authorId}`];
+
+    if (post) {
+      rooms.push(...(await getRoomsOfPost(post)));
+    }
+
+    const options = post
+      ? { post, onlyForUsers: excludeAuthor ? List.inverse([authorId]) : List.everything() }
+      : { emitter: this._singleUserEmitter(authorId) };
+
+    await this.broadcastMessage(
+      rooms,
+      eventNames.ARTICLE_DESTROYED,
+      { meta: { articleId } },
+      options,
     );
   };
 

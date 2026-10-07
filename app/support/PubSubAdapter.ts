@@ -21,6 +21,10 @@ export const eventNames = {
   EVENT_CREATED: 'event:new',
   ATTACHMENT_UPDATED: 'attachment:update',
   ATTACHMENT_CREATED: 'attachment:new',
+  ARTICLE_CREATED: 'article:new',
+  ARTICLE_UPDATED: 'article:update',
+  ARTICLE_DESTROYED: 'article:destroy',
+  ARTICLE_RESTORED: 'article:restore',
 } as const;
 
 export type EventName = (typeof eventNames)[keyof typeof eventNames];
@@ -138,6 +142,24 @@ export class PubSubAdapter {
 
   attachmentUpdated(payload: string) {
     return this.publish(eventNames.ATTACHMENT_UPDATED, payload);
+  }
+
+  ///////////////////////////////////////////////////
+
+  articleCreated(payload: string) {
+    return this.publish(eventNames.ARTICLE_CREATED, payload);
+  }
+
+  articleUpdated(payload: string) {
+    return this.publish(eventNames.ARTICLE_UPDATED, payload);
+  }
+
+  articleDestroyed(payload: string) {
+    return this.publish(eventNames.ARTICLE_DESTROYED, payload);
+  }
+
+  articleRestored(payload: string) {
+    return this.publish(eventNames.ARTICLE_RESTORED, payload);
   }
 
   ///////////////////////////////////////////////////

@@ -174,4 +174,27 @@ export default class pubSub {
   async attachmentUpdated(attachmentId: UUID) {
     await this.publisher.attachmentUpdated(JSON.stringify(attachmentId));
   }
+
+  async newArticle(articleId: UUID) {
+    await this.publisher.articleCreated(JSON.stringify({ articleId }));
+  }
+
+  async restoreArticle(articleId: UUID) {
+    await this.publisher.articleRestored(JSON.stringify({ articleId }));
+  }
+
+  async updateArticle(articleId: UUID) {
+    await this.publisher.articleUpdated(JSON.stringify({ articleId }));
+  }
+
+  async destroyArticle(
+    articleId: UUID,
+    authorId: UUID,
+    postId: UUID | null = null,
+    excludeAuthor = false,
+  ) {
+    await this.publisher.articleDestroyed(
+      JSON.stringify({ articleId, authorId, postId, excludeAuthor }),
+    );
+  }
 }

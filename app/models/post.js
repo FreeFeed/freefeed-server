@@ -178,6 +178,7 @@ export function addModel(dbAdapter) {
 
       if (additionalParams.articleId) {
         await EventService.onArticlePublished(additionalParams.articleId);
+        rtUpdates.push(pubSub.updateArticle(additionalParams.articleId));
       }
 
       const uuids = await dbAdapter.getPostLongIds(getUpdatedShortIds(this.body));

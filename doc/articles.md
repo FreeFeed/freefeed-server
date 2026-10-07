@@ -136,3 +136,9 @@ Requires the author. Supports `limit` and `offset`, with `limit` capped at 100. 
 `GET /vN/articles/:articleId/revisions/:revisionId`
 
 Requires the author. `revisionId` must be a UUID belonging to the requested article. The response contains the stored revision ID, article ID, version, creation time, title, and body.
+
+## Realtime events
+
+Visible readers receive `article:new`, `article:update`, `article:destroy`, and `article:restore` through the linked post's realtime rooms. An unpublished article is sent only through its author's `user` channel. Creation produces `article:new`; restoration produces `article:restore`; content, tag, and publication changes produce `article:update`; reversible deletion produces `article:destroy`. On detachment, the author receives `article:update`, while former readers receive `article:destroy`.
+
+The `article:new`, `article:update`, and `article:restore` payloads contain the serialized `article` without `body`. The `article:destroy` payload contains `meta.articleId`.

@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { compact } from 'lodash-es';
 
 import { authRequired, inputSchemaRequired, monitored } from '../../middlewares';
-import { dbAdapter } from '../../../models';
+import { dbAdapter, PubSub } from '../../../models';
 import type { User } from '../../../models';
 import type { Ctx } from '../../../support/types';
 import {
@@ -44,6 +44,8 @@ export const create = compose([
     if (body.tags.length) {
       await article.setTags(body.tags);
     }
+
+    await PubSub.newArticle(article.id);
 
     ctx.body = await fullArticleResponse(user, article);
   },
@@ -174,10 +176,14 @@ export const update = compose([
     }
 
     const body = ctx.request.body as z.infer<typeof createArticleSchema>;
-    const result = await article.update(expectedVersion, {
-      digest: body.digest,
-      body: body.body,
-    });
+    const result = await article.update(
+      expectedVersion,
+      {
+        digest: body.digest,
+        body: body.body,
+      },
+      body.tags,
+    );
 
     switch (result.status) {
       case 'updated':
@@ -190,8 +196,6 @@ export const update = compose([
       default:
         throw new ServerErrorException('Unknown update result');
     }
-
-    await article.setTags(body.tags);
 
     ctx.body = await fullArticleResponse(user, article);
   },

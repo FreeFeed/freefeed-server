@@ -61,25 +61,43 @@ export class Article extends ArticleContent {
   async update(
     expectedVersion: number,
     params: ArticleEditableContent,
+    tags?: string[],
   ): Promise<ArticleUpdateResult> {
     const previousTitle = this.title;
     const previousDigest = this.digest;
     const result = await this.dba.updateArticle(this.id, expectedVersion, params);
 
-    if (result.status !== 'updated') {
+    if (result.status === 'conflict' || result.status === 'not-found') {
       return result;
     }
 
-    this.version = result.version;
+    const normalizedTags = tags ? [...new Set(tags.map((tag) => tag.toLowerCase()))] : null;
+    const currentTags = normalizedTags ? await this.getTags() : null;
+    const tagsChanged =
+      normalizedTags !== null &&
+      currentTags !== null &&
+      (currentTags.length !== normalizedTags.length ||
+        currentTags.some((tag, index) => tag !== normalizedTags[index]));
 
-    this.title = extractTitle(params.body);
-    this.digest = params.digest;
-    this.body = params.body;
+    if (tagsChanged) {
+      await this.setTags(normalizedTags);
+    }
 
-    await EventService.onArticlePublished(this.id);
+    if (result.status === 'updated') {
+      this.version = result.version;
+      this.title = extractTitle(params.body);
+      this.digest = params.digest;
+      this.body = params.body;
 
-    if (this.postId && (this.title !== previousTitle || this.digest !== previousDigest)) {
-      await pubSub.updatePost(this.postId);
+      await EventService.onArticlePublished(this.id);
+
+      if (this.postId && (this.title !== previousTitle || this.digest !== previousDigest)) {
+        await pubSub.updatePost(this.postId);
+      }
+    }
+
+    if (result.status === 'updated' || tagsChanged) {
+      await pubSub.updateArticle(this.id);
     }
 
     return result;
@@ -109,6 +127,12 @@ export class Article extends ArticleContent {
       if (updatedPostId) {
         await pubSub.updatePost(updatedPostId);
       }
+
+      if (postId === null && previousPostId) {
+        await pubSub.destroyArticle(this.id, this.authorId, previousPostId, true);
+      }
+
+      await pubSub.updateArticle(this.id);
     }
 
     if (postId) {
@@ -127,6 +151,7 @@ export class Article extends ArticleContent {
 
     this.toDelete = true;
     await scheduleArticleDeletion(this.id);
+    await pubSub.destroyArticle(this.id, this.authorId, this.postId);
 
     return true;
   }
@@ -139,6 +164,7 @@ export class Article extends ArticleContent {
     }
 
     this.toDelete = false;
+    await pubSub.restoreArticle(this.id);
 
     return true;
   }
