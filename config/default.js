@@ -63,6 +63,7 @@ config.application = {
     'about',
     'account',
     'anonymous',
+    'articles',
     'attachments',
     'dev',
     'files',
