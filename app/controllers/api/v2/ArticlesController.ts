@@ -5,7 +5,7 @@ import { compact } from 'lodash-es';
 import { authRequired, inputSchemaRequired, monitored } from '../../middlewares';
 import { dbAdapter, PubSub } from '../../../models';
 import type { User } from '../../../models';
-import type { Ctx } from '../../../support/types';
+import type { Ctx, UUID } from '../../../support/types';
 import {
   serializeArticleFull,
   serializeArticle,
@@ -53,8 +53,8 @@ export const create = compose([
 
 export const list = compose([
   monitored('articles.list'),
-  async (ctx: Ctx<{ user: User | null }>) => {
-    const { user } = ctx.state;
+  async (ctx: Ctx<{ user: User | null; apiVersion: number }>) => {
+    const { user, apiVersion } = ctx.state;
     const authorName = queryParam(ctx.request.query.author);
     const publishedParam = queryParam(ctx.request.query.published);
 
@@ -86,8 +86,24 @@ export const list = compose([
     }
 
     const articlesById = await dbAdapter.getArticleSummariesByIds(articleIds);
+    const articles = compact(articleIds.map((id) => articlesById.get(id)));
+    const postIds = [
+      ...new Set(articles.map((article) => article.postId).filter((id): id is UUID => id !== null)),
+    ];
+    const feedOutput = await serializeFeed(postIds, user?.id ?? null, null, {
+      isLastPage,
+      apiVersion,
+    });
+    const { timelines: _timelines, articles: _feedArticles, ...sidecars } = feedOutput;
+    const articleAuthors = await serializeUsersByIds(
+      [...new Set(articles.map((article) => article.authorId))],
+      user?.id ?? null,
+    );
+
     ctx.body = {
-      articles: compact(articleIds.map((id) => articlesById.get(id))).map(serializeArticle),
+      ...sidecars,
+      articles: articles.map(serializeArticle),
+      users: mergeByIds(articleAuthors, sidecars.users),
       isLastPage,
     };
   },

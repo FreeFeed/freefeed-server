@@ -78,6 +78,7 @@ describe('Articles API: reading', () => {
       expect(response.articles[0], 'to satisfy', { title: 'Newer', tags: ['draft'] });
       expect(response.articles[0], 'not to have key', 'body');
       expect(response.articles[0], 'not to have key', 'attachmentIds');
+      expect(response, 'to satisfy', { posts: [], users: [{ id: luna.user.id }] });
       expect(otherAuthor, 'to satisfy', { __httpCode: 200, articles: [], isLastPage: true });
       expect(anonymous, 'to satisfy', { __httpCode: 200, articles: [], isLastPage: true });
     });
@@ -147,10 +148,11 @@ describe('Articles API: reading', () => {
         undefined,
         authHeaders(luna),
       );
-      const anonymous = await performJSONRequest<{ articles: { id: UUID }[] }>(
-        'GET',
-        '/v4/articles?published=true',
-      );
+      const anonymous = await performJSONRequest<{
+        articles: { id: UUID }[];
+        posts: { id: UUID }[];
+        users: { id: UUID }[];
+      }>('GET', '/v4/articles?published=true');
       const privateAuthor = await performJSONRequest<{ articles: { id: UUID }[] }>(
         'GET',
         '/v4/articles?published=true&author=mars',
@@ -161,16 +163,22 @@ describe('Articles API: reading', () => {
       expect(firstPage, 'to satisfy', {
         __httpCode: 200,
         articles: [{ id: jupiterArticle.id }],
+        posts: [{ id: jupiterPost.id, articleId: jupiterArticle.id }],
+        users: [{ id: jupiter.user.id }],
         isLastPage: false,
       });
       expect(secondPage, 'to satisfy', {
         __httpCode: 200,
         articles: [{ id: lunaArticle.id }],
+        posts: [{ id: lunaPost.id, articleId: lunaArticle.id }],
+        users: [{ id: luna.user.id }],
         isLastPage: true,
       });
       expect(byAuthor, 'to satisfy', {
         __httpCode: 200,
         articles: [{ id: jupiterArticle.id }],
+        posts: [{ id: jupiterPost.id, articleId: jupiterArticle.id }],
+        users: [{ id: jupiter.user.id }],
         isLastPage: true,
       });
       expect(
@@ -178,9 +186,21 @@ describe('Articles API: reading', () => {
         'to equal',
         [jupiterArticle.id, lunaArticle.id],
       );
+      expect(
+        anonymous.posts.map(({ id }) => id),
+        'to equal',
+        [jupiterPost.id, lunaPost.id],
+      );
+      expect(
+        anonymous.users.map(({ id }) => id),
+        'to equal',
+        [jupiter.user.id, luna.user.id],
+      );
       expect(privateAuthor, 'to satisfy', {
         __httpCode: 200,
         articles: [{ id: marsPrivateArticle.id }],
+        posts: [{ id: marsPrivatePost.id, articleId: marsPrivateArticle.id }],
+        users: [{ id: mars.user.id }],
         isLastPage: true,
       });
     });

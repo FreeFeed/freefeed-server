@@ -81,9 +81,18 @@ The response is:
 ```json
 {
   "articles": [],
+  "posts": [],
+  "comments": [],
+  "attachments": [],
+  "users": [],
+  "subscriptions": [],
+  "subscribers": [],
+  "admins": [],
   "isLastPage": true
 }
 ```
+
+The sidecar arrays contain data referenced by the listed articles and their linked posts.
 
 List items contain all serialized article fields except `body`.
 
