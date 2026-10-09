@@ -6,8 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [2.32.0] - Not released
-
 ### Fixed
+- Prevented test database cleanup from deleting Knex migration history or running
+  outside the test environment.
 - Prevented duplicate per-post comment sequence numbers when database timestamps
   are not monotonic, and made comments-by-ID ordering deterministic for equal timestamps.
 
