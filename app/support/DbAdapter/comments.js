@@ -30,7 +30,7 @@ const commentsTrait = (superClass) =>
         await trx.raw(`select 1 from posts where uid = :postId for no key update`, payload);
 
         const maxCommentNumber = await trx.getOne(
-          `select seq_number from comments where post_id = :postId order by created_at desc limit 1`,
+          `select max(seq_number) from comments where post_id = :postId`,
           payload,
         );
 
@@ -103,6 +103,7 @@ const commentsTrait = (superClass) =>
     async getCommentsByIds(ids) {
       const responses = await this.database('comments')
         .orderBy('created_at', 'desc')
+        .orderBy('id', 'desc')
         .whereIn('uid', ids);
       return responses.map((attrs) => initCommentObject(attrs));
     }

@@ -590,7 +590,7 @@ describe('CommentsController', () => {
         );
       }
 
-      comments.reverse();
+      comments.sort((a, b) => Number(b.createdAt) - Number(a.createdAt) || b.intId - a.intId);
     });
 
     it('should return several comments by ids', async () => {
