@@ -55,6 +55,7 @@ import userStatsDynamicTrait from './user-stats-dynamic';
 import translationUsageTrait from './translation-usage';
 import postCommentEventsTrait from './post-comment-events';
 import pinnedPostsTrait from './pinned-posts';
+import documentsTrait from './documents';
 
 class DbAdapterBase {
   /**
@@ -187,5 +188,6 @@ export const DbAdapter = _.flow([
   userStatsDynamicTrait,
   translationUsageTrait,
   postCommentEventsTrait,
+  documentsTrait,
   pinnedPostsTrait,
 ])(DbAdapterBase);

@@ -15,3 +15,5 @@ export { default as SearchController } from './controllers/api/v2/SearchControll
 export { default as EventsController } from './controllers/api/v2/EventsController';
 export { default as CommentLikesController } from './controllers/api/v2/CommentLikesController';
 export { default as InvitationsController } from './controllers/api/v2/InvitationsController';
+
+export { default as DocumentsController } from './controllers/api/v5/DocumentsController';
