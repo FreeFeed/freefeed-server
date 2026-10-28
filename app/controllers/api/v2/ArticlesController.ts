@@ -24,6 +24,7 @@ import {
   ServerErrorException,
 } from '../../../support/exceptions';
 import { UndoArticleDelete } from '../../../support/undo/article-delete';
+import { UndoArticleDetach } from '../../../support/undo/article-detach';
 import { getQueryParams } from '../admin/query-params';
 
 import { createArticleSchema } from './data-schemes/articles';
@@ -251,8 +252,20 @@ export const detachPost = compose([
       throw new ForbiddenException('You are not allowed to detach this article from its post');
     }
 
-    await article.setPost(null);
-    ctx.body = await fullArticleResponse(user, article);
+    const previousPostId = article.postId;
+    const undo = [];
+
+    if ((await article.setPost(null)) && previousPostId) {
+      undo.push(
+        new UndoArticleDetach(article.id, previousPostId).serialize(
+          user.id,
+          'You detached your article from its post',
+          {},
+        ),
+      );
+    }
+
+    ctx.body = { ...(await fullArticleResponse(user, article)), undo };
   },
 ]);
 

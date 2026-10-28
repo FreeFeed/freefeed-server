@@ -8,6 +8,7 @@ import { DummyPublisher } from '../../app/pubsub';
 import { connect as redisConnection } from '../../app/setup/database';
 import { eventNames, PubSubAdapter } from '../../app/support/PubSubAdapter';
 import type { UUID } from '../../app/support/types';
+import { UNDO_ARTICLE_DETACH, UndoArticleDetach } from '../../app/support/undo/article-detach';
 import cleanDB from '../dbCleaner';
 import { createPost } from '../integration/helpers/posts-and-comments';
 
@@ -50,8 +51,95 @@ describe('Articles API: post association', () => {
       expect(response, 'to satisfy', {
         __httpCode: 200,
         article: { id: article.id, postId: null },
+        undo: [
+          {
+            subject: UNDO_ARTICLE_DETACH,
+            message: 'You detached your article from its post',
+            messageParams: {},
+            expiresInSec: UndoArticleDetach.ttlSec,
+            token: expect.it('to be a string'),
+          },
+        ],
       });
       expect(await dbAdapter.getArticleById(article.id), 'to satisfy', { postId: null });
+    });
+
+    it('should not return an undo entry for an unpublished article', async () => {
+      await article.setPost(null);
+      const response = await performJSONRequest(
+        'DELETE',
+        `/v4/articles/${article.id}/post`,
+        undefined,
+        authHeaders(luna),
+      );
+
+      expect(response, 'to satisfy', { __httpCode: 200, undo: [] });
+    });
+
+    describe('Undo', () => {
+      let token: string;
+
+      const undo = (user: UserCtx = luna) =>
+        performJSONRequest('POST', `/v4/undo/${UNDO_ARTICLE_DETACH}`, { token }, authHeaders(user));
+
+      beforeEach(async () => {
+        const response = await performJSONRequest<{ undo: [{ token: string }] }>(
+          'DELETE',
+          `/v4/articles/${article.id}/post`,
+          undefined,
+          authHeaders(luna),
+        );
+        [{ token }] = response.undo;
+      });
+
+      it('should attach the article to its post again', async () => {
+        const response = await undo();
+
+        expect(response, 'to satisfy', {
+          __httpCode: 200,
+          article: { id: article.id, postId },
+          posts: [{ id: postId, articleId: article.id }],
+        });
+        expect(await dbAdapter.getArticleById(article.id), 'to satisfy', { postId });
+      });
+
+      it('should not accept the token of another user', async () => {
+        const mars = await createTestUser('mars');
+        const response = await undo(mars);
+
+        expect(response, 'to satisfy', { __httpCode: 403 });
+        expect(await dbAdapter.getArticleById(article.id), 'to satisfy', { postId: null });
+      });
+
+      it('should fail if the post has been deleted', async () => {
+        await performJSONRequest('DELETE', `/v4/posts/${postId}`, undefined, authHeaders(luna));
+        const response = await undo();
+
+        expect(response, 'to satisfy', { __httpCode: 409 });
+        expect(await dbAdapter.getArticleById(article.id), 'to satisfy', { postId: null });
+      });
+
+      it('should fail if the article has been published with another post', async () => {
+        const newPost = await performJSONRequest<{ posts: { id: UUID } }>(
+          'POST',
+          '/v4/posts',
+          { post: { body: 'New post', articleId: article.id }, meta: { feeds: [luna.username] } },
+          authHeaders(luna),
+        );
+        const response = await undo();
+
+        expect(response, 'to satisfy', { __httpCode: 409 });
+        expect(await dbAdapter.getArticleById(article.id), 'to satisfy', {
+          postId: newPost.posts.id,
+        });
+      });
+
+      it('should fail if the article has been deleted', async () => {
+        await article.deactivate();
+        const response = await undo();
+
+        expect(response, 'to satisfy', { __httpCode: 404 });
+      });
     });
 
     it('should not let another user detach the article', async () => {

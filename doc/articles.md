@@ -132,7 +132,9 @@ POST /vN/undo/articleDelete
 
 `DELETE /vN/articles/:articleId/post`
 
-Requires the author. The response contains the full article with `postId: null`. The former post is retained and its serialized `articleId` becomes `null`.
+Requires the author. The response contains the full article with `postId: null` and an `undo` array. The former post is retained and its serialized `articleId` becomes `null`.
+
+If the article was linked to a post, `undo` contains an entry with subject `articleDetach`. Its token attaches the article to the same post again through `POST /vN/undo/articleDetach`; the response is the full article. The undo fails with `409` if the former post has been deleted or the article has since been published with another post. For an already unpublished article, `undo` is empty.
 
 ### List revisions
 
