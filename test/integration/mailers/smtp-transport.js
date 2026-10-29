@@ -1,6 +1,6 @@
 import expect from 'unexpected';
 import { simpleParser } from 'mailparser';
-import nodemailer from 'nodemailer';
+import { createTransport } from 'nodemailer';
 import smtpTransport from 'nodemailer-smtp-transport';
 import { SMTPServer } from 'smtp-server';
 
@@ -31,7 +31,7 @@ describe('Nodemailer SMTP transport', () => {
       throw new Error('SMTP server did not bind to a TCP port');
     }
 
-    transporter = nodemailer.createTransport(
+    transporter = createTransport(
       smtpTransport({
         host: '127.0.0.1',
         port: address.port,

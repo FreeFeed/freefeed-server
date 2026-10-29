@@ -91,7 +91,7 @@
     "n3": "~2.1.1",
     "node-cache": "~5.1.2",
     "node-loggly-bulk": "~4.0.2",
-    "nodemailer": "~9.0.3",
+    "nodemailer": "~10.2.1",
     "nodemailer-smtp-transport": "~2.7.4",
     "nodemailer-stub-transport": "~1.1.0",
     "numeral": "~2.0.6",
