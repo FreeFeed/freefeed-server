@@ -50,7 +50,12 @@ class FreefeedApp extends Application<DefaultState, AppContext> {
         formLimit: config.attachments.fileSizeLimit,
         jsonLimit: config.attachments.fileSizeLimit,
         textLimit: config.attachments.fileSizeLimit,
-        formidable: { maxFileSize: config.attachments.fileSizeLimit },
+        formidable: {
+          maxFileSize: config.attachments.fileSizeLimit,
+          allowEmptyFiles: true,
+          // The default of 1 rejects empty files despite allowEmptyFiles.
+          minFileSize: 0,
+        },
       }),
     );
     this.use((ctx, next) => {
