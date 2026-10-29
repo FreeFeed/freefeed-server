@@ -1,6 +1,6 @@
 import consoleStamp from 'console-stamp';
-import monitor from 'monitor-dog';
 
+import monitor from './app/support/monitor';
 import { getSingleton as initApp } from './app/app';
 
 consoleStamp(console, 'yyyy/mm/dd HH:MM:ss.l');

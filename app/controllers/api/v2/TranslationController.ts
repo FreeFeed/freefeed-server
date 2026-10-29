@@ -1,10 +1,10 @@
 import { createHash } from 'crypto';
 
-import monitor from 'monitor-dog';
 import compose from 'koa-compose';
 import { type TranslationLimits } from 'config';
 import { type Context } from 'koa';
 
+import monitor from '../../../support/monitor';
 import {
   authRequired,
   commentAccessRequired,

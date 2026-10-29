@@ -1,6 +1,5 @@
 import crypto from 'crypto';
 
-import monitor from 'monitor-dog'; // search keyword: datadog
 import { type Context, type Next } from 'koa';
 import RateLimiter from 'async-ratelimiter';
 import Redis from 'ioredis';
@@ -8,6 +7,7 @@ import config from 'config';
 import createDebug from 'debug';
 import { Duration } from 'luxon';
 
+import monitor from './monitor'; // search keyword: datadog
 import { TooManyRequestsException } from './exceptions';
 
 const debug = createDebug('freefeed:rateLimiter');

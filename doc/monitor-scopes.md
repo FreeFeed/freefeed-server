@@ -3,8 +3,8 @@ Namespacing for dogstatsd monitor
 
 Scopes are separated with dots.
 
-Scopes start with MONITOR_PREFIX set in the environment file:
-This prefix is supported by monitor-dog package automatically.
+Scopes start with the `monitorPrefix` config value (the MONITOR_PREFIX environment
+variable), which app/support/monitor.ts prepends to every metric name.
 
 Default:
 * 'development'

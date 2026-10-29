@@ -44,6 +44,8 @@ const config = {
   frontendPreferencesLimit: 65536,
 
   monitorPrefix: 'development',
+  // DogStatsD agent address, metrics are not sent when it is unset
+  datadog: { host: null, port: null },
 
   adminEmail: '',
 };

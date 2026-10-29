@@ -1,8 +1,8 @@
 import * as _ from 'lodash-es';
 import GraphemeBreaker from 'grapheme-breaker';
-import monitor from 'monitor-dog';
 import config from 'config';
 
+import monitor from '../support/monitor';
 import { extractHashtags } from '../support/hashtags';
 import { PubSub as pubSub } from '../models';
 import { EventService } from '../support/EventService';

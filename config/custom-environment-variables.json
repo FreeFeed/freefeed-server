@@ -1,5 +1,9 @@
 {
   "monitorPrefix": "MONITOR_PREFIX",
+  "datadog": {
+    "host": "DATADOG_HOST",
+    "port": { "__name": "DATADOG_PORT", "__format": "json" }
+  },
   "secret": "FRFS_SECRET",
   "port": { "__name": "FRFS_PORT", "__format": "json" },
   "redis": {

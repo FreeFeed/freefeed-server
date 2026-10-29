@@ -5,28 +5,6 @@ __metadata:
   version: 10
   cacheKey: 10c0
 
-"101@npm:^0.14.1":
-  version: 0.14.1
-  resolution: "101@npm:0.14.1"
-  dependencies:
-    clone: "npm:^0.1.18"
-    deep-eql: "npm:^0.1.3"
-    keypather: "npm:^1.8.1"
-  checksum: 10c0/8be21cb4a4994438e7a965e983df9ef0908fd25f2fe7e9a86351a4b0a809ac689f739c9d4c00eb04b3d6c897b05c481400ce7d3ead7dfc7f7e4bef909715a29c
-  languageName: node
-  linkType: hard
-
-"101@npm:^1.0.0":
-  version: 1.6.3
-  resolution: "101@npm:1.6.3"
-  dependencies:
-    clone: "npm:^1.0.2"
-    deep-eql: "npm:^0.1.3"
-    keypather: "npm:^1.10.2"
-  checksum: 10c0/e05c7e84670a06670029d0323c70d9cf9ee592e072e81805d7e0ac0fe37b9a187724d5659100a557d4e623783f8e0636477069d595e39eef1dee03a5c7eac265
-  languageName: node
-  linkType: hard
-
 "@aws-sdk/checksums@npm:^3.1000.22":
   version: 3.1000.22
   resolution: "@aws-sdk/checksums@npm:3.1000.22"
@@ -2633,6 +2611,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"bindings@npm:^1.5.0":
+  version: 1.5.0
+  resolution: "bindings@npm:1.5.0"
+  dependencies:
+    file-uri-to-path: "npm:1.0.0"
+  checksum: 10c0/3dab2491b4bb24124252a91e656803eac24292473e56554e35bbfe3cc1875332cfa77600c3bac7564049dc95075bf6fcc63a4609920ff2d64d0fe405fcf0d4ba
+  languageName: node
+  linkType: hard
+
 "blob@npm:0.0.5":
   version: 0.0.5
   resolution: "blob@npm:0.0.5"
@@ -3022,20 +3009,6 @@ __metadata:
   version: 2.1.2
   resolution: "clone@npm:2.1.2"
   checksum: 10c0/ed0601cd0b1606bc7d82ee7175b97e68d1dd9b91fd1250a3617b38d34a095f8ee0431d40a1a611122dcccb4f93295b4fdb94942aa763392b5fe44effa50c2d5e
-  languageName: node
-  linkType: hard
-
-"clone@npm:^0.1.18":
-  version: 0.1.19
-  resolution: "clone@npm:0.1.19"
-  checksum: 10c0/593474606fc5ab34c94364bd1e8d58526f63cbc8061236b73ffafb1675174206e9d0317aab66a87159128aef082500c3bd50063da64acc2604b7af8762d92a24
-  languageName: node
-  linkType: hard
-
-"clone@npm:^1.0.2":
-  version: 1.0.4
-  resolution: "clone@npm:1.0.4"
-  checksum: 10c0/2176952b3649293473999a95d7bebfc9dc96410f6cbd3d2595cf12fd401f63a4bf41a7adbfd3ab2ff09ed60cb9870c58c6acdd18b87767366fabfc163700f13b
   languageName: node
   linkType: hard
 
@@ -3502,7 +3475,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"debug@npm:2.6.9, debug@npm:^2.1.3, debug@npm:^2.2.0":
+"debug@npm:2.6.9, debug@npm:^2.2.0":
   version: 2.6.9
   resolution: "debug@npm:2.6.9"
   dependencies:
@@ -3564,15 +3537,6 @@ __metadata:
   version: 4.0.0
   resolution: "decamelize@npm:4.0.0"
   checksum: 10c0/e06da03fc05333e8cd2778c1487da67ffbea5b84e03ca80449519b8fa61f888714bbc6f459ea963d5641b4aa98832130eb5cd193d90ae9f0a27eee14be8e278d
-  languageName: node
-  linkType: hard
-
-"deep-eql@npm:^0.1.3":
-  version: 0.1.3
-  resolution: "deep-eql@npm:0.1.3"
-  dependencies:
-    type-detect: "npm:0.1.1"
-  checksum: 10c0/c4ec35add32b2c178861847d288a42ec2524d7177a7d497dadbb25e618ae82e17ab88dfb4da7c1d637bcb79a4ef23bf1df33d47282e719c20d05ce78c3cbe874
   languageName: node
   linkType: hard
 
@@ -3805,13 +3769,6 @@ __metadata:
     domelementtype: "npm:^3.0.0"
     domhandler: "npm:^6.0.0"
   checksum: 10c0/59827827ecf15ed1f43f4cb8db374484b6089bf40e32cb41c8e381525aeb5ef5d029e4f9d5f74a418bf3217b87a6cbabdf5b4ebed0a018bc533bd6349c46a739
-  languageName: node
-  linkType: hard
-
-"dotenv@npm:^1.1.0":
-  version: 1.2.0
-  resolution: "dotenv@npm:1.2.0"
-  checksum: 10c0/60d70ffedef1929915483894adc254ef35b3349a16ec842d731205fcd918b8597c64f7ef0a492906fd35f6c6abf87281e2c0fdac6789b64d9222c28b8b1c845d
   languageName: node
   linkType: hard
 
@@ -4563,15 +4520,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eson@npm:^0.5.0":
-  version: 0.5.0
-  resolution: "eson@npm:0.5.0"
-  dependencies:
-    glob: "npm:*"
-  checksum: 10c0/c3559a06c9a93f69280bb17ac906a8042c0b188bb41f2e245ea1b4e30fe0048943a73d64b9db7eeff007470b033c838cda1f03631111b81bbf2c87d3b0085d1f
-  languageName: node
-  linkType: hard
-
 "espree@npm:^10.0.1, espree@npm:^10.4.0":
   version: 10.4.0
   resolution: "espree@npm:10.4.0"
@@ -4849,6 +4797,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"file-uri-to-path@npm:1.0.0":
+  version: 1.0.0
+  resolution: "file-uri-to-path@npm:1.0.0"
+  checksum: 10c0/3b545e3a341d322d368e880e1c204ef55f1d45cdea65f7efc6c6ce9e0c4d22d802d5629320eb779d006fe59624ac17b0e848d83cc5af7cd101f206cb704f5519
+  languageName: node
+  linkType: hard
+
 "filelist@npm:^1.0.4":
   version: 1.0.6
   resolution: "filelist@npm:1.0.6"
@@ -5061,6 +5016,7 @@ __metadata:
     ff-url-finder: "npm:~2.3.7"
     globals: "npm:~17.8.0"
     grapheme-breaker: "npm:0.3.2"
+    hot-shots: "npm:~17.1.1"
     humps: "npm:~2.0.1"
     ioredis: "npm:~5.11.1"
     js-yaml: "npm:~5.5.0"
@@ -5085,7 +5041,6 @@ __metadata:
     mkdirp: "npm:~3.0.1"
     mocha: "npm:~11.7.6"
     moment: "npm:~2.31.0"
-    monitor-dog: "npm:2.0.0"
     mv: "npm:2.1.1"
     n3: "npm:~2.1.1"
     node-cache: "npm:~5.1.2"
@@ -5308,17 +5263,6 @@ __metadata:
   dependencies:
     is-glob: "npm:^4.0.3"
   checksum: 10c0/317034d88654730230b3f43bb7ad4f7c90257a426e872ea0bf157473ac61c99bf5d205fad8f0185f989be8d2fa6d3c7dce1645d99d545b6ea9089c39f838e7f8
-  languageName: node
-  linkType: hard
-
-"glob@npm:*":
-  version: 13.0.6
-  resolution: "glob@npm:13.0.6"
-  dependencies:
-    minimatch: "npm:^10.2.2"
-    minipass: "npm:^7.1.3"
-    path-scurry: "npm:^2.0.2"
-  checksum: 10c0/269c236f11a9b50357fe7a8c6aadac667e01deb5242b19c84975628f05f4438d8ee1354bb62c5d6c10f37fd59911b54d7799730633a2786660d8c69f1d18120a
   languageName: node
   linkType: hard
 
@@ -5566,6 +5510,18 @@ __metadata:
   version: 2.8.9
   resolution: "hosted-git-info@npm:2.8.9"
   checksum: 10c0/317cbc6b1bbbe23c2a40ae23f3dafe9fa349ce42a89a36f930e3f9c0530c179a3882d2ef1e4141a4c3674d6faaea862138ec55b43ad6f75e387fda2483a13c70
+  languageName: node
+  linkType: hard
+
+"hot-shots@npm:~17.1.1":
+  version: 17.1.1
+  resolution: "hot-shots@npm:17.1.1"
+  dependencies:
+    unix-dgram: "npm:2.x"
+  dependenciesMeta:
+    unix-dgram:
+      optional: true
+  checksum: 10c0/2873511a01e3f751d03eb3d526b661293db20c112d86154521fb1d251f521b2be83a86232c70d00f6f9844bbdce519f1d541be67bbd66e6ca80f798a7d3e7e68
   languageName: node
   linkType: hard
 
@@ -6502,15 +6458,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"keypather@npm:^1.10.2, keypather@npm:^1.8.1":
-  version: 1.10.2
-  resolution: "keypather@npm:1.10.2"
-  dependencies:
-    101: "npm:^1.0.0"
-  checksum: 10c0/94b7fb9f651bfea77d3ae164b5744d6fc3f5433eeb4d87aec1225be3628b42f3a0834003c1e69fc1aec11df8e1e71aabee68d437067ce89821cb6b5a0e284019
-  languageName: node
-  linkType: hard
-
 "keyv@npm:^4.5.4":
   version: 4.5.4
   resolution: "keyv@npm:4.5.4"
@@ -6826,19 +6773,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"loadenv@npm:^1.0.3":
-  version: 1.1.0
-  resolution: "loadenv@npm:1.1.0"
-  dependencies:
-    101: "npm:^0.14.1"
-    clone: "npm:^1.0.2"
-    debug: "npm:^2.1.3"
-    dotenv: "npm:^1.1.0"
-    eson: "npm:^0.5.0"
-  checksum: 10c0/9680157ee00159991fb81130a534717063ddf4d2f8c9a634050d304b8ccd7a52dcbad08a53b01313fe14ed3ed5ae853e57833d884089e9d5c35a3b117acbde46
-  languageName: node
-  linkType: hard
-
 "locate-path@npm:^5.0.0":
   version: 5.0.0
   resolution: "locate-path@npm:5.0.0"
@@ -6969,13 +6903,6 @@ __metadata:
   version: 10.4.3
   resolution: "lru-cache@npm:10.4.3"
   checksum: 10c0/ebd04fbca961e6c1d6c0af3799adcc966a1babe798f685bb84e6599266599cd95d94630b10262f5424539bc4640107e8a33aa28585374abf561d30d16f4b39fb
-  languageName: node
-  linkType: hard
-
-"lru-cache@npm:^11.0.0":
-  version: 11.5.2
-  resolution: "lru-cache@npm:11.5.2"
-  checksum: 10c0/ece1ad731f5b655e85d67047d04bfc13823dc77aa61c5454924a9869ba600a0104e39cc33d726021feef812bc347ca34a5608a5eb1972a5dd0870b7ecd42c3f2
   languageName: node
   linkType: hard
 
@@ -7213,7 +7140,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"minipass@npm:^5.0.0 || ^6.0.2 || ^7.0.0, minipass@npm:^7.0.4, minipass@npm:^7.1.2, minipass@npm:^7.1.3":
+"minipass@npm:^5.0.0 || ^6.0.2 || ^7.0.0, minipass@npm:^7.0.4, minipass@npm:^7.1.2":
   version: 7.1.3
   resolution: "minipass@npm:7.1.3"
   checksum: 10c0/539da88daca16533211ea5a9ee98dc62ff5742f531f54640dd34429e621955e91cc280a91a776026264b7f9f6735947629f920944e9c1558369e8bf22eb33fbb
@@ -7295,17 +7222,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"monitor-dog@npm:2.0.0":
-  version: 2.0.0
-  resolution: "monitor-dog@npm:2.0.0"
-  dependencies:
-    101: "npm:^1.0.0"
-    loadenv: "npm:^1.0.3"
-    node-dogstatsd: "npm:0.0.6"
-  checksum: 10c0/4a8c012a1b12ad287e9c1ed45de2938f5263a2a437368a04402a03f04fbc2e4adf0be7eeba61d1ac3db047c25b34c64f85e0e56bc03503062fbc801049865a46
-  languageName: node
-  linkType: hard
-
 "morgan@npm:^1.6.1":
   version: 1.12.1
   resolution: "morgan@npm:1.12.1"
@@ -7358,6 +7274,15 @@ __metadata:
     buffer: "npm:^6.0.3"
     readable-stream: "npm:^4.0.0"
   checksum: 10c0/fb1a47512d5021ff54674425e46dcf7510346f718d91aa0c9708af2de2c10f9ef6a1d9e8e1075ca2586ae492a214e4a2cf62cbf2d7f9b1b1acc94c2e471a55b2
+  languageName: node
+  linkType: hard
+
+"nan@npm:^2.20.0":
+  version: 2.30.0
+  resolution: "nan@npm:2.30.0"
+  dependencies:
+    node-gyp: "npm:latest"
+  checksum: 10c0/563bf97c84099feeccae9aeaee1f1e14043e0ab0e8525497058495373e9a53abd46b00a6f5d178931911c2739c8ee94604da13d1245ab9e8b689339e61e98c23
   languageName: node
   linkType: hard
 
@@ -7424,13 +7349,6 @@ __metadata:
   dependencies:
     clone: "npm:2.x"
   checksum: 10c0/2f91907510a1276415ae5898269d0765934d5a4f3682c8b1b19964694a9b841c8bd791e1a125d1f89050f412e1da5dd982179d714252b3a7223abb05b8cb24d5
-  languageName: node
-  linkType: hard
-
-"node-dogstatsd@npm:0.0.6":
-  version: 0.0.6
-  resolution: "node-dogstatsd@npm:0.0.6"
-  checksum: 10c0/088f1e62e274b0829380188b2a94ba0cb1098d14028dcd43d409c996dc225f62de3c8d1564b4f11e627b9a6a860dd05f4f406d4d9ef673ca6bed63783b8113c3
   languageName: node
   linkType: hard
 
@@ -8010,16 +7928,6 @@ __metadata:
     lru-cache: "npm:^10.2.0"
     minipass: "npm:^5.0.0 || ^6.0.2 || ^7.0.0"
   checksum: 10c0/32a13711a2a505616ae1cc1b5076801e453e7aae6ac40ab55b388bb91b9d0547a52f5aaceff710ea400205f18691120d4431e520afbe4266b836fadede15872d
-  languageName: node
-  linkType: hard
-
-"path-scurry@npm:^2.0.2":
-  version: 2.0.2
-  resolution: "path-scurry@npm:2.0.2"
-  dependencies:
-    lru-cache: "npm:^11.0.0"
-    minipass: "npm:^7.1.2"
-  checksum: 10c0/b35ad37cf6557a87fd057121ce2be7695380c9138d93e87ae928609da259ea0a170fac6f3ef1eb3ece8a068e8b7f2f3adf5bb2374cf4d4a57fe484954fcc9482
   languageName: node
   linkType: hard
 
@@ -9889,13 +9797,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"type-detect@npm:0.1.1":
-  version: 0.1.1
-  resolution: "type-detect@npm:0.1.1"
-  checksum: 10c0/d2a9f98e0830432096f8792e9c73ef8748a3abafc4246aaa9dee11619b19a7569eb7f51bd187ad4b8d1e1ce6698417c9a1dd04c4998c8f7882dd9363092eb44b
-  languageName: node
-  linkType: hard
-
 "type-detect@npm:4.0.8":
   version: 4.0.8
   resolution: "type-detect@npm:4.0.8"
@@ -10210,6 +10111,17 @@ __metadata:
   version: 0.1.2
   resolution: "universalify@npm:0.1.2"
   checksum: 10c0/e70e0339f6b36f34c9816f6bf9662372bd241714dc77508d231d08386d94f2c4aa1ba1318614f92015f40d45aae1b9075cd30bd490efbe39387b60a76ca3f045
+  languageName: node
+  linkType: hard
+
+"unix-dgram@npm:2.x":
+  version: 2.0.7
+  resolution: "unix-dgram@npm:2.0.7"
+  dependencies:
+    bindings: "npm:^1.5.0"
+    nan: "npm:^2.20.0"
+    node-gyp: "npm:latest"
+  checksum: 10c0/1f6f033c9b7ee7c8db39a1b5f49a5ea19dd669bdda99cab714d2f253ca9d7f252c8e7472626c6b87e2378db0d114d9b8bbb6defffce911bd63e0c6c5e7029d0a
   languageName: node
   linkType: hard
 
