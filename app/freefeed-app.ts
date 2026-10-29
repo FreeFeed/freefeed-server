@@ -56,6 +56,16 @@ class FreefeedApp extends Application<DefaultState, AppContext> {
           // The default of 1 rejects empty files despite allowEmptyFiles.
           minFileSize: 0,
         },
+        onError(err) {
+          // formidable keeps the HTTP status in httpCode, Koa reads it from status
+          const { httpCode } = err as { httpCode?: number };
+
+          if (httpCode) {
+            Object.assign(err, { status: httpCode, expose: httpCode < 500 });
+          }
+
+          throw err;
+        },
       }),
     );
     this.use((ctx, next) => {
