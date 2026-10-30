@@ -5046,7 +5046,6 @@ __metadata:
     node-cache: "npm:~5.1.2"
     node-loggly-bulk: "npm:~4.0.2"
     nodemailer: "npm:~10.2.1"
-    nodemailer-smtp-transport: "npm:~2.7.4"
     nodemailer-stub-transport: "npm:~1.1.0"
     npm-run-all: "npm:~4.1.5"
     numeral: "npm:~2.0.6"
@@ -5626,23 +5625,6 @@ __metadata:
     setprototypeof: "npm:1.1.0"
     statuses: "npm:>= 1.4.0 < 2"
   checksum: 10c0/17ec4046ee974477778bfdd525936c254b872054703ec2caa4d6f099566b8adade636ae6aeeacb39302c5cd6e28fb407ebd937f500f5010d0b6850750414ff78
-  languageName: node
-  linkType: hard
-
-"httpntlm@npm:1.6.1":
-  version: 1.6.1
-  resolution: "httpntlm@npm:1.6.1"
-  dependencies:
-    httpreq: "npm:>=0.4.22"
-    underscore: "npm:~1.7.0"
-  checksum: 10c0/cea2079d5427c116d1661f8c707cc9c08f34eac0c3a4265590a68a88bc0871f5b726c9c171018dde177d974e954b0cd6dfcd51e822419fe8750f44a64f52cd4a
-  languageName: node
-  linkType: hard
-
-"httpreq@npm:>=0.4.22":
-  version: 1.1.1
-  resolution: "httpreq@npm:1.1.1"
-  checksum: 10c0/d7d30d2e744277d8f0183d2388721c85116aa072b8bd514707abb3fae075c661953454116cd91e4460e4d941513aba398be4110b1617bbe598103ed915ba932c
   languageName: node
   linkType: hard
 
@@ -7410,44 +7392,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"nodemailer-fetch@npm:1.6.0":
-  version: 1.6.0
-  resolution: "nodemailer-fetch@npm:1.6.0"
-  checksum: 10c0/47b1aa2c7704582663b71b314251260bd9ceeb7f88cd016a27060a10dab41e21ad14e24a46fdbd1cf9a8c056824f99e56415653c6134b82e80c756baa67218b5
-  languageName: node
-  linkType: hard
-
-"nodemailer-shared@npm:1.1.0":
-  version: 1.1.0
-  resolution: "nodemailer-shared@npm:1.1.0"
-  dependencies:
-    nodemailer-fetch: "npm:1.6.0"
-  checksum: 10c0/15d19fb0d1b546527da4e2d443cd53e50c3a7638b5b33a1ccd7ddc401680bc9163337cf09f6fb4e76a5f12de42f5fadf85dad80e56378edc3c27dd641413b3f7
-  languageName: node
-  linkType: hard
-
-"nodemailer-smtp-transport@npm:~2.7.4":
-  version: 2.7.4
-  resolution: "nodemailer-smtp-transport@npm:2.7.4"
-  dependencies:
-    nodemailer-shared: "npm:1.1.0"
-    nodemailer-wellknown: "npm:0.1.10"
-    smtp-connection: "npm:2.12.0"
-  checksum: 10c0/e5e2c40be2b0e3c926e11ec70681aeef9a4d616b339380cc83982fa5a4f02d34613f28b6d14b7fab8867c620e82274ddb06866d1ca77e1775c83334e4bb77ae9
-  languageName: node
-  linkType: hard
-
 "nodemailer-stub-transport@npm:~1.1.0":
   version: 1.1.0
   resolution: "nodemailer-stub-transport@npm:1.1.0"
   checksum: 10c0/b0f2879cee28a43a6de7c464dc17d350b1c665d5ab9bd444c2cf7d4de384e6b2cd7f42f164fb8f4808dff90ecb352c94ff1c6452f6196e75536bfb41288e8ea8
-  languageName: node
-  linkType: hard
-
-"nodemailer-wellknown@npm:0.1.10":
-  version: 0.1.10
-  resolution: "nodemailer-wellknown@npm:0.1.10"
-  checksum: 10c0/67e9a4ef1d47184f0615b37d123ce2370e24be4f9149ed8e59415685269ed83fcbcfa248406da14f53f5d4f82936526e845e043ef67e2bfe52145d3b026ff292
   languageName: node
   linkType: hard
 
@@ -9115,16 +9063,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"smtp-connection@npm:2.12.0":
-  version: 2.12.0
-  resolution: "smtp-connection@npm:2.12.0"
-  dependencies:
-    httpntlm: "npm:1.6.1"
-    nodemailer-shared: "npm:1.1.0"
-  checksum: 10c0/1abbae665dd2bce09e8a7b552b22e0c0d300c834159e00300d42a7ef30a608fffd3c21002660d1574abfe892481441045370593edf1300dcf8d92da79ff27d06
-  languageName: node
-  linkType: hard
-
 "smtp-server@npm:~3.19.2":
   version: 3.19.2
   resolution: "smtp-server@npm:3.19.2"
@@ -9996,13 +9934,6 @@ __metadata:
   version: 1.13.8
   resolution: "underscore@npm:1.13.8"
   checksum: 10c0/6677688daeda30484823e77c0b89ce4dcf29964a77d5a06f37299c007ab4bb1c66a0ff75e0d274620b62a1fe2a6ba29879f8214533ca611d71a1ae504f2bfc9b
-  languageName: node
-  linkType: hard
-
-"underscore@npm:~1.7.0":
-  version: 1.7.0
-  resolution: "underscore@npm:1.7.0"
-  checksum: 10c0/03d6d187c88031c8bf6fada822f43e956974b87dfd37232960e637dc10036968596b644ba4a65bdf09390493eff121d780e276c016addea6e2b3d5b6dd848696
   languageName: node
   linkType: hard
 

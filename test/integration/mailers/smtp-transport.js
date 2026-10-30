@@ -1,7 +1,6 @@
 import expect from 'unexpected';
 import { simpleParser } from 'mailparser';
 import { createTransport } from 'nodemailer';
-import smtpTransport from 'nodemailer-smtp-transport';
 import { SMTPServer } from 'smtp-server';
 
 describe('Nodemailer SMTP transport', () => {
@@ -11,13 +10,19 @@ describe('Nodemailer SMTP transport', () => {
 
   before(async () => {
     server = new SMTPServer({
-      authOptional: true,
-      disabledCommands: ['STARTTLS'],
-      onData(stream, _session, callback) {
+      authMethods: ['PLAIN', 'LOGIN'],
+      onAuth(auth, _session, callback) {
+        if (auth.username === 'user' && auth.password === 'pass') {
+          callback(null, { user: auth.username });
+        } else {
+          callback(new Error('Invalid username or password'));
+        }
+      },
+      onData(stream, session, callback) {
         const chunks = [];
         stream.on('data', (chunk) => chunks.push(chunk));
         stream.on('end', () => {
-          messages.push(Buffer.concat(chunks));
+          messages.push({ raw: Buffer.concat(chunks), session });
           callback();
         });
       },
@@ -31,14 +36,15 @@ describe('Nodemailer SMTP transport', () => {
       throw new Error('SMTP server did not bind to a TCP port');
     }
 
-    transporter = createTransport(
-      smtpTransport({
-        host: '127.0.0.1',
-        port: address.port,
-        secure: false,
-        ignoreTLS: true,
-      }),
-    );
+    transporter = createTransport({
+      host: '127.0.0.1',
+      port: address.port,
+      secure: false,
+      requireTLS: true,
+      // smtp-server falls back to its bundled self-signed certificate
+      tls: { rejectUnauthorized: false },
+      auth: { user: 'user', pass: 'pass' },
+    });
   });
 
   after(async () => {
@@ -56,8 +62,9 @@ describe('Nodemailer SMTP transport', () => {
 
     expect(result.accepted, 'to equal', ['recipient@example.com']);
     expect(messages, 'to have length', 1);
+    expect(messages[0].session, 'to satisfy', { secure: true, user: 'user' });
 
-    const message = await simpleParser(messages[0]);
+    const message = await simpleParser(messages[0].raw);
     expect(message, 'to satisfy', {
       from: { value: [{ address: 'sender@example.com' }] },
       subject: 'SMTP transport test',
