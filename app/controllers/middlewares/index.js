@@ -1,5 +1,4 @@
-import monitorDog from 'monitor-dog';
-
+import monitorDog from '../../support/monitor';
 import { NotAuthorizedException } from '../../support/exceptions';
 
 /**

@@ -33,7 +33,6 @@ if (sentryIsEnabled) {
 }
 
 const log = createDebug('freefeed:init');
-process.env.MONITOR_PREFIX = config.monitorPrefix;
 
 const checkIfMediaDirectoriesExist = async () => {
   let gotErrors = false;

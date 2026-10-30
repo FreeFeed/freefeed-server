@@ -65,15 +65,16 @@
     "exiftool-vendored": "~37.0.0",
     "ff-url-finder": "~2.3.7",
     "grapheme-breaker": "0.3.2",
+    "hot-shots": "~17.1.1",
     "humps": "~2.0.1",
     "ioredis": "~5.11.1",
-    "js-yaml": "~5.2.2",
+    "js-yaml": "~5.5.0",
     "jsonwebtoken": "~9.0.3",
     "juice": "~12.1.1",
     "keyv": "~5.6.0",
     "knex": "~3.3.0",
     "koa": "~3.2.1",
-    "koa-body": "~6.0.1",
+    "koa-body": "~8.0.1",
     "koa-compose": "~4.1.0",
     "koa-conditional-get": "~3.0.0",
     "koa-methodoverride": "2.0.0",
@@ -85,14 +86,12 @@
     "luxon": "~3.7.2",
     "media-type": "~1.0.1",
     "mime-types": "~3.0.2",
-    "moment": "~2.30.1",
-    "monitor-dog": "2.0.0",
+    "moment": "~2.31.0",
     "mv": "2.1.1",
     "n3": "~2.1.1",
     "node-cache": "~5.1.2",
     "node-loggly-bulk": "~4.0.2",
-    "nodemailer": "~9.0.3",
-    "nodemailer-smtp-transport": "~2.7.4",
+    "nodemailer": "~10.2.1",
     "nodemailer-stub-transport": "~1.1.0",
     "numeral": "~2.0.6",
     "pg": "~8.22.0",
@@ -112,7 +111,7 @@
     "validator": "~13.15.35",
     "xmlbuilder": "~15.1.1",
     "xregexp": "~5.1.2",
-    "zod": "~4.4.3",
+    "zod": "~4.6.7",
     "zod-validation-error": "~5.0.0"
   },
   "devDependencies": {
@@ -185,5 +184,5 @@
       "jsx"
     ]
   },
-  "packageManager": "yarn@4.18.0"
+  "packageManager": "yarn@4.18.1"
 }

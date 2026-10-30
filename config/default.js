@@ -1,6 +1,5 @@
 import fs from 'fs';
 
-import smtpTransport from 'nodemailer-smtp-transport';
 import { deferConfig as defer } from 'config/defer.js';
 
 const stubTransport = function () {
@@ -44,6 +43,8 @@ const config = {
   frontendPreferencesLimit: 65536,
 
   monitorPrefix: 'development',
+  // DogStatsD agent address, metrics are not sent when it is unset
+  datadog: { host: null, port: null },
 
   adminEmail: '',
 };
@@ -218,7 +219,8 @@ config.imageMagick = {
 
 config.mailer = {
   useSMTPTransport: false,
-  transport: defer((cfg) => (cfg.mailer.useSMTPTransport ? smtpTransport : stubTransport)),
+  // nodemailer builds its own SMTP transport from a plain options object
+  transport: defer((cfg) => (cfg.mailer.useSMTPTransport ? (options) => options : stubTransport)),
   fromName: 'Pepyatka',
   fromEmail: 'mail@pepyatka.com',
   host: defer((cfg) => cfg.host),

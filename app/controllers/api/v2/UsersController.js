@@ -1,9 +1,9 @@
 import compose from 'koa-compose';
 import config from 'config';
 import * as _ from 'lodash-es';
-import monitor from 'monitor-dog';
 import { validate as validateEmail } from 'email-validator';
 
+import monitor from '../../../support/monitor';
 import { dbAdapter, PubSub as pubSub } from '../../../models';
 import { serializeSelfUser, serializeUsersByIds } from '../../../serializers/v2/user';
 import {
