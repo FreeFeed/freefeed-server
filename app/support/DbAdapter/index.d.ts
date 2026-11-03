@@ -10,7 +10,17 @@ import {
   type Nullable,
   type UUID,
 } from '../types';
-import { AppTokenV1, Attachment, Comment, Group, Post, Timeline, User, Job } from '../../models';
+import {
+  AppTokenV1,
+  Attachment,
+  Comment,
+  Group,
+  Post,
+  Timeline,
+  User,
+  Job,
+  Document,
+} from '../../models';
 import {
   AppTokenCreateParams,
   AppTokenLogPayload,
@@ -517,4 +527,23 @@ export class DbAdapter {
   getCommentEventsListenersForPost(postId: UUID): Promise<Map<UUID, boolean>>;
   setCommentEventsStatusForPost(postId: UUID, userId: UUID, isEnabled: boolean): Promise<void>;
   cleanCommentEventsSubscriptions(userId: UUID): Promise<void>;
+
+  // Documents
+  createDocument(payload: Record<string, unknown>): Promise<UUID>;
+  getDocumentById(id: UUID): Promise<Document | null>;
+  getDocumentBySlug(slug: string): Promise<Document | null>;
+  getDocumentsByUser(
+    userId: UUID,
+    options?: { limit?: number; offset?: number; includeBody?: boolean },
+  ): Promise<Document[]>;
+  updateDocument(id: UUID, payload: Record<string, unknown>): Promise<Document>;
+  deleteDocument(id: UUID): Promise<void>;
+  addDocumentTag(documentId: UUID, tag: string): Promise<void>;
+  removeDocumentTag(documentId: UUID, tag: string): Promise<void>;
+  getDocumentTags(documentId: UUID): Promise<string[]>;
+  getDocumentsTags(documentIds: UUID[]): Promise<Map<UUID, string[]>>;
+  getDocumentChildren(parentId: UUID): Promise<Document[]>;
+  getUserDocumentTags(userId: UUID): Promise<{ tag: string; count: number }[]>;
+  countUserDocuments(userId: UUID): Promise<number>;
+  ensureUniqueDocumentSlug(baseSlug: string): Promise<string>;
 }
