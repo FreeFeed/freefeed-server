@@ -14,6 +14,7 @@ import { currentConfig } from '../app-async-context';
 import { ValidationException } from '../exceptions';
 import { articleBodySchema, extractTitle } from '../../models/article-body';
 import { toTSVector } from '../search/to-tsvector';
+import { normalizeHashtag } from '../normalize-hashtags';
 
 import { createShortId } from './short-ids';
 
@@ -284,11 +285,13 @@ const articlesTrait = (superClass: typeof DbAdapter) =>
       {
         authorId,
         published,
+        tag,
         limit,
         offset,
       }: {
         authorId: UUID | null;
         published: boolean;
+        tag?: string;
         limit: number;
         offset: number;
       },
@@ -298,7 +301,20 @@ const articlesTrait = (superClass: typeof DbAdapter) =>
       }
 
       const authorFilter = authorId ? 'a.author_id = :authorId' : 'true';
-      const bindings = { authorId, viewerId, limit, offset };
+      const tagFilter =
+        tag === undefined
+          ? 'true'
+          : `exists (
+        select 1 from article_tags at join hashtags h on h.id = at.tag_id
+        where at.article_id = a.uid and h.normalized_name = :tag
+      )`;
+      const bindings = {
+        authorId,
+        viewerId,
+        tag: tag === undefined ? undefined : normalizeHashtag(tag),
+        limit,
+        offset,
+      };
 
       if (!published) {
         return this.database.getCol<UUID>(
@@ -306,7 +322,7 @@ const articlesTrait = (superClass: typeof DbAdapter) =>
             from articles a join users u on u.uid = a.author_id
             where not a.to_delete and u.gone_status is null
               and a.post_id is null and a.author_id = :viewerId
-              and ${authorFilter}
+              and ${authorFilter} and ${tagFilter}
             order by a.created_at desc, a.uid desc
             limit :limit offset :offset`,
           bindings,
@@ -321,7 +337,7 @@ const articlesTrait = (superClass: typeof DbAdapter) =>
           join posts p on p.uid = a.post_id
           join users u on u.uid = p.user_id
           where not a.to_delete and au.gone_status is null
-            and ${authorFilter} and ${visibility}
+            and ${authorFilter} and ${tagFilter} and ${visibility}
           order by a.created_at desc, a.uid desc
           limit :limit offset :offset`,
         bindings,

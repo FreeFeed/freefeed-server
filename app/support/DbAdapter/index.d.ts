@@ -548,6 +548,7 @@ export class DbAdapter {
     params: {
       authorId: UUID | null;
       published: boolean;
+      tag?: string;
       limit: number;
       offset: number;
     },

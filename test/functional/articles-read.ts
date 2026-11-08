@@ -205,6 +205,102 @@ describe('Articles API: reading', () => {
       });
     });
 
+    describe('Tag filter', () => {
+      let ids: UUID[];
+
+      beforeEach(async () => {
+        const mars = await createTestUser('mars');
+        const jupiter = await createTestUser('jupiter');
+        await goPrivate(jupiter);
+        const fixtures = [
+          {
+            author: luna,
+            published: true,
+            tags: ['Space', 'science', 'ёлка', 'елка', 'café', 'cafe'],
+          },
+          { author: luna, published: false, tags: ['space', 'ёлка', 'café'] },
+          { author: mars, published: true, tags: ['space'] },
+          { author: mars, published: false, tags: ['space'] },
+          { author: jupiter, published: true, tags: ['space'] },
+          { author: luna, published: true, tags: ['other'] },
+          { author: luna, published: false, tags: [] },
+          { author: luna, published: false, tags: ['space'], deleted: true },
+        ];
+        ids = await Promise.all(
+          fixtures.map(async ({ author, published, tags, deleted }, i) => {
+            const article = await dbAdapter.createArticle({
+              author_id: author.user.id,
+              ...content,
+            });
+            await article.setTags(tags);
+
+            if (published) {
+              const post = await createPost(author.user, 'Article post');
+              await article.setPost(post.id);
+            }
+
+            if (deleted) {
+              await article.deactivate();
+            }
+
+            await dbAdapter
+              .database('articles')
+              .where({ uid: article.id })
+              .update({
+                created_at: new Date(Date.UTC(2026, 0, i + 1)),
+              });
+            return article.id;
+          }),
+        );
+      });
+
+      const cases = [
+        { query: `tag=${encodeURIComponent('ЕЛКА')}`, indices: [1] },
+        { query: 'tag=CAFE', indices: [1] },
+        { query: `tag=${encodeURIComponent('ЁЛКА')}&published=true`, indices: [0] },
+        { query: `tag=${encodeURIComponent('CAFÉ')}&published=true`, indices: [0] },
+        { query: 'tag=SPACE', indices: [1] },
+        { query: 'tag=space&author=luna', indices: [1] },
+        { query: 'tag=space&author=mars', indices: [] },
+        { query: 'tag=space&published=true', indices: [2, 0] },
+        { query: 'tag=space&published=true&author=mars', indices: [2] },
+        { query: 'tag=space&published=false', indices: [1] },
+        { query: 'tag=space&published=false&author=mars', indices: [] },
+        { query: 'tag=unknown', indices: [] },
+        { query: 'tag=space&published=true&limit=1', indices: [2], isLastPage: false },
+        { query: 'tag=space&published=true&limit=1&offset=1', indices: [0] },
+        { query: 'tag=space', indices: [], anonymous: true },
+        { query: 'tag=space&author=luna', indices: [], anonymous: true },
+        { query: 'tag=space&published=true', indices: [2, 0], anonymous: true },
+        { query: 'tag=space&published=false', indices: [], anonymous: true },
+      ];
+
+      for (const { query, indices, isLastPage = true, anonymous = false } of cases) {
+        it(`should filter ${query}${anonymous ? ' anonymously' : ''}`, async () => {
+          const response = await performJSONRequest<{ articles: { id: UUID }[] }>(
+            'GET',
+            `/v4/articles?${query}`,
+            undefined,
+            anonymous ? undefined : authHeaders(luna),
+          );
+          expect(response, 'to satisfy', { __httpCode: 200, isLastPage });
+          expect(
+            response.articles.map(({ id }) => id),
+            'to equal',
+            indices.map((i) => ids[i]),
+          );
+        });
+      }
+    });
+
+    for (const tag of ['', 'x'.repeat(51)]) {
+      it(`should reject an invalid tag of length ${tag.length}`, async () => {
+        const response = await performJSONRequest('GET', `/v4/articles?tag=${tag}`);
+
+        expect(response, 'to satisfy', { __httpCode: 400, err: 'Invalid tag' });
+      });
+    }
+
     it('should reject an invalid published value', async () => {
       const response = await performJSONRequest('GET', '/v4/articles?published=1');
 

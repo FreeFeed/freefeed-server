@@ -58,9 +58,14 @@ export const list = compose([
     const { user, apiVersion } = ctx.state;
     const authorName = queryParam(ctx.request.query.author);
     const publishedParam = queryParam(ctx.request.query.published);
+    const tag = queryParam(ctx.request.query.tag);
 
     if (authorName === '') {
       throw new BadRequestException('Invalid author');
+    }
+
+    if (tag !== undefined && (tag.length === 0 || tag.length > 50)) {
+      throw new BadRequestException('Invalid tag');
     }
 
     if (publishedParam !== undefined && publishedParam !== 'true' && publishedParam !== 'false') {
@@ -77,6 +82,7 @@ export const list = compose([
     const articleIds = await dbAdapter.getVisibleArticleIds(user?.id ?? null, {
       authorId: author?.id ?? null,
       published: publishedParam === 'true',
+      tag,
       limit: limit + 1,
       offset,
     });

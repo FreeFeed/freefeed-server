@@ -71,10 +71,11 @@ The response contains the full `article` and related `users`, `posts`, and `atta
 Query parameters:
 
 - `author`: an existing user's username; groups are rejected;
+- `tag`: an article topic, matched using hashtag normalization (ignoring case and diacritics, including `ё`/`е`); can be combined with `author`;
 - `published`: `true` for published articles or `false` for drafts; defaults to `false`;
 - `limit` and `offset`: pagination parameters; `limit` is capped at 100.
 
-Articles are ordered by creation time, newest first. Draft listings contain only the requesting author's articles. Published listings apply linked-post visibility before pagination.
+Articles are ordered by creation time, newest first. Draft listings contain only the requesting author's articles. Tag filters and linked-post visibility apply before pagination.
 
 The response is:
 
