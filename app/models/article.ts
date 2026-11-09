@@ -251,6 +251,8 @@ export type ArticleSummaryData = {
   digest: string;
   createdAt: Date;
   updatedAt: Date;
+  // Creation time of the linked post
+  publishedAt: Date | null;
   tags: readonly string[];
 };
 

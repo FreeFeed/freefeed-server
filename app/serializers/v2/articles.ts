@@ -1,6 +1,7 @@
 import type { Article, ArticleRevision, ArticleSummaryData } from '../../models/article';
 import type { ArticleBody } from '../../models/article-body';
 import type { UUID } from '../../support/types';
+import { dbAdapter } from '../../models';
 
 export type SerializedArticle = {
   id: UUID;
@@ -12,6 +13,7 @@ export type SerializedArticle = {
   digest: string;
   createdAt: string;
   updatedAt: string;
+  publishedAt: string | null;
   tags: readonly string[];
 };
 
@@ -42,12 +44,17 @@ export function serializeArticle(article: ArticleSummaryData): SerializedArticle
     digest: article.digest,
     createdAt: article.createdAt.toISOString(),
     updatedAt: article.updatedAt.toISOString(),
+    publishedAt: article.publishedAt?.toISOString() ?? null,
     tags: article.tags,
   };
 }
 
 export async function serializeArticleFull(article: Article): Promise<SerializedArticleFull> {
-  const [shortId, tags] = await Promise.all([article.getShortId(), article.getTags()]);
+  const [shortId, tags, post] = await Promise.all([
+    article.getShortId(),
+    article.getTags(),
+    article.postId ? dbAdapter.getPostById(article.postId) : null,
+  ]);
 
   return {
     ...serializeArticle({
@@ -60,6 +67,7 @@ export async function serializeArticleFull(article: Article): Promise<Serialized
       digest: article.digest,
       createdAt: article.createdAt,
       updatedAt: article.updatedAt,
+      publishedAt: post ? new Date(+post.createdAt) : null,
       tags,
     }),
     body: article.body,

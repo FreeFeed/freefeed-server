@@ -59,6 +59,7 @@ describe('Post article association', () => {
           digest: content.digest,
           createdAt: article.createdAt.toISOString(),
           updatedAt: article.updatedAt.toISOString(),
+          publishedAt: expect.it('to be a string'),
           tags: ['first', 'second'],
         },
       ]);

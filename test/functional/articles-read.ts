@@ -83,7 +83,7 @@ describe('Articles API: reading', () => {
       expect(anonymous, 'to satisfy', { __httpCode: 200, articles: [], isLastPage: true });
     });
 
-    it('should list only published articles with visible posts before paginating', async () => {
+    it('should list only published articles with visible posts, newest published first', async () => {
       const mars = await createTestUser('mars');
       const jupiter = await createTestUser('jupiter');
       const lunaArticle = await dbAdapter.createArticle({
@@ -111,17 +111,18 @@ describe('Articles API: reading', () => {
       const marsPrivatePost = await createPost(mars.user, 'Mars private post');
       await marsPrivateArticle.setPost(marsPrivatePost.id);
 
+      // Published lists are ordered by the post time, not by the article creation time
       await dbAdapter
         .database('articles')
         .where({ uid: lunaArticle.id })
         .update({
-          created_at: new Date('2026-01-01T00:00:00Z'),
+          created_at: new Date('2026-01-02T00:00:00Z'),
         });
       await dbAdapter
         .database('articles')
         .where({ uid: jupiterArticle.id })
         .update({
-          created_at: new Date('2026-01-02T00:00:00Z'),
+          created_at: new Date('2026-01-01T00:00:00Z'),
         });
       await dbAdapter
         .database('articles')
@@ -162,7 +163,12 @@ describe('Articles API: reading', () => {
 
       expect(firstPage, 'to satisfy', {
         __httpCode: 200,
-        articles: [{ id: jupiterArticle.id }],
+        articles: [
+          {
+            id: jupiterArticle.id,
+            publishedAt: new Date(+jupiterPost.createdAt).toISOString(),
+          },
+        ],
         posts: [{ id: jupiterPost.id, articleId: jupiterArticle.id }],
         users: [{ id: jupiter.user.id }],
         isLastPage: false,
@@ -234,9 +240,15 @@ describe('Articles API: reading', () => {
             });
             await article.setTags(tags);
 
+            const createdAt = new Date(Date.UTC(2026, 0, i + 1));
+
             if (published) {
               const post = await createPost(author.user, 'Article post');
               await article.setPost(post.id);
+              await dbAdapter
+                .database('posts')
+                .where({ uid: post.id })
+                .update({ created_at: createdAt });
             }
 
             if (deleted) {
@@ -246,9 +258,7 @@ describe('Articles API: reading', () => {
             await dbAdapter
               .database('articles')
               .where({ uid: article.id })
-              .update({
-                created_at: new Date(Date.UTC(2026, 0, i + 1)),
-              });
+              .update({ created_at: createdAt });
             return article.id;
           }),
         );
@@ -346,6 +356,7 @@ describe('Articles API: reading', () => {
           id: article.id,
           authorId: luna.user.id,
           postId: null,
+          publishedAt: null,
           shortId: await article.getShortId(),
           version: 1,
           title: 'Test article',

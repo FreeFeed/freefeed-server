@@ -296,6 +296,7 @@ const serializedArticle = {
   digest: expect.it('to be a string'),
   createdAt: expect.it('to be timeStampString'),
   updatedAt: expect.it('to be timeStampString'),
+  publishedAt: expect.it('to be null').or('to be timeStampString'),
   tags: expect.it('to be an array').and('to have items satisfying', 'to be a string'),
 };
 

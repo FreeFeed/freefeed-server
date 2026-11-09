@@ -166,6 +166,7 @@ export class Post {
   toDelete: boolean;
   isProtected: '0' | '1';
   isPrivate: '0' | '1';
+  createdAt: string; // numeric string
   constructor(params: {
     userId: UUID;
     body: string;

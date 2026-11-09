@@ -338,7 +338,7 @@ const articlesTrait = (superClass: typeof DbAdapter) =>
           join users u on u.uid = p.user_id
           where not a.to_delete and au.gone_status is null
             and ${authorFilter} and ${tagFilter} and ${visibility}
-          order by a.created_at desc, a.uid desc
+          order by p.created_at desc, a.uid desc
           limit :limit offset :offset`,
         bindings,
       );
@@ -352,7 +352,7 @@ const articlesTrait = (superClass: typeof DbAdapter) =>
       const rows = await this.database.getAll<z.infer<typeof articleSummarySchema>>(
         `select
           a.uid, a.author_id, a.post_id, s.short_id, a.version, a.title, a.digest,
-          a.created_at, a.updated_at,
+          a.created_at, a.updated_at, p.created_at as published_at,
           coalesce(
             (select array_agg(t.name order by at.ord)
               from article_tags at join hashtags t on t.id = at.tag_id
@@ -361,6 +361,7 @@ const articlesTrait = (superClass: typeof DbAdapter) =>
           ) as tags
           from articles a
           join article_short_ids s on s.long_id = a.uid
+          left join posts p on p.uid = a.post_id
           where a.uid = any(:articleIds) and not a.to_delete`,
         { articleIds },
       );
@@ -376,7 +377,7 @@ const articlesTrait = (superClass: typeof DbAdapter) =>
       const rows = await pool.any(
         articleSummaryQuery`select
           a.uid, a.author_id, a.post_id, s.short_id, a.version, a.title, a.digest,
-          a.created_at, a.updated_at,
+          a.created_at, a.updated_at, p.created_at as published_at,
           coalesce(
             (select array_agg(t.name order by at.ord)
               from article_tags at join hashtags t on t.id = at.tag_id
@@ -385,6 +386,7 @@ const articlesTrait = (superClass: typeof DbAdapter) =>
           ) as tags
           from articles a
           join article_short_ids s on s.long_id = a.uid
+          left join posts p on p.uid = a.post_id
           where a.post_id = any(${sql.array(postIds, 'uuid')}) and not a.to_delete`,
       );
       return new Map(rows.map((row) => [row.post_id as UUID, articleSummaryFromRow(row)]));
@@ -463,6 +465,7 @@ const articleSummarySchema = z.object({
   digest: z.string(),
   created_at: z.date(),
   updated_at: z.date(),
+  published_at: z.date().nullable(),
   tags: z.array(z.string()),
 });
 const articleSummaryQuery = sql.type(articleSummarySchema);
@@ -478,6 +481,7 @@ function articleSummaryFromRow(row: z.infer<typeof articleSummarySchema>): Artic
     digest: row.digest,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    publishedAt: row.published_at,
     tags: row.tags,
   };
 }
