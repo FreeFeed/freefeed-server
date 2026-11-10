@@ -9,10 +9,10 @@ import { createUsers } from '../helpers/users';
 import { withModifiedConfig } from '../../helpers/with-modified-config';
 import {
   jobHandler,
-  type JobPayload,
   scheduleWelcomeDirects,
   WELCOME_DIRECT,
 } from '../../../app/support/welcome-directs';
+import type { JobPayload } from '../../../app/support/welcome-directs';
 import { createPost } from '../helpers/posts-and-comments';
 
 const expect = unexpected.clone().use(unexpectedDate);

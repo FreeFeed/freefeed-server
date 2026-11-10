@@ -1,8 +1,9 @@
 import compose from 'koa-compose';
 
-import { type Ctx, type UUID } from '../../../support/types';
+import type { Ctx, UUID } from '../../../support/types';
 import { targetUserRequired } from '../../middlewares';
-import { dbAdapter, type User } from '../../../models';
+import { dbAdapter } from '../../../models';
+import type { User } from '../../../models';
 import { ForbiddenException } from '../../../support/exceptions';
 import {
   ACT_GIVE_MODERATOR_RIGHTS,

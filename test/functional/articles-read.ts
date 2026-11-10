@@ -1,0 +1,683 @@
+import { beforeEach, describe, it } from 'mocha';
+import expect from 'unexpected';
+
+import { dbAdapter } from '../../app/models';
+import type { Article, ArticleEditableContent } from '../../app/models/article';
+import type { UUID } from '../../app/support/types';
+import cleanDB from '../dbCleaner';
+import { createPost } from '../integration/helpers/posts-and-comments';
+
+import {
+  authHeaders,
+  createTestUser,
+  goPrivate,
+  justCreateGroup,
+  performJSONRequest,
+} from './functional_test_helper';
+import type { UserCtx } from './functional_test_helper';
+
+const content = {
+  digest: 'Test digest',
+  body: '# Test article\n\nHello',
+} satisfies ArticleEditableContent;
+
+describe('Articles API: reading', () => {
+  let luna: UserCtx;
+
+  beforeEach(async () => {
+    await cleanDB(dbAdapter.database);
+    luna = await createTestUser('luna');
+  });
+
+  describe('User statistics', () => {
+    for (const isPrivate of [false, true]) {
+      it(`should count articles in a ${isPrivate ? 'private' : 'public'} group feed`, async () => {
+        const mars = await createTestUser('mars');
+        const group = await justCreateGroup(luna, 'selenites', 'Selenites', { isPrivate });
+        const otherGroup = await justCreateGroup(luna, 'other-group', 'Other group', { isPrivate });
+        await dbAdapter.createArticle({ author_id: luna.user.id, ...content });
+        await Promise.all(
+          [luna, mars].map(async (author) => {
+            const article = await dbAdapter.createArticle({
+              author_id: author.user.id,
+              ...content,
+            });
+            const post = await createPost(author.user, 'Announcement', [group, otherGroup]);
+            await article.setPost(post.id);
+          }),
+        );
+        const outside = await dbAdapter.createArticle({ author_id: luna.user.id, ...content });
+        await outside.setPost((await createPost(luna.user, 'Outside group')).id);
+
+        const viewers = [
+          [null, isPrivate ? 0 : 2],
+          [luna, 2],
+        ] as const;
+        await Promise.all(
+          viewers.map(async ([viewer, count]) => {
+            const response = await performJSONRequest(
+              'GET',
+              '/v2/users/selenites/statistics',
+              undefined,
+              viewer ? authHeaders(viewer) : undefined,
+            );
+            expect(response, 'to satisfy', { __httpCode: 200, statistics: { articles: count } });
+          }),
+        );
+        const response = await performJSONRequest(
+          'GET',
+          '/v2/users/other-group/statistics',
+          undefined,
+          authHeaders(luna),
+        );
+        expect(response, 'to satisfy', { __httpCode: 200, statistics: { articles: 2 } });
+      });
+    }
+
+    for (const privacy of ['public', 'protected', 'private']) {
+      it(`should count only visible published articles of a ${privacy} author`, async () => {
+        const mars = await createTestUser('mars');
+
+        if (privacy !== 'public') {
+          await luna.user.update({
+            isProtected: '1',
+            isPrivate: privacy === 'private' ? '1' : '0',
+          });
+        }
+
+        await dbAdapter.createArticle({ author_id: luna.user.id, ...content });
+        const published = await dbAdapter.createArticle({ author_id: luna.user.id, ...content });
+        const post = await createPost(luna.user, 'Announcement');
+        await published.setPost(post.id);
+        const other = await dbAdapter.createArticle({ author_id: mars.user.id, ...content });
+        await other.setPost((await createPost(mars.user, 'Other announcement')).id);
+
+        const viewers = [
+          [null, privacy === 'public' ? 1 : 0],
+          [mars, privacy === 'private' ? 0 : 1],
+          [luna, 1],
+        ] as const;
+        await Promise.all(
+          viewers.map(async ([viewer, count]) => {
+            const response = await performJSONRequest(
+              'GET',
+              '/v2/users/luna/statistics',
+              undefined,
+              viewer ? authHeaders(viewer) : undefined,
+            );
+            expect(response, 'to satisfy', { __httpCode: 200, statistics: { articles: count } });
+          }),
+        );
+
+        await published.deactivate();
+        const response = await performJSONRequest(
+          'GET',
+          '/v2/users/luna/statistics',
+          undefined,
+          authHeaders(luna),
+        );
+        expect(response, 'to satisfy', { __httpCode: 200, statistics: { articles: 0 } });
+      });
+    }
+  });
+
+  describe('List', () => {
+    it('should list only the viewer’s drafts by default, newest first', async () => {
+      const mars = await createTestUser('mars');
+      const older = await dbAdapter.createArticle({
+        author_id: luna.user.id,
+        ...content,
+        body: '# Older',
+      });
+      const newer = await dbAdapter.createArticle({
+        author_id: luna.user.id,
+        ...content,
+        body: '# Newer',
+      });
+      await newer.setTags(['draft']);
+      await dbAdapter.createArticle({ author_id: mars.user.id, ...content });
+      await dbAdapter
+        .database('articles')
+        .where({ uid: older.id })
+        .update({
+          created_at: new Date('2026-01-01T00:00:00Z'),
+        });
+      await dbAdapter
+        .database('articles')
+        .where({ uid: newer.id })
+        .update({
+          created_at: new Date('2026-01-02T00:00:00Z'),
+        });
+
+      const response = await performJSONRequest<{
+        articles: { id: UUID; title: string; tags: string[] }[];
+        isLastPage: boolean;
+      }>('GET', '/v4/articles', undefined, authHeaders(luna));
+      const otherAuthor = await performJSONRequest<{ articles: unknown[] }>(
+        'GET',
+        '/v4/articles?author=mars',
+        undefined,
+        authHeaders(luna),
+      );
+      const anonymous = await performJSONRequest<{ articles: unknown[] }>('GET', '/v4/articles');
+
+      expect(response, 'to satisfy', { __httpCode: 200, isLastPage: true });
+      expect(
+        response.articles.map(({ id }) => id),
+        'to equal',
+        [newer.id, older.id],
+      );
+      expect(response.articles[0], 'to satisfy', { title: 'Newer', tags: ['draft'] });
+      expect(response.articles[0], 'not to have key', 'body');
+      expect(response.articles[0], 'not to have key', 'attachmentIds');
+      expect(response, 'to satisfy', { posts: [], users: [{ id: luna.user.id }] });
+      expect(otherAuthor, 'to satisfy', { __httpCode: 200, articles: [], isLastPage: true });
+      expect(anonymous, 'to satisfy', { __httpCode: 200, articles: [], isLastPage: true });
+    });
+
+    it('should list only published articles with visible posts, newest published first', async () => {
+      const mars = await createTestUser('mars');
+      const jupiter = await createTestUser('jupiter');
+      const lunaArticle = await dbAdapter.createArticle({
+        author_id: luna.user.id,
+        ...content,
+        body: '# Luna public',
+      });
+      const lunaPost = await createPost(luna.user, 'Luna public post');
+      await lunaArticle.setPost(lunaPost.id);
+
+      const jupiterArticle = await dbAdapter.createArticle({
+        author_id: jupiter.user.id,
+        ...content,
+        body: '# Jupiter public',
+      });
+      const jupiterPost = await createPost(jupiter.user, 'Jupiter public post');
+      await jupiterArticle.setPost(jupiterPost.id);
+
+      await goPrivate(mars);
+      const marsPrivateArticle = await dbAdapter.createArticle({
+        author_id: mars.user.id,
+        ...content,
+        body: '# Mars private',
+      });
+      const marsPrivatePost = await createPost(mars.user, 'Mars private post');
+      await marsPrivateArticle.setPost(marsPrivatePost.id);
+
+      // Published lists are ordered by the post time, not by the article creation time
+      await dbAdapter
+        .database('articles')
+        .where({ uid: lunaArticle.id })
+        .update({
+          created_at: new Date('2026-01-02T00:00:00Z'),
+        });
+      await dbAdapter
+        .database('articles')
+        .where({ uid: jupiterArticle.id })
+        .update({
+          created_at: new Date('2026-01-01T00:00:00Z'),
+        });
+      await dbAdapter
+        .database('articles')
+        .where({ uid: marsPrivateArticle.id })
+        .update({
+          created_at: new Date('2026-01-03T00:00:00Z'),
+        });
+
+      const firstPage = await performJSONRequest<{ articles: { id: UUID }[] }>(
+        'GET',
+        '/v4/articles?published=true&limit=1',
+        undefined,
+        authHeaders(luna),
+      );
+      const secondPage = await performJSONRequest<{ articles: { id: UUID }[] }>(
+        'GET',
+        '/v4/articles?published=true&limit=1&offset=1',
+        undefined,
+        authHeaders(luna),
+      );
+      const byAuthor = await performJSONRequest<{ articles: { id: UUID }[] }>(
+        'GET',
+        '/v4/articles?published=true&author=jupiter',
+        undefined,
+        authHeaders(luna),
+      );
+      const anonymous = await performJSONRequest<{
+        articles: { id: UUID }[];
+        posts: { id: UUID }[];
+        users: { id: UUID }[];
+      }>('GET', '/v4/articles?published=true');
+      const privateAuthor = await performJSONRequest<{ articles: { id: UUID }[] }>(
+        'GET',
+        '/v4/articles?published=true&author=mars',
+        undefined,
+        authHeaders(mars),
+      );
+
+      expect(firstPage, 'to satisfy', {
+        __httpCode: 200,
+        articles: [
+          {
+            id: jupiterArticle.id,
+            publishedAt: new Date(+jupiterPost.createdAt).toISOString(),
+          },
+        ],
+        posts: [{ id: jupiterPost.id, articleId: jupiterArticle.id }],
+        users: [{ id: jupiter.user.id }],
+        isLastPage: false,
+      });
+      expect(secondPage, 'to satisfy', {
+        __httpCode: 200,
+        articles: [{ id: lunaArticle.id }],
+        posts: [{ id: lunaPost.id, articleId: lunaArticle.id }],
+        users: [{ id: luna.user.id }],
+        isLastPage: true,
+      });
+      expect(byAuthor, 'to satisfy', {
+        __httpCode: 200,
+        articles: [{ id: jupiterArticle.id }],
+        posts: [{ id: jupiterPost.id, articleId: jupiterArticle.id }],
+        users: [{ id: jupiter.user.id }],
+        isLastPage: true,
+      });
+      expect(
+        anonymous.articles.map(({ id }) => id),
+        'to equal',
+        [jupiterArticle.id, lunaArticle.id],
+      );
+      expect(
+        anonymous.posts.map(({ id }) => id),
+        'to equal',
+        [jupiterPost.id, lunaPost.id],
+      );
+      expect(
+        anonymous.users.map(({ id }) => id),
+        'to equal',
+        [jupiter.user.id, luna.user.id],
+      );
+      expect(privateAuthor, 'to satisfy', {
+        __httpCode: 200,
+        articles: [{ id: marsPrivateArticle.id }],
+        posts: [{ id: marsPrivatePost.id, articleId: marsPrivateArticle.id }],
+        users: [{ id: mars.user.id }],
+        isLastPage: true,
+      });
+    });
+
+    describe('Tag filter', () => {
+      let ids: UUID[];
+
+      beforeEach(async () => {
+        const mars = await createTestUser('mars');
+        const jupiter = await createTestUser('jupiter');
+        await goPrivate(jupiter);
+        const fixtures = [
+          {
+            author: luna,
+            published: true,
+            tags: ['Space', 'science', 'ёлка', 'елка', 'café', 'cafe'],
+          },
+          { author: luna, published: false, tags: ['space', 'ёлка', 'café'] },
+          { author: mars, published: true, tags: ['space'] },
+          { author: mars, published: false, tags: ['space'] },
+          { author: jupiter, published: true, tags: ['space'] },
+          { author: luna, published: true, tags: ['other'] },
+          { author: luna, published: false, tags: [] },
+          { author: luna, published: false, tags: ['space'], deleted: true },
+        ];
+        ids = await Promise.all(
+          fixtures.map(async ({ author, published, tags, deleted }, i) => {
+            const article = await dbAdapter.createArticle({
+              author_id: author.user.id,
+              ...content,
+            });
+            await article.setTags(tags);
+
+            const createdAt = new Date(Date.UTC(2026, 0, i + 1));
+
+            if (published) {
+              const post = await createPost(author.user, 'Article post');
+              await article.setPost(post.id);
+              await dbAdapter
+                .database('posts')
+                .where({ uid: post.id })
+                .update({ created_at: createdAt });
+            }
+
+            if (deleted) {
+              await article.deactivate();
+            }
+
+            await dbAdapter
+              .database('articles')
+              .where({ uid: article.id })
+              .update({ created_at: createdAt });
+            return article.id;
+          }),
+        );
+      });
+
+      const cases = [
+        { query: `tag=${encodeURIComponent('ЕЛКА')}`, indices: [1] },
+        { query: 'tag=CAFE', indices: [1] },
+        { query: `tag=${encodeURIComponent('ЁЛКА')}&published=true`, indices: [0] },
+        { query: `tag=${encodeURIComponent('CAFÉ')}&published=true`, indices: [0] },
+        { query: 'tag=SPACE', indices: [1] },
+        { query: 'tag=space&author=luna', indices: [1] },
+        { query: 'tag=space&author=mars', indices: [] },
+        { query: 'tag=space&published=true', indices: [2, 0] },
+        { query: 'tag=space&published=true&author=mars', indices: [2] },
+        { query: 'tag=space&published=false', indices: [1] },
+        { query: 'tag=space&published=false&author=mars', indices: [] },
+        { query: 'tag=unknown', indices: [] },
+        { query: 'tag=space&published=true&limit=1', indices: [2], isLastPage: false },
+        { query: 'tag=space&published=true&limit=1&offset=1', indices: [0] },
+        { query: 'tag=space', indices: [], anonymous: true },
+        { query: 'tag=space&author=luna', indices: [], anonymous: true },
+        { query: 'tag=space&published=true', indices: [2, 0], anonymous: true },
+        { query: 'tag=space&published=false', indices: [], anonymous: true },
+      ];
+
+      for (const { query, indices, isLastPage = true, anonymous = false } of cases) {
+        it(`should filter ${query}${anonymous ? ' anonymously' : ''}`, async () => {
+          const response = await performJSONRequest<{ articles: { id: UUID }[] }>(
+            'GET',
+            `/v4/articles?${query}`,
+            undefined,
+            anonymous ? undefined : authHeaders(luna),
+          );
+          expect(response, 'to satisfy', { __httpCode: 200, isLastPage });
+          expect(
+            response.articles.map(({ id }) => id),
+            'to equal',
+            indices.map((i) => ids[i]),
+          );
+        });
+      }
+    });
+
+    for (const tag of ['', 'x'.repeat(51)]) {
+      it(`should reject an invalid tag of length ${tag.length}`, async () => {
+        const response = await performJSONRequest('GET', `/v4/articles?tag=${tag}`);
+
+        expect(response, 'to satisfy', { __httpCode: 400, err: 'Invalid tag' });
+      });
+    }
+
+    it('should reject an invalid published value', async () => {
+      const response = await performJSONRequest('GET', '/v4/articles?published=1');
+
+      expect(response, 'to satisfy', {
+        __httpCode: 400,
+        err: 'Invalid published value',
+      });
+    });
+
+    it('should reject an unknown author', async () => {
+      const response = await performJSONRequest('GET', '/v4/articles?author=unknown');
+
+      expect(response, 'to satisfy', { __httpCode: 400, err: 'Invalid author' });
+    });
+
+    it('should reject a group as an author', async () => {
+      await justCreateGroup(luna, 'selenites');
+
+      const response = await performJSONRequest('GET', '/v4/articles?author=selenites');
+
+      expect(response, 'to satisfy', { __httpCode: 400, err: 'Invalid author' });
+    });
+  });
+
+  describe('Get by ID', () => {
+    let article: Article;
+
+    beforeEach(async () => {
+      article = await dbAdapter.createArticle({ author_id: luna.user.id, ...content });
+    });
+
+    it('should return the author’s unpublished article by UUID', async () => {
+      const response = await performJSONRequest(
+        'GET',
+        `/v4/articles/${article.id}`,
+        undefined,
+        authHeaders(luna),
+      );
+
+      expect(response, 'to satisfy', {
+        __httpCode: 200,
+        article: {
+          id: article.id,
+          authorId: luna.user.id,
+          postId: null,
+          publishedAt: null,
+          shortId: await article.getShortId(),
+          version: 1,
+          title: 'Test article',
+          ...content,
+          tags: [],
+        },
+        posts: [],
+        attachments: [],
+        users: [{ id: luna.user.id }],
+      });
+    });
+
+    it('should return the article by short ID', async () => {
+      const response = await performJSONRequest(
+        'GET',
+        `/v4/articles/${await article.getShortId()}`,
+        undefined,
+        authHeaders(luna),
+      );
+
+      expect(response, 'to satisfy', { __httpCode: 200, article: { id: article.id } });
+    });
+
+    it('should return 404 for an unknown article', async () => {
+      const response = await performJSONRequest(
+        'GET',
+        '/v4/articles/00000000-0000-0000-0000-000000000000',
+        undefined,
+        authHeaders(luna),
+      );
+
+      expect(response, 'to satisfy', { __httpCode: 404, err: 'Article not found' });
+    });
+
+    it('should deny access to another author’s unpublished article', async () => {
+      const mars = await createTestUser('mars');
+      const response = await performJSONRequest(
+        'GET',
+        `/v4/articles/${article.id}`,
+        undefined,
+        authHeaders(mars),
+      );
+
+      expect(response, 'to satisfy', { __httpCode: 403 });
+    });
+
+    it('should deny anonymous access to an unpublished article', async () => {
+      const response = await performJSONRequest('GET', `/v4/articles/${article.id}`);
+
+      expect(response, 'to satisfy', { __httpCode: 403 });
+    });
+
+    it('should return the associated public post to another user', async () => {
+      const mars = await createTestUser('mars');
+      const post = await createPost(luna.user, 'Public post');
+      await article.setPost(post.id);
+
+      const response = await performJSONRequest(
+        'GET',
+        `/v4/articles/${article.id}`,
+        undefined,
+        authHeaders(mars),
+      );
+
+      expect(response, 'to satisfy', {
+        __httpCode: 200,
+        article: { id: article.id, postId: post.id },
+        posts: [{ id: post.id }],
+        users: [{ id: luna.user.id }],
+      });
+    });
+
+    it('should allow anonymous access when the associated post is public', async () => {
+      const post = await createPost(luna.user, 'Public post');
+      await article.setPost(post.id);
+
+      const response = await performJSONRequest('GET', `/v4/articles/${article.id}`);
+
+      expect(response, 'to satisfy', {
+        __httpCode: 200,
+        article: { id: article.id, postId: post.id },
+        posts: [{ id: post.id }],
+      });
+    });
+
+    it('should hide a deactivated article', async () => {
+      await article.deactivate();
+
+      const response = await performJSONRequest(
+        'GET',
+        `/v4/articles/${article.id}`,
+        undefined,
+        authHeaders(luna),
+      );
+
+      expect(response, 'to satisfy', { __httpCode: 404, err: 'Article not found' });
+    });
+  });
+
+  describe('Revisions', () => {
+    let article: Article;
+
+    beforeEach(async () => {
+      article = await dbAdapter.createArticle({ author_id: luna.user.id, ...content });
+      await article.update(1, { ...content, body: '# Second version' });
+      await article.update(2, { ...content, body: '# Third version' });
+    });
+
+    it('should return paginated revision IDs and dates', async () => {
+      const revisions = await article.getRevisions(10, 0);
+      const firstPage = await performJSONRequest(
+        'GET',
+        `/v4/articles/${article.id}/revisions?limit=1`,
+        undefined,
+        authHeaders(luna),
+      );
+      const secondPage = await performJSONRequest(
+        'GET',
+        `/v4/articles/${article.id}/revisions?limit=1&offset=1`,
+        undefined,
+        authHeaders(luna),
+      );
+
+      expect(firstPage, 'to equal', {
+        __httpCode: 200,
+        revisions: [{ id: revisions[0].uid, createdAt: revisions[0].createdAt.toISOString() }],
+        isLastPage: false,
+      });
+      expect(secondPage, 'to equal', {
+        __httpCode: 200,
+        revisions: [{ id: revisions[1].uid, createdAt: revisions[1].createdAt.toISOString() }],
+        isLastPage: true,
+      });
+    });
+
+    it('should limit a page to 100 revisions', async () => {
+      for (let expectedVersion = 3; expectedVersion <= 101; expectedVersion++) {
+        // Updates must be sequential because each one requires the previous version.
+        // eslint-disable-next-line no-await-in-loop
+        await article.update(expectedVersion, {
+          ...content,
+          body: `# Version ${expectedVersion + 1}`,
+        });
+      }
+
+      const response = await performJSONRequest<{
+        revisions: unknown[];
+        isLastPage: boolean;
+      }>('GET', `/v4/articles/${article.id}/revisions?limit=101`, undefined, authHeaders(luna));
+
+      expect(response, 'to satisfy', { __httpCode: 200, isLastPage: false });
+      expect(response.revisions, 'to have length', 100);
+    });
+
+    it('should return the full revision', async () => {
+      const firstContent = {
+        ...content,
+        body: '# First version\n\nArticle body',
+      } satisfies ArticleEditableContent;
+      const versionedArticle = await dbAdapter.createArticle({
+        author_id: luna.user.id,
+        ...firstContent,
+      });
+      await versionedArticle.update(1, content);
+      const [revision] = await versionedArticle.getRevisions(1, 0);
+
+      const response = await performJSONRequest(
+        'GET',
+        `/v4/articles/${versionedArticle.id}/revisions/${revision.uid}`,
+        undefined,
+        authHeaders(luna),
+      );
+
+      expect(response, 'to satisfy', {
+        __httpCode: 200,
+        revision: {
+          id: revision.uid,
+          articleId: versionedArticle.id,
+          version: 1,
+          title: 'First version',
+          body: firstContent.body,
+          createdAt: revision.createdAt.toISOString(),
+        },
+      });
+      expect(Object.keys(response).sort(), 'to equal', ['__httpCode', 'revision']);
+    });
+
+    it('should not return a revision of another article', async () => {
+      const otherArticle = await dbAdapter.createArticle({
+        author_id: luna.user.id,
+        ...content,
+      });
+      await otherArticle.update(1, { ...content, body: '# Other version' });
+      const [otherRevision] = await otherArticle.getRevisions(1, 0);
+
+      const response = await performJSONRequest(
+        'GET',
+        `/v4/articles/${article.id}/revisions/${otherRevision.uid}`,
+        undefined,
+        authHeaders(luna),
+      );
+
+      expect(response, 'to satisfy', {
+        __httpCode: 404,
+        err: 'Article revision not found',
+      });
+    });
+
+    it('should not return revisions to another user', async () => {
+      const mars = await createTestUser('mars');
+      const post = await createPost(luna.user, 'Public post');
+      await article.setPost(post.id);
+      const [revision] = await article.getRevisions(1, 0);
+
+      const listResponse = await performJSONRequest(
+        'GET',
+        `/v4/articles/${article.id}/revisions`,
+        undefined,
+        authHeaders(mars),
+      );
+      const revisionResponse = await performJSONRequest(
+        'GET',
+        `/v4/articles/${article.id}/revisions/${revision.uid}`,
+        undefined,
+        authHeaders(mars),
+      );
+
+      expect(listResponse, 'to satisfy', { __httpCode: 403 });
+      expect(revisionResponse, 'to satisfy', { __httpCode: 403 });
+    });
+  });
+});

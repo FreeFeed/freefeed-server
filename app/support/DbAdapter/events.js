@@ -17,6 +17,7 @@ const eventsTrait = (superClass) =>
       postAuthorIntId = null,
       targetPostId = null,
       targetCommentId = null,
+      articleId = null,
     ) {
       const postIntId = postId ? await this._getPostIntIdByUUID(postId) : null;
       const commentIntId = commentId ? await this._getCommentIntIdByUUID(commentId) : null;
@@ -32,6 +33,7 @@ const eventsTrait = (superClass) =>
         post_author_id: postAuthorIntId,
         target_post_id: targetPostId,
         target_comment_id: targetCommentId,
+        article_id: articleId,
       };
 
       const insertSQL = this.database('events').insert(payload).toString();

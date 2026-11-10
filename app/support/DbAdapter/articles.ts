@@ -1,0 +1,517 @@
+import { sql } from 'slonik';
+import { z } from 'zod';
+import { fromError } from 'zod-validation-error';
+
+import { Article, ArticleRevision } from '../../models/article';
+import type {
+  ArticleCreationParams,
+  ArticleEditableContent,
+  ArticleSummaryData,
+  ArticleUpdateResult,
+} from '../../models/article';
+import type { UUID } from '../types';
+import { currentConfig } from '../app-async-context';
+import { ValidationException } from '../exceptions';
+import { articleBodySchema, extractTitle } from '../../models/article-body';
+import { toTSVector } from '../search/to-tsvector';
+import { normalizeHashtag } from '../normalize-hashtags';
+
+import { createShortId } from './short-ids';
+
+import type { DbAdapter } from './index';
+
+///////////////////////////////////////////////////
+// Articles
+///////////////////////////////////////////////////
+
+const articlesTrait = (superClass: typeof DbAdapter) =>
+  class extends superClass {
+    async getArticleById(uid: UUID): Promise<Article | null> {
+      const pool = await this.getSlonik();
+      const row = await pool.maybeOne(articleQuery`select * from articles where uid = ${uid}`);
+      return row ? new Article(this, row) : null;
+    }
+
+    async getArticleRevisionById(uid: UUID): Promise<ArticleRevision | null> {
+      const pool = await this.getSlonik();
+      const row = await pool.maybeOne(
+        articleRevisionQuery`select * from article_revisions where uid = ${uid}`,
+      );
+      return row ? new ArticleRevision(row) : null;
+    }
+
+    async getArticleRevisions(
+      articleId: UUID,
+      limit: number,
+      offset: number,
+      descOrder = true,
+    ): Promise<ArticleRevision[]> {
+      const pool = await this.getSlonik();
+      const order = descOrder ? sql.fragment`desc` : sql.fragment`asc`;
+      const rows = await pool.any(
+        articleRevisionQuery`select * from article_revisions where
+          article_id = ${articleId} order by version ${order}
+          limit ${limit} offset ${offset}`,
+      );
+      return rows.map((row) => new ArticleRevision(row));
+    }
+
+    async createArticle(params: ArticleCreationParams): Promise<Article> {
+      const bodyResult = articleBodySchema.safeParse(params.body);
+
+      if (!bodyResult.success) {
+        throw new ValidationException(fromError(bodyResult.error).message);
+      }
+
+      const title = extractTitle(params.body);
+      const pool = await this.getSlonik();
+      const createdId = await pool.transaction(async (trx) => {
+        const id = await trx.oneFirst(
+          uidQuery`insert into articles
+          (author_id, title, title_tsvector, digest, digest_tsvector, body)
+          values
+          (${params.author_id}, ${title}, ${toTSVectorFragment(title)},
+            ${params.digest}, ${toTSVectorFragment(params.digest)}, ${params.body})
+          returning uid`,
+        );
+
+        // Create a short ID for the article
+        await createShortId(currentConfig().shortLinks.initialLength.article, (shortId) =>
+          trx
+            .maybeOneFirst(
+              shortIdQuery`insert into article_short_ids (short_id, long_id) values (${shortId}, ${id})
+              on conflict (short_id) do nothing returning short_id`,
+            )
+            .then((res) => !!res),
+        );
+
+        return id;
+      });
+
+      const article = await this.getArticleById(createdId);
+
+      if (!article) {
+        // We should never reach this point if the article was successfully created
+        throw new Error(`Failed to create article with id ${createdId}`);
+      }
+
+      return article;
+    }
+
+    async getArticleLongId(shortId: string): Promise<UUID | null> {
+      const pool = await this.getSlonik();
+      return pool.maybeOneFirst(
+        uidQuery`select long_id as uid from article_short_ids where short_id = ${shortId}`,
+      );
+    }
+
+    async getArticleByShortId(shortId: string): Promise<Article | null> {
+      const pool = await this.getSlonik();
+      const row = await pool.maybeOne(
+        articleQuery`select a.* from articles a
+          join article_short_ids s on s.long_id = a.uid
+          where s.short_id = ${shortId}`,
+      );
+      return row ? new Article(this, row) : null;
+    }
+
+    async getArticleShortId(articleId: UUID): Promise<string> {
+      const pool = await this.getSlonik();
+      return pool.oneFirst(
+        shortIdQuery`select short_id from article_short_ids where long_id = ${articleId}`,
+      );
+    }
+
+    async getArticleTags(articleId: UUID): Promise<readonly string[]> {
+      const pool = await this.getSlonik();
+      return pool.anyFirst(
+        tagQuery`select t.name
+          from article_tags at
+          join hashtags t on t.id = at.tag_id
+          where at.article_id = ${articleId}
+          order by at.ord`,
+      );
+    }
+
+    async setArticleTags(articleId: UUID, tags: string[]): Promise<void> {
+      const pool = await this.getSlonik();
+      const normalizedTags = [...new Set(tags.map((tag) => tag.toLowerCase()))];
+      await this.getOrCreateHashtagIdsByNames(normalizedTags);
+      const tagIds = (
+        await pool.any(
+          hashtagIdQuery`select h.id
+            from unnest(${sql.array(normalizedTags, 'text')}) with ordinality as t(name, ord)
+            join hashtags h on h.name = t.name
+            order by t.ord`,
+        )
+      ).map(({ id }) => id);
+
+      await pool.transaction(async (trx) => {
+        await trx.oneFirst(
+          uidQuery`select uid from articles where uid = ${articleId} for no key update`,
+        );
+
+        // Delete existing tags and hashtag usages for the article before inserting the new ones
+        await trx.query(voidQuery`delete from article_tags where article_id = ${articleId}`);
+        await trx.query(
+          voidQuery`delete from hashtag_usages where entity_id = ${articleId} and type = ${'article'}`,
+        );
+
+        // Insert new tags and hashtag usages for the article
+        await trx.query(
+          voidQuery`insert into article_tags (article_id, tag_id, ord)
+            select ${articleId}, tag_id, ord
+            from unnest(${sql.array(tagIds, 'int4')}) with ordinality as t(tag_id, ord)`,
+        );
+        await trx.query(
+          voidQuery`insert into hashtag_usages (entity_id, hashtag_id, type)
+            select ${articleId}, tag_id, ${'article'}
+            from unnest(${sql.array(tagIds, 'int4')}) as t(tag_id)`,
+        );
+      });
+    }
+
+    async updateArticle(
+      uid: UUID,
+      expectedVersion: number,
+      params: ArticleEditableContent,
+    ): Promise<ArticleUpdateResult> {
+      const pool = await this.getSlonik();
+      return pool.transaction(async (trx): Promise<ArticleUpdateResult> => {
+        const currentData = await trx.maybeOne(
+          articleQuery`select * from articles where uid = ${uid} for update`,
+        );
+
+        if (currentData === null) {
+          return { status: 'not-found' };
+        }
+
+        if (currentData.version !== expectedVersion) {
+          return { status: 'conflict' };
+        }
+
+        if (currentData.digest === params.digest && currentData.body === params.body) {
+          return { status: 'unchanged' };
+        }
+
+        const bodyResult = articleBodySchema.safeParse(params.body);
+
+        if (!bodyResult.success) {
+          throw new ValidationException(fromError(bodyResult.error).message);
+        }
+
+        if (currentData.body !== params.body) {
+          await trx.oneFirst(
+            uidQuery`insert into article_revisions
+              (article_id, title, body, version)
+              select uid, title, body, version from articles
+              where articles.uid = ${uid} returning uid`,
+          );
+        }
+
+        const title = extractTitle(params.body);
+
+        const version = await trx.oneFirst(
+          versionQuery`update articles
+            set title = ${title},
+                title_tsvector = ${toTSVectorFragment(title)},
+                digest = ${params.digest},
+                digest_tsvector = ${toTSVectorFragment(params.digest)},
+                body = ${params.body},
+                version = version + 1,
+                updated_at = now()
+            where uid = ${uid} and version = ${expectedVersion}
+            returning version`,
+        );
+
+        return { status: 'updated', version };
+      });
+    }
+
+    /**
+     * Associates or disassociates a post with an article.
+     *
+     * @param uid The unique identifier of the article.
+     * @param postId The unique identifier of the post to associate with the article, or null
+     * to disassociate it. Post (if specified) must be active and have been created by the same
+     * author as the article. An existing association can only be replaced if its post is deleting.
+     */
+    async setArticlePost(uid: UUID, postId: UUID | null): Promise<boolean> {
+      const pool = await this.getSlonik();
+      return pool.transaction(async (trx): Promise<boolean> => {
+        const article = await trx.maybeOne(
+          articlePostStateQuery`select uid, author_id, post_id, to_delete from articles
+            where uid = ${uid} for update`,
+        );
+
+        if (!article || article.to_delete) {
+          return false;
+        }
+
+        if (postId === null) {
+          await trx.query(voidQuery`update articles set post_id = null where uid = ${uid}`);
+          return true;
+        }
+
+        const postIds =
+          article.post_id === null || article.post_id === postId
+            ? [postId]
+            : [article.post_id, postId];
+        const posts = await trx.any(
+          postStateQuery`select uid, user_id, to_delete from posts
+            where uid = any(${sql.array(postIds, 'uuid')})`,
+        );
+        const targetPost = posts.find((post) => post.uid === postId);
+
+        if (!targetPost || targetPost.user_id !== article.author_id || targetPost.to_delete) {
+          return false;
+        }
+
+        if (article.post_id !== null && article.post_id !== postId) {
+          const currentPost = posts.find((post) => post.uid === article.post_id);
+
+          if (!currentPost?.to_delete) {
+            return false;
+          }
+        }
+
+        await trx.query(voidQuery`update articles set post_id = ${postId} where uid = ${uid}`);
+        return true;
+      });
+    }
+
+    async getVisibleArticleIds(
+      viewerId: UUID | null,
+      {
+        authorId,
+        published,
+        tag,
+        limit,
+        offset,
+      }: {
+        authorId: UUID | null;
+        published: boolean;
+        tag?: string;
+        limit: number;
+        offset: number;
+      },
+    ): Promise<UUID[]> {
+      if (!published && viewerId === null) {
+        return [];
+      }
+
+      const authorFilter = authorId ? 'a.author_id = :authorId' : 'true';
+      const tagFilter =
+        tag === undefined
+          ? 'true'
+          : `exists (
+        select 1 from article_tags at join hashtags h on h.id = at.tag_id
+        where at.article_id = a.uid and h.normalized_name = :tag
+      )`;
+      const bindings = {
+        authorId,
+        viewerId,
+        tag: tag === undefined ? undefined : normalizeHashtag(tag),
+        limit,
+        offset,
+      };
+
+      if (!published) {
+        return this.database.getCol<UUID>(
+          `select a.uid
+            from articles a join users u on u.uid = a.author_id
+            where not a.to_delete and u.gone_status is null
+              and a.post_id is null and a.author_id = :viewerId
+              and ${authorFilter} and ${tagFilter}
+            order by a.created_at desc, a.uid desc
+            limit :limit offset :offset`,
+          bindings,
+        );
+      }
+
+      const visibility = await this.postsVisibilitySQL(viewerId ?? undefined);
+      return this.database.getCol<UUID>(
+        `select a.uid
+          from articles a
+          join users au on au.uid = a.author_id
+          join posts p on p.uid = a.post_id
+          join users u on u.uid = p.user_id
+          where not a.to_delete and au.gone_status is null
+            and ${authorFilter} and ${tagFilter} and ${visibility}
+          order by p.created_at desc, a.uid desc
+          limit :limit offset :offset`,
+        bindings,
+      );
+    }
+
+    async getArticleSummariesByIds(articleIds: UUID[]): Promise<Map<UUID, ArticleSummaryData>> {
+      if (articleIds.length === 0) {
+        return new Map();
+      }
+
+      const rows = await this.database.getAll<z.infer<typeof articleSummarySchema>>(
+        `select
+          a.uid, a.author_id, a.post_id, s.short_id, a.version, a.title, a.digest,
+          a.created_at, a.updated_at, p.created_at as published_at,
+          coalesce(
+            (select array_agg(t.name order by at.ord)
+              from article_tags at join hashtags t on t.id = at.tag_id
+              where at.article_id = a.uid),
+            array[]::text[]
+          ) as tags
+          from articles a
+          join article_short_ids s on s.long_id = a.uid
+          left join posts p on p.uid = a.post_id
+          where a.uid = any(:articleIds) and not a.to_delete`,
+        { articleIds },
+      );
+      return new Map(rows.map((row) => [row.uid, articleSummaryFromRow(row)]));
+    }
+
+    async getArticleSummariesByPostIds(postIds: UUID[]): Promise<Map<UUID, ArticleSummaryData>> {
+      if (postIds.length === 0) {
+        return new Map();
+      }
+
+      const pool = await this.getSlonik();
+      const rows = await pool.any(
+        articleSummaryQuery`select
+          a.uid, a.author_id, a.post_id, s.short_id, a.version, a.title, a.digest,
+          a.created_at, a.updated_at, p.created_at as published_at,
+          coalesce(
+            (select array_agg(t.name order by at.ord)
+              from article_tags at join hashtags t on t.id = at.tag_id
+              where at.article_id = a.uid),
+            array[]::text[]
+          ) as tags
+          from articles a
+          join article_short_ids s on s.long_id = a.uid
+          left join posts p on p.uid = a.post_id
+          where a.post_id = any(${sql.array(postIds, 'uuid')}) and not a.to_delete`,
+      );
+      return new Map(rows.map((row) => [row.post_id as UUID, articleSummaryFromRow(row)]));
+    }
+
+    async deactivateArticle(uid: UUID): Promise<boolean> {
+      const pool = await this.getSlonik();
+      const result = await pool.maybeOneFirst(
+        uidQuery`update articles set to_delete = true where
+          uid = ${uid} and not to_delete returning uid`,
+      );
+      return result !== null;
+    }
+
+    async activateArticle(uid: UUID): Promise<boolean> {
+      const pool = await this.getSlonik();
+      const result = await pool.maybeOneFirst(
+        uidQuery`update articles set to_delete = false where
+          uid = ${uid} and to_delete returning uid`,
+      );
+      return result !== null;
+    }
+
+    async destroyArticle(uid: UUID): Promise<boolean> {
+      const pool = await this.getSlonik();
+      const deleted = await pool.transaction(async (trx) => {
+        const articleId = await trx.maybeOneFirst(
+          uidQuery`select uid from articles where uid = ${uid} for update`,
+        );
+
+        if (articleId === null) {
+          return null;
+        }
+
+        await trx.query(
+          voidQuery`delete from hashtag_usages where entity_id = ${uid} and type = ${'article'}`,
+        );
+        await trx.query(voidQuery`delete from articles where uid = ${uid}`);
+        return true;
+      });
+
+      return deleted ?? false;
+    }
+  };
+
+export default articlesTrait;
+
+function toTSVectorFragment(text: string) {
+  const query = toTSVector(text);
+  return sql.fragment(Object.assign([query], { raw: Object.freeze([query]) }));
+}
+
+const uidQuery = sql.type(z.object({ uid: z.uuid() }));
+const tagQuery = sql.type(z.object({ name: z.string() }));
+const shortIdQuery = sql.type(z.object({ short_id: z.string() }));
+const hashtagIdQuery = sql.type(z.object({ id: z.number().int().positive() }));
+const voidQuery = sql.type(z.void());
+const articlePostStateQuery = sql.type(
+  z.object({
+    uid: z.uuid(),
+    author_id: z.uuid(),
+    post_id: z.uuid().nullable(),
+    to_delete: z.boolean(),
+  }),
+);
+const postStateQuery = sql.type(
+  z.object({ uid: z.uuid(), user_id: z.uuid(), to_delete: z.boolean() }),
+);
+const articleSummarySchema = z.object({
+  uid: z.uuid(),
+  author_id: z.uuid(),
+  post_id: z.uuid().nullable(),
+  short_id: z.string(),
+  version: z.number().int().positive(),
+  title: z.string(),
+  digest: z.string(),
+  created_at: z.date(),
+  updated_at: z.date(),
+  published_at: z.date().nullable(),
+  tags: z.array(z.string()),
+});
+const articleSummaryQuery = sql.type(articleSummarySchema);
+
+function articleSummaryFromRow(row: z.infer<typeof articleSummarySchema>): ArticleSummaryData {
+  return {
+    uid: row.uid,
+    authorId: row.author_id,
+    postId: row.post_id,
+    shortId: row.short_id,
+    version: row.version,
+    title: row.title,
+    digest: row.digest,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    publishedAt: row.published_at,
+    tags: row.tags,
+  };
+}
+
+const versionSchema = z.number().int().positive();
+const versionQuery = sql.type(z.object({ version: versionSchema }));
+const articleContentSchema = {
+  title: z.string(),
+  digest: z.string(),
+  body: articleBodySchema,
+};
+const articleQuery = sql.type(
+  z.object({
+    uid: z.uuid(),
+    author_id: z.uuid(),
+    post_id: z.uuid().nullable(),
+    created_at: z.date(),
+    updated_at: z.date(),
+    version: versionSchema,
+    to_delete: z.boolean(),
+    ...articleContentSchema,
+  }),
+);
+const articleRevisionQuery = sql.type(
+  z.object({
+    uid: z.uuid(),
+    article_id: z.uuid(),
+    created_at: z.date(),
+    version: versionSchema,
+    title: z.string(),
+    body: articleBodySchema,
+  }),
+);

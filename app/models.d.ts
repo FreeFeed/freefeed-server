@@ -1,7 +1,8 @@
 import { Knex } from 'knex';
 import { Config } from 'config';
 
-import { DbAdapter, type InvitationRecord } from './support/DbAdapter';
+import { DbAdapter } from './support/DbAdapter';
+import type { InvitationRecord } from './support/DbAdapter';
 import PubSubAdapter from './pubsub';
 import { GONE_NAMES } from './models/user';
 import { ISO8601DateTimeString, ISO8601DurationString, Nullable, UUID } from './support/types';
@@ -151,6 +152,10 @@ type PostUserState = {
   hidden: boolean;
 };
 
+export type PostCreateAdditionalParams = {
+  articleId?: UUID | null;
+};
+
 export class Post {
   id: UUID;
   intId: number;
@@ -159,13 +164,16 @@ export class Post {
   destinationFeedIds: number[];
   feedIntIds: number[];
   toDelete: boolean;
+  isProtected: '0' | '1';
+  isPrivate: '0' | '1';
+  createdAt: string; // numeric string
   constructor(params: {
     userId: UUID;
     body: string;
     timelineIds: UUID[];
     commentsDisabled?: '0' | '1';
   });
-  create(): Promise<this>;
+  create(additionalParams?: PostCreateAdditionalParams): Promise<this>;
   inactivate(destroyedBy?: User): Promise<boolean>;
   activate(restoredBy?: User): Promise<boolean>;
   destroy(): Promise<void>;

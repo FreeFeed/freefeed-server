@@ -9,7 +9,7 @@ import {
   notifyBacklinkedNow,
 } from '../../../app/support/backlinks';
 import { List } from '../../../app/support/open-lists';
-import { type UUID } from '../../../app/support/types';
+import type { UUID } from '../../../app/support/types';
 
 describe('Backlinks parser', () => {
   describe('extractUUIDs', () => {

@@ -7,8 +7,8 @@ import PgCursor from 'pg-cursor';
 import pgFormat from 'pg-format';
 import { noop } from 'lodash-es';
 import config from 'config';
-import { type QueryResultRow } from 'pg';
-import { type Knex } from 'knex';
+import type { QueryResultRow } from 'pg';
+import type { Knex } from 'knex';
 
 import { DbAdapter } from '../support/DbAdapter';
 

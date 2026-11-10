@@ -18,9 +18,8 @@ import {
   orientSize,
   readOrientation,
   scaledSize,
-  type ImageSize,
-  type JpegSegment,
 } from './jpeg-hdr-utils';
+import type { ImageSize, JpegSegment } from './jpeg-hdr-utils';
 
 type CreateAppleJpegHdrPreviewOptions = {
   sourcePath: string;

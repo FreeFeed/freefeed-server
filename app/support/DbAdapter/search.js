@@ -98,9 +98,12 @@ const searchTrait = (superClass) =>
 
       const postsDateSQL = postDateFilterSQL(parsedQuery, 'p.created_at');
 
-      // Files
-      const fileTypesSQL = fileTypesFiltersSQL(parsedQuery, 'a');
-      const useFilesTable = isNonTrivialSQL(fileTypesSQL);
+      // Attached content
+      const [positiveHasTypes, negativeHasTypes] = getHasTypes(parsedQuery);
+      const hasTypes = [...(positiveHasTypes || []), ...(negativeHasTypes || [])];
+      const hasTypesSQL = hasTypesFiltersSQL(positiveHasTypes, negativeHasTypes, 'att', 'ar');
+      const useFilesTable = hasTypes.some((type) => type !== 'article');
+      const useArticlesTable = hasTypes.includes('article') || Boolean(commonTextQuery);
 
       // Posts privacy flags
       const postsPrivacySQL = privacyFiltersSQL(parsedQuery, 'p');
@@ -167,18 +170,23 @@ const searchTrait = (superClass) =>
        *
        * The text query logic is the following:
        *
-       *     (p.body_tsvector @@ commonQuery OR c.body_tsvector @@ commonQuery)
+       *     (p.body_tsvector @@ commonQuery OR c.body_tsvector @@ commonQuery
+       *       OR article_tsvectors @@ commonQuery)
        *     AND p.body_tsvector @@ postsOnlyQuery
        *     AND c.body_tsvector @@ commentsOnlyQuery
        *
        * PostgreSQL is not very good at optimizing in such cases, so we replace
-       * OR with two queries with UNION:
+       * OR with separate queries combined using UNION:
        *
        *     p.body_tsvector @@ commonQuery
        *     AND p.body_tsvector @@ postsOnlyQuery
        *     AND c.body_tsvector @@ commentsOnlyQuery
        *       UNION
        *     c.body_tsvector @@ commonQuery
+       *     AND p.body_tsvector @@ postsOnlyQuery
+       *     AND c.body_tsvector @@ commentsOnlyQuery
+       *       UNION
+       *     article_tsvectors @@ commonQuery
        *     AND p.body_tsvector @@ postsOnlyQuery
        *     AND c.body_tsvector @@ commentsOnlyQuery
        */
@@ -191,6 +199,16 @@ const searchTrait = (superClass) =>
 
       const commentsPartTextSQL = andJoin([
         commonTextQuery && `c.body_tsvector @@ ${commonTextQuery}`,
+        postsOnlyTextQuery && `p.body_tsvector @@ ${postsOnlyTextQuery}`,
+        commentsOnlyTextQuery && `c.body_tsvector @@ ${commentsOnlyTextQuery}`,
+      ]);
+
+      const articlesPartTextSQL = andJoin([
+        commonTextQuery &&
+          orJoin([
+            `ar.title_tsvector @@ ${commonTextQuery}`,
+            `ar.digest_tsvector @@ ${commonTextQuery}`,
+          ]),
         postsOnlyTextQuery && `p.body_tsvector @@ ${postsOnlyTextQuery}`,
         commentsOnlyTextQuery && `c.body_tsvector @@ ${commentsOnlyTextQuery}`,
       ]);
@@ -215,7 +233,8 @@ const searchTrait = (superClass) =>
         `join users u on p.user_id = u.uid`,
         hasCommentTokens && `left join comments c on c.post_id = p.uid`,
         useCLikesTable && `left join comment_likes cl on cl.comment_id = c.id`,
-        useFilesTable && `left join attachments a on a.post_id = p.uid`,
+        useFilesTable && `left join attachments att on att.post_id = p.uid`,
+        useArticlesTable && `left join articles ar on ar.post_id = p.uid and not ar.to_delete`,
         usePostCountersTable && `join post_counters pc on pc.post_id = p.uid`,
         useCommentCountersTable && `join comment_counters cc on cc.comment_id = c.uid`,
       ]);
@@ -230,9 +249,10 @@ const searchTrait = (superClass) =>
         postsPrivacySQL,
       ]);
 
-      const [postsPartQuery, commentsPartQuery] = [
+      const [postsPartQuery, commentsPartQuery, articlesPartQuery] = [
         andJoin([postsPartTextSQL, postTextsAuthorsSQL, postsContentDateSQL]),
         andJoin([commentsPartTextSQL, commentTextsAuthorsSQL, commentsContentDateSQL]),
+        andJoin([articlesPartTextSQL, postTextsAuthorsSQL, postsContentDateSQL]),
       ].map((partSQL) =>
         // The selecting query is almost the same for both UNION's members, the
         // difference is only in the partSQL condition
@@ -242,7 +262,7 @@ const searchTrait = (superClass) =>
           `where`,
           andJoin([partSQL, commonWhereSQL]),
           `group by p.uid, p.${sort}_at, p.id`,
-          `having ${andJoin([fileTypesSQL, cLikesSQL])}`,
+          `having ${andJoin([hasTypesSQL, cLikesSQL])}`,
         ]),
       );
 
@@ -259,6 +279,7 @@ const searchTrait = (superClass) =>
           [
             (hasPostTokens || !hasCommentTokens) && postsPartQuery,
             hasCommentTokens && commentsPartQuery,
+            commonTextQuery && articlesPartQuery,
           ],
           'union',
         ),
@@ -728,13 +749,13 @@ function intervalSQL(token, field) {
 
 const commonFileTypes = ['audio', 'image', 'video', 'general'];
 /**
- * Returns aggregated List of file types used in 'has:' conditions. Returns null
+ * Returns aggregated List of content types used in 'has:' conditions. Returns null
  * if none of such conditions present.
  *
  * @param {Token[]} tokens
  * @returns {[string[]|null, string[]|null]}
  */
-function getFileTypes(tokens) {
+function getHasTypes(tokens) {
   /** @type {string[]|null}  */
   let positive = null;
   /** @type {string[]|null}  */
@@ -745,11 +766,11 @@ function getFileTypes(tokens) {
       continue;
     }
 
-    // Select only the valid file types
+    // Select only the valid content types
     const argTypes = token.args
       // The 'file' type means 'audio, image, or general'
       .flatMap((a) => (a === 'file' ? commonFileTypes : a))
-      .filter((a) => commonFileTypes.includes(a) || a.startsWith('.'));
+      .filter((a) => a === 'article' || commonFileTypes.includes(a) || a.startsWith('.'));
 
     if (!token.exclude) {
       positive = positive ? union(positive, argTypes) : uniq(argTypes);
@@ -788,12 +809,19 @@ function fileTypesToAggregate(types, attTable) {
   )})`;
 }
 
-function fileTypesFiltersSQL(tokens, attTable) {
-  const [positiveTypes, negativeTypes] = getFileTypes(tokens);
+function hasTypesToAggregate(types, attTable, articleTable) {
+  const fileTypes = types.filter((type) => type !== 'article');
 
+  return orJoin([
+    types.includes('article') && `bool_or(${articleTable}.uid is not null)`,
+    fileTypes.length > 0 && fileTypesToAggregate(fileTypes, attTable),
+  ]);
+}
+
+function hasTypesFiltersSQL(positiveTypes, negativeTypes, attTable, articleTable) {
   return andJoin([
-    positiveTypes && fileTypesToAggregate(positiveTypes, attTable),
-    negativeTypes && sqlNot(fileTypesToAggregate(negativeTypes, attTable)),
+    positiveTypes && hasTypesToAggregate(positiveTypes, attTable, articleTable),
+    negativeTypes && sqlNot(hasTypesToAggregate(negativeTypes, attTable, articleTable)),
   ]);
 }
 

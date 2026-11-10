@@ -1,6 +1,6 @@
 import config from 'config';
 
-import { type Box } from './types';
+import type { Box } from './types';
 
 export function getImagePreviewSizes(
   info: Box,

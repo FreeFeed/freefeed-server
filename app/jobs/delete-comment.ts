@@ -1,5 +1,5 @@
 import { dbAdapter, Job, JobManager } from '../models';
-import { type UUID } from '../support/types';
+import type { UUID } from '../support/types';
 import { UndoCommentDelete } from '../support/undo/comment-delete';
 
 export const DELETE_COMMENT = 'DELETE_COMMENT';

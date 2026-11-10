@@ -1,7 +1,7 @@
 import { describe, beforeEach, it } from 'mocha';
 import unexpected from 'unexpected';
 import unexpectedDate from 'unexpected-date';
-import { type ParameterizedContext } from 'koa';
+import type { ParameterizedContext } from 'koa';
 
 import cleanDB from '../../../dbCleaner';
 import { Comment, dbAdapter, Group, Post, User } from '../../../../app/models';

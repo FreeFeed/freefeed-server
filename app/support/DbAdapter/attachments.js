@@ -9,7 +9,7 @@ import { initObject, prepareModelPayload } from './utils';
 // Attachments
 ///////////////////////////////////////////////////
 
-const cacheVersion = 2;
+const cacheVersion = 3;
 const cacheTTL = 3 * 60 * 60; // 3 hours
 
 const attachmentsTrait = (superClass) =>

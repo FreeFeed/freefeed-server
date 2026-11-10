@@ -3,7 +3,8 @@ import { encode as qsEncode } from 'querystring';
 import { get as _get } from 'lodash-es';
 
 import { Cache } from './Cache';
-import { Adapter, type AuthStartParams, type AuthFinishParams, type Profile } from './Adapter';
+import { Adapter } from './Adapter';
+import type { AuthStartParams, AuthFinishParams, Profile } from './Adapter';
 import { MODE_CONNECT } from './constants';
 import { AuthError } from './AuthError';
 

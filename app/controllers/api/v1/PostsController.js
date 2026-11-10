@@ -10,6 +10,7 @@ import {
   NotFoundException,
   BadRequestException,
   ValidationException,
+  ConflictException,
 } from '../../../support/exceptions';
 import {
   postAccessRequired,
@@ -31,7 +32,7 @@ export default class PostsController {
       const { user: author } = ctx.state;
       const {
         meta: { commentsDisabled, feeds },
-        post: { body, attachments },
+        post: { body, attachments, articleId },
       } = ctx.request.body;
 
       const feedNames = typeof feeds === 'string' ? [feeds] : feeds;
@@ -58,8 +59,12 @@ export default class PostsController {
       });
 
       try {
-        await newPost.create();
+        await newPost.create({ articleId });
       } catch (e) {
+        if (e instanceof ValidationException || e instanceof ConflictException) {
+          throw e;
+        }
+
         throw new BadRequestException(`Can not create post: ${e.message}`);
       }
 
@@ -83,6 +88,10 @@ export default class PostsController {
       }
 
       const { body, attachments, feeds: feedNames } = ctx.request.body.post;
+
+      if (Object.hasOwn(ctx.request.body.post, 'articleId')) {
+        throw new ValidationException('Article can only be associated when creating a post');
+      }
 
       const existingFeeds = await post.getPostedTo();
       const destinationFeeds = feedNames

@@ -1,4 +1,4 @@
-import { type Context, type Next } from 'koa';
+import type { Context, Next } from 'koa';
 
 import { API_VERSION_ACTUAL, API_VERSION_MINIMAL } from '../../api-versions';
 

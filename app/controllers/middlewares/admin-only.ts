@@ -1,9 +1,10 @@
-import { type Context, type Next } from 'koa';
+import type { Context, Next } from 'koa';
 import { intersection } from 'lodash-es';
 
-import { dbAdapter, type User } from '../../models';
+import { dbAdapter } from '../../models';
+import type { User } from '../../models';
 import { ForbiddenException } from '../../support/exceptions';
-import { type AdminRole } from '../../models/admins';
+import type { AdminRole } from '../../models/admins';
 
 export function adminRolesRequired(...roles: AdminRole[]) {
   return async (ctx: Context, next: Next) => {

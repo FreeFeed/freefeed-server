@@ -1,6 +1,6 @@
 import { randomBytes } from 'crypto';
 
-import { type Nullable } from './types';
+import type { Nullable } from './types';
 
 // A random codes made of Douglas Crockford's Base32 alphabet
 // (https://www.crockford.com/base32.html). This alphabet is case insensitive

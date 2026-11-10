@@ -1,6 +1,6 @@
 import { dbAdapter } from '../../models';
-import { type Nullable, type UUID } from '../../support/types';
-import { type EventRecord } from '../../support/DbAdapter';
+import type { Nullable, UUID } from '../../support/types';
+import type { EventRecord } from '../../support/DbAdapter';
 import { EVENT_TYPES, HIDDEN_CREATOR_EVENT_TYPES } from '../../support/EventTypes';
 
 import { serializeUsersByIds } from './user';
@@ -69,6 +69,7 @@ export async function serializeEvents(events: EventRecord[], viewerId: Nullable<
       post_author_id: (e.post_author_id && accountId2UIDs[e.post_author_id]) || null,
       target_post_id: e.target_post_id,
       target_comment_id: e.target_comment_id,
+      article_id: e.article_id,
     };
 
     // Do not show posts from inactive authors

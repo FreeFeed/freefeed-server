@@ -1,5 +1,5 @@
 import pgFormat from 'pg-format';
-import { type Knex } from 'knex';
+import type { Knex } from 'knex';
 
 const tablesToKeep = ['admin_roles', 'event_types', 'knex_migrations', 'knex_migrations_lock'];
 

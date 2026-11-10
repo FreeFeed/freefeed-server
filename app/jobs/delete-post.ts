@@ -1,5 +1,5 @@
 import { dbAdapter, Job, JobManager } from '../models';
-import { type UUID } from '../support/types';
+import type { UUID } from '../support/types';
 import { UndoPostDelete } from '../support/undo/post-delete';
 
 export const DELETE_POST = 'DELETE_POST';

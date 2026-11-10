@@ -1,4 +1,4 @@
-import { type ParsedUrlQuery } from 'querystring';
+import type { ParsedUrlQuery } from 'querystring';
 
 export function getQueryParams(query: ParsedUrlQuery) {
   let offset = parseInt(queryParam(query.offset, '0'), 10);

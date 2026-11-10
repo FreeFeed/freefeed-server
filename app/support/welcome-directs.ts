@@ -9,7 +9,7 @@ import { fromError } from 'zod-validation-error';
 import { dbAdapter, User, Job, Post, Comment, JobManager } from '../models';
 
 import { currentConfig } from './app-async-context';
-import { type UUID } from './types';
+import type { UUID } from './types';
 
 export const WELCOME_DIRECT = 'WELCOME_DIRECT';
 

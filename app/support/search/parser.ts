@@ -14,13 +14,13 @@ import {
   Text,
   InScope,
   trimText,
-  type Token,
   SeqTexts,
   AnyText,
   IN_COMMENTS,
   dateConditions,
   counterConditions,
 } from './query-tokens';
+import type { Token } from './query-tokens';
 import { parseDateExpression } from './date-parser';
 import { parseCounterExpression } from './counter-parser';
 
@@ -161,7 +161,7 @@ export function parseQuery(query: string, { minPrefixLength }: ParseQueryOptions
       // `with:` is an alias for `has:`
       if (groups.cond === 'has' || groups.cond === 'with') {
         const words = (groups.word as string).split(',').map((w) => {
-          if (/^(image|audio|video|file)s?$/.test(w)) {
+          if (/^(image|audio|video|file|article)s?$/.test(w)) {
             return w.replace(/s$/g, '');
           }
 

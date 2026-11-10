@@ -1,7 +1,8 @@
 import fs from 'fs';
 
 import createDebug from 'debug';
-import Application, { type DefaultState } from 'koa';
+import Application from 'koa';
+import type { DefaultState } from 'koa';
 import config from 'config';
 import { koaBody } from 'koa-body';
 import methodOverride from 'koa-methodoverride';
@@ -19,7 +20,7 @@ import { originMiddleware } from './setup/initializers/origin';
 import { maintenanceCheck } from './support/maintenance';
 import { reportError } from './support/exceptions';
 import { normalizeInputStrings } from './controllers/middlewares/normalize-input';
-import { type AppContext } from './support/types';
+import type { AppContext } from './support/types';
 import { apiVersionMiddleware } from './setup/initializers/api-version';
 import { asyncContextMiddleware } from './support/app-async-context';
 import { nodeDirname } from './support/node-dirname';

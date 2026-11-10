@@ -39,6 +39,7 @@ describe('getDynamicUserStats', () => {
       posts: null,
       comments: null,
       likes: null,
+      articles: null,
     });
   });
 
@@ -50,6 +51,7 @@ describe('getDynamicUserStats', () => {
       posts: 0,
       comments: 0,
       likes: 0,
+      articles: 0,
     });
   });
 
@@ -65,6 +67,7 @@ describe('getDynamicUserStats', () => {
         posts: 0,
         comments: 0,
         likes: 0,
+        articles: 0,
       });
     });
 
@@ -76,6 +79,7 @@ describe('getDynamicUserStats', () => {
         posts: 0,
         comments: 0,
         likes: 0,
+        articles: 0,
       });
     });
 
@@ -87,6 +91,7 @@ describe('getDynamicUserStats', () => {
         posts: 0,
         comments: 0,
         likes: 0,
+        articles: 0,
       });
     });
   });
@@ -103,6 +108,7 @@ describe('getDynamicUserStats', () => {
         posts: 0,
         comments: 0,
         likes: 0,
+        articles: 0,
       });
     });
 
@@ -114,6 +120,7 @@ describe('getDynamicUserStats', () => {
         posts: 0,
         comments: 0,
         likes: 0,
+        articles: 0,
       });
     });
 
@@ -125,6 +132,7 @@ describe('getDynamicUserStats', () => {
         posts: 0,
         comments: 0,
         likes: 0,
+        articles: 0,
       });
     });
   });
@@ -141,6 +149,7 @@ describe('getDynamicUserStats', () => {
         posts: null,
         comments: null,
         likes: null,
+        articles: null,
       });
     });
   });
@@ -169,6 +178,7 @@ describe('getDynamicUserStats', () => {
         posts: 5,
         comments: 0,
         likes: 0,
+        articles: 0,
       });
     });
 
@@ -180,6 +190,7 @@ describe('getDynamicUserStats', () => {
         posts: 5,
         comments: 0,
         likes: 0,
+        articles: 0,
       });
     });
 
@@ -191,6 +202,7 @@ describe('getDynamicUserStats', () => {
         posts: 10,
         comments: 0,
         likes: 0,
+        articles: 0,
       });
     });
 
@@ -208,6 +220,7 @@ describe('getDynamicUserStats', () => {
           posts: 5,
           comments: 0,
           likes: 0,
+          articles: 0,
         });
       });
 
@@ -219,6 +232,7 @@ describe('getDynamicUserStats', () => {
           posts: 5,
           comments: 0,
           likes: 0,
+          articles: 0,
         });
       });
 
@@ -230,6 +244,7 @@ describe('getDynamicUserStats', () => {
           posts: 10,
           comments: 0,
           likes: 0,
+          articles: 0,
         });
       });
 
@@ -253,6 +268,7 @@ describe('getDynamicUserStats', () => {
             posts: 5,
             comments: 10,
             likes: 0,
+            articles: 0,
           });
         });
 
@@ -264,6 +280,7 @@ describe('getDynamicUserStats', () => {
             posts: 5,
             comments: 10,
             likes: 0,
+            articles: 0,
           });
         });
 
@@ -275,6 +292,7 @@ describe('getDynamicUserStats', () => {
             posts: 10,
             comments: 20,
             likes: 0,
+            articles: 0,
           });
         });
 
@@ -303,6 +321,7 @@ describe('getDynamicUserStats', () => {
               posts: 5,
               comments: 15,
               likes: 5,
+              articles: 0,
             });
           });
 
@@ -314,6 +333,7 @@ describe('getDynamicUserStats', () => {
               posts: 5,
               comments: 15,
               likes: 5,
+              articles: 0,
             });
           });
 
@@ -325,6 +345,7 @@ describe('getDynamicUserStats', () => {
               posts: 10,
               comments: 25,
               likes: 5,
+              articles: 0,
             });
           });
 
@@ -342,6 +363,7 @@ describe('getDynamicUserStats', () => {
                 posts: 5,
                 comments: 10,
                 likes: 0,
+                articles: 0,
               });
             });
 
@@ -353,6 +375,7 @@ describe('getDynamicUserStats', () => {
                 posts: 5,
                 comments: 15,
                 likes: 5,
+                articles: 0,
               });
             });
 
@@ -364,6 +387,7 @@ describe('getDynamicUserStats', () => {
                 posts: 10,
                 comments: 20,
                 likes: 0,
+                articles: 0,
               });
             });
           });
@@ -390,6 +414,7 @@ describe('getDynamicUserStats', () => {
         posts: 0,
         comments: null,
         likes: null,
+        articles: 0,
       });
     });
 
@@ -405,6 +430,7 @@ describe('getDynamicUserStats', () => {
           posts: 0,
           comments: null,
           likes: null,
+          articles: 0,
         });
       });
 
@@ -416,6 +442,7 @@ describe('getDynamicUserStats', () => {
           posts: 0,
           comments: null,
           likes: null,
+          articles: 0,
         });
       });
     });

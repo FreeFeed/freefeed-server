@@ -2,7 +2,7 @@ import path from 'path';
 import os from 'os';
 import { writeFile } from 'fs/promises';
 
-import { type UUID } from '../../../app/support/types';
+import type { UUID } from '../../../app/support/types';
 import { Attachment, dbAdapter } from '../../../app/models';
 
 type FileInfo = {

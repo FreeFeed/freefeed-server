@@ -1,5 +1,5 @@
-import { type Router } from '@koa/router';
-import { type DefaultState } from 'koa';
+import type { Router } from '@koa/router';
+import type { DefaultState } from 'koa';
 
 import { adminRolesRequired } from '../../../controllers/middlewares/admin-only';
 import { ROLE_MODERATOR } from '../../../models/admins';
@@ -12,7 +12,7 @@ import {
   unfreezeUser,
   userInfo,
 } from '../../../controllers/api/admin/ModeratorController';
-import { type AppContext } from '../../../support/types';
+import type { AppContext } from '../../../support/types';
 
 export default function addRoutes(router: Router<DefaultState, AppContext>) {
   const mw = adminRolesRequired(ROLE_MODERATOR);

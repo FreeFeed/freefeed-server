@@ -1,6 +1,6 @@
 import { extname, format as formatPath, parse as parsePath } from 'path';
 
-import { type MediaType } from './types';
+import type { MediaType } from './types';
 
 // For some formats there are predefined extensions
 const wellKnownFormats = new Map<string, string>();

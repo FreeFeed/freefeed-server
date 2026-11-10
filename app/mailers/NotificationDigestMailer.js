@@ -66,6 +66,7 @@ function getEventPayload(event, users, groups) {
     createdAt: moment(event.date),
     targetPostId: event.target_post_id,
     targetCommentId: event.target_comment_id,
+    articleId: event.article_id,
   };
 }
 
@@ -79,6 +80,15 @@ const notificationTemplates = {
       ${postAuthorLink} mentioned you in the ${postLink}${
         groupLink ? ` [in ${groupLink}]` : ''
       }<br />
+      ${eventTime}
+    `;
+  },
+  mention_in_article: (eventData) => {
+    const postAuthorLink = makeUserLink(eventData.postAuthor);
+    const articleLink = makeArticleLink(eventData.articleId);
+    const eventTime = eventData.createdAt.format('HH:MM');
+    return `
+      ${postAuthorLink} mentioned you in an ${articleLink}<br />
       ${eventTime}
     `;
   },
@@ -400,6 +410,14 @@ function makePostLink(postId, postAuthor, isDirect = false) {
 
   const postLink = `${config.host}/${postAuthor.username}/${postId}`;
   return `<a href="${postLink}" style="color:#555599;">${isDirect ? 'direct message' : 'post'}</a>`;
+}
+
+function makeArticleLink(articleId) {
+  if (!articleId) {
+    return 'article (deleted)';
+  }
+
+  return `<a href="${config.host}/articles/${articleId}" style="color:#555599;">article</a>`;
 }
 
 function makeCommentLink(postId, commentId, postAuthor, linkText) {

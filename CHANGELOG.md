@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.32.0] - Not released
 
+### Added
+- Added the [Articles API](doc/articles.md) for long-form drafts, publication through posts,
+  revision history, tags, attachments, visibility-aware listings, and search.
+
 ## [2.31.6] - 2026-10-30
 ### Security
 - Updated dependencies to close npm security advisories: engine.io (via

@@ -1,7 +1,8 @@
 import config from 'config';
 import createDebug from 'debug';
 
-import { spawnAsync, type SpawnAsyncArgs, type SpawnAsyncOptions } from './spawn-async';
+import { spawnAsync } from './spawn-async';
+import type { SpawnAsyncArgs, SpawnAsyncOptions } from './spawn-async';
 
 type ImageMagickCommand = 'convert' | 'identify';
 type Runner = { command: string | null; useMagickCli: boolean };

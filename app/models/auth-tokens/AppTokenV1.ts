@@ -2,18 +2,18 @@ import * as _ from 'lodash-es';
 import jwt from 'jsonwebtoken';
 import config from 'config';
 import Raven from 'raven';
-import { type Context, type Next } from 'koa';
+import type { Context, Next } from 'koa';
 import { isConst, isNumber, isObject, isString } from 'ts-json-check';
 
-import { type DbAdapter } from '../../support/DbAdapter';
-import { type IPAddr, type Nullable, type UUID } from '../../support/types';
+import type { DbAdapter } from '../../support/DbAdapter';
+import type { IPAddr, Nullable, UUID } from '../../support/types';
 import { Address } from '../../support/ipv6';
 import { database } from '../common';
 import { NotAuthorizedException } from '../../support/exceptions';
 import { createBase32Code, normalizeBase32Code } from '../../support/base32-codes';
 
 import { AuthToken } from './AuthToken';
-import { type AppTokenRecord } from './types';
+import type { AppTokenRecord } from './types';
 import { alwaysAllowedRoutes, alwaysDisallowedRoutes, appTokensScopes } from './app-tokens-scopes';
 
 import { authDebugError } from '.';

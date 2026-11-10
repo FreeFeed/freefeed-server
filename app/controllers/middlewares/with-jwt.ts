@@ -1,8 +1,9 @@
-import { type Context, type Next } from 'koa';
+import type { Context, Next } from 'koa';
 
 import { NotAuthorizedException } from '../../support/exceptions';
 import { authDebugError } from '../../models/auth-tokens';
-import { verifyJWTAsync, type JWTPayload } from '../../support/verifyJWTAsync';
+import { verifyJWTAsync } from '../../support/verifyJWTAsync';
+import type { JWTPayload } from '../../support/verifyJWTAsync';
 
 export async function withJWT(ctx: Context, next: Next) {
   let jwtToken: string | undefined;

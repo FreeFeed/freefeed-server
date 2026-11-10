@@ -66,7 +66,7 @@ export default defineConfig([
       'import-x/no-extraneous-dependencies': 'error',
       'import-x/no-mutable-exports': 'error',
       'import-x/newline-after-import': 'error',
-      'import-x/consistent-type-specifier-style': ['error', 'prefer-inline'],
+      'import-x/consistent-type-specifier-style': ['error', 'prefer-top-level'],
       'import-x/order': [
         'error',
         {
@@ -127,7 +127,7 @@ export default defineConfig([
       'spaced-comment': ['error', 'always', { exceptions: ['/'] }],
       strict: ['error', 'never'],
       'no-unused-vars': 'off',
-      '@typescript-eslint/no-unused-vars': 'error',
+      '@typescript-eslint/no-unused-vars': ['error', { varsIgnorePattern: '^_' }],
       '@typescript-eslint/parameter-properties': 'error',
       '@typescript-eslint/consistent-type-definitions': ['error', 'type'],
       'you-dont-need-lodash-underscore/find': 'error',

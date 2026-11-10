@@ -1,8 +1,8 @@
 import { createHash } from 'crypto';
 
 import compose from 'koa-compose';
-import { type TranslationLimits } from 'config';
-import { type Context } from 'koa';
+import type { TranslationLimits } from 'config';
+import type { Context } from 'koa';
 
 import monitor from '../../../support/monitor';
 import {
@@ -11,8 +11,9 @@ import {
   monitored,
   postAccessRequired,
 } from '../../middlewares';
-import { type User, type Post, type Comment, dbAdapter } from '../../../models';
-import { type Ctx, type UUID } from '../../../support/types';
+import { dbAdapter } from '../../../models';
+import type { User, Post, Comment } from '../../../models';
+import type { Ctx, UUID } from '../../../support/types';
 import { ForbiddenException, ServerErrorException } from '../../../support/exceptions';
 import { translate as translateText } from '../../../support/translation/translation';
 

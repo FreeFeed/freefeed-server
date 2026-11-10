@@ -1,6 +1,6 @@
-import { type Config } from 'config';
+import type { Config } from 'config';
 
-import { type TranslationResult } from './types';
+import type { TranslationResult } from './types';
 import { translate as testTranslate } from './service-test';
 import { translate as googleTranslate } from './service-google';
 

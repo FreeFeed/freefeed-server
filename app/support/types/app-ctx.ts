@@ -1,5 +1,5 @@
-import { type DefaultContext, type DefaultState, type ParameterizedContext } from 'koa';
-import { type Config } from 'config';
+import type { DefaultContext, DefaultState, ParameterizedContext } from 'koa';
+import type { Config } from 'config';
 
 import PubsubListener from '../../pubsub-listener';
 

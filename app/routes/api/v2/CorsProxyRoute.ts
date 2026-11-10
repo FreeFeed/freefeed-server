@@ -1,4 +1,4 @@
-import { type Router } from '@koa/router';
+import type { Router } from '@koa/router';
 
 import { proxy } from '../../../controllers/api/v2/CorsProxyController';
 

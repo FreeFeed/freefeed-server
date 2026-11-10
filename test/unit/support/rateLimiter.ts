@@ -1,5 +1,5 @@
 import expect from 'unexpected';
-import { type Context, type Next } from 'koa';
+import type { Context, Next } from 'koa';
 import { v4 as uuidv4 } from 'uuid';
 import { merge } from 'lodash-es';
 

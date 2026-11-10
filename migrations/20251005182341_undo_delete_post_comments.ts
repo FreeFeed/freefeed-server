@@ -4,7 +4,7 @@
 // `20251005…`), but it has been applied to the database. So we need to keep the
 // following migrations names greater than it until October 5th 2025.
 
-import { type Knex } from 'knex';
+import type { Knex } from 'knex';
 
 import { eventTypesSQLs } from '../app/support/migrations';
 

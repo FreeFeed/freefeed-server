@@ -205,6 +205,7 @@ const postBasic = {
   createdAt: expect.it('to be timeStampString'),
   updatedAt: expect.it('to be timeStampString'),
   createdBy: expect.it('to be UUID'),
+  articleId: expect.it('to be null').or('to be UUID'),
   postedTo: expect
     .it('to be an array')
     .and('to be empty')
@@ -285,6 +286,20 @@ export const attachmentGeneral = {
   imageSizes: expect.it('to be empty'),
 };
 
+const serializedArticle = {
+  id: expect.it('to be UUID'),
+  authorId: expect.it('to be UUID'),
+  postId: expect.it('to be null').or('to be UUID'),
+  shortId: expect.it('to be a hexadecimal string'),
+  version: expect.it('to be a number'),
+  title: expect.it('to be a string'),
+  digest: expect.it('to be a string'),
+  createdAt: expect.it('to be timeStampString'),
+  updatedAt: expect.it('to be timeStampString'),
+  publishedAt: expect.it('to be null').or('to be timeStampString'),
+  tags: expect.it('to be an array').and('to have items satisfying', 'to be a string'),
+};
+
 export const postResponse = {
   posts: expect.it('to be a serialized post'),
   users: expect.it('to be an array').and('to be empty').or('to have items satisfying', user),
@@ -296,6 +311,10 @@ export const postResponse = {
     .it('to be an array')
     .and('to be empty')
     .or('to have items satisfying', 'to be a serialized attachment'),
+  articles: expect
+    .it('to be an array')
+    .and('to be empty')
+    .or('to have items exhaustively satisfying', serializedArticle),
   subscribers: expect
     .it('to be an array')
     .and('to be empty')
@@ -350,6 +369,10 @@ export const timelineResponse = {
     .it('to be an array')
     .and('to be empty')
     .or('to have items satisfying', 'to be a serialized attachment'),
+  articles: expect
+    .it('to be an array')
+    .and('to be empty')
+    .or('to have items exhaustively satisfying', serializedArticle),
   subscribers: expect
     .it('to be an array')
     .and('to be empty')

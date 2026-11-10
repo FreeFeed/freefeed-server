@@ -2,7 +2,7 @@ import { Comment, dbAdapter, Post } from './models';
 import { serializeTimeline } from './serializers/v2/timeline';
 import { List } from './support/open-lists';
 import { PubSubAdapter } from './support/PubSubAdapter';
-import { type Nullable, type UUID } from './support/types';
+import type { Nullable, UUID } from './support/types';
 
 export class DummyPublisher extends PubSubAdapter {
   constructor() {
@@ -173,5 +173,28 @@ export default class pubSub {
 
   async attachmentUpdated(attachmentId: UUID) {
     await this.publisher.attachmentUpdated(JSON.stringify(attachmentId));
+  }
+
+  async newArticle(articleId: UUID) {
+    await this.publisher.articleCreated(JSON.stringify({ articleId }));
+  }
+
+  async restoreArticle(articleId: UUID) {
+    await this.publisher.articleRestored(JSON.stringify({ articleId }));
+  }
+
+  async updateArticle(articleId: UUID) {
+    await this.publisher.articleUpdated(JSON.stringify({ articleId }));
+  }
+
+  async destroyArticle(
+    articleId: UUID,
+    authorId: UUID,
+    postId: UUID | null = null,
+    excludeAuthor = false,
+  ) {
+    await this.publisher.articleDestroyed(
+      JSON.stringify({ articleId, authorId, postId, excludeAuthor }),
+    );
   }
 }

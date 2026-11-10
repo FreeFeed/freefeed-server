@@ -1,4 +1,5 @@
-import { spawn, type SpawnOptionsWithoutStdio } from 'child_process';
+import { spawn } from 'child_process';
+import type { SpawnOptionsWithoutStdio } from 'child_process';
 
 export type SpawnAsyncOptions = SpawnOptionsWithoutStdio & { binary?: true };
 

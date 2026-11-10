@@ -1,20 +1,26 @@
-import { type JwtPayload } from 'jsonwebtoken';
+import type { JwtPayload } from 'jsonwebtoken';
 import compose from 'koa-compose';
 import { z } from 'zod';
 
-import { dbAdapter, type User } from '../../../models';
+import { dbAdapter } from '../../../models';
+import type { User } from '../../../models';
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   NotFoundException,
 } from '../../../support/exceptions';
-import { type Ctx } from '../../../support/types';
+import type { Ctx } from '../../../support/types';
 import { verifyUndoToken } from '../../../support/undo/entry';
 import { authRequired, inputSchemaRequired, monitored } from '../../middlewares';
 import { UNDO_POST_DELETE } from '../../../support/undo/post-delete';
 import { UNDO_COMMENT_DELETE } from '../../../support/undo/comment-delete';
 import { serializeSinglePost } from '../../../serializers/v2/post';
 import { serializeCommentFull } from '../../../serializers/v2/comment';
+import { UNDO_ARTICLE_DELETE } from '../../../support/undo/article-delete';
+import { UNDO_ARTICLE_DETACH } from '../../../support/undo/article-detach';
+
+import { fullArticleResponse } from './ArticlesController';
 
 const undoInputSchema = z.object({ token: z.jwt() });
 type UndoInput = z.infer<typeof undoInputSchema>;
@@ -56,6 +62,28 @@ export const undo = compose([
 
       await comment.activate(user);
       ctx.body = await serializeCommentFull(comment, user.id);
+    } else if (subject === UNDO_ARTICLE_DELETE) {
+      const article = await dbAdapter.getArticleById(data.articleId);
+
+      if (!article) {
+        throw new NotFoundException('Article not found');
+      }
+
+      await article.activate();
+      ctx.body = await fullArticleResponse(user, article);
+    } else if (subject === UNDO_ARTICLE_DETACH) {
+      const article = await dbAdapter.getArticleById(data.articleId);
+
+      if (!article || (await article.isDeleting())) {
+        throw new NotFoundException('Article not found');
+      }
+
+      // Fails if the post is deleted or the article is already linked to another post
+      if (!(await article.setPost(data.postId))) {
+        throw new ConflictException('The article cannot be attached to its post again');
+      }
+
+      ctx.body = await fullArticleResponse(user, article);
     } else {
       throw new BadRequestException(`Unknown undo subject: ${subject}`);
     }

@@ -1,5 +1,6 @@
 // Based on https://github.com/gajus/slonik?tab=readme-ov-file#result-parser-interceptor
-import { type Interceptor, type QueryResultRow, SchemaValidationError } from 'slonik';
+import { SchemaValidationError } from 'slonik';
+import type { Interceptor, QueryResultRow } from 'slonik';
 
 export const createResultParserInterceptor = (): Interceptor => {
   return {

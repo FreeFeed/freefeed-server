@@ -1,14 +1,14 @@
 import { Knex } from 'knex';
-import { type Cache } from 'cache-manager';
-import { type DatabasePool } from 'slonik';
+import type { Cache } from 'cache-manager';
+import type { DatabasePool } from 'slonik';
 import { z } from 'zod';
 
-import {
-  type IPAddr,
-  type ISO8601DateTimeString,
-  type ISO8601DurationString,
-  type Nullable,
-  type UUID,
+import type {
+  IPAddr,
+  ISO8601DateTimeString,
+  ISO8601DurationString,
+  Nullable,
+  UUID,
 } from '../types';
 import { AppTokenV1, Attachment, Comment, Group, Post, Timeline, User, Job } from '../../models';
 import {
@@ -23,12 +23,21 @@ import { T_EVENT_TYPE } from '../EventTypes';
 import { AdminAction, AdminRole } from '../../models/admins';
 import { InvitationCreationCriterion } from '../types/invitations';
 import { RefusalReason } from '../../models/invitations';
-import { List, type ListLike } from '../open-lists';
-
-import { type UserStats } from './user-stats-dynamic';
+import { List } from '../open-lists';
+import type { ListLike } from '../open-lists';
 import {
-  type RegisterOptions as TranslationRegisterOptions,
-  type UsageOptions as TranslationUsageOptions,
+  Article,
+  ArticleRevision,
+  ArticleCreationParams,
+  ArticleEditableContent,
+  ArticleSummaryData,
+  ArticleUpdateResult,
+} from '../../models/article';
+
+import type { UserStats } from './user-stats-dynamic';
+import type {
+  RegisterOptions as TranslationRegisterOptions,
+  UsageOptions as TranslationUsageOptions,
 } from './translation-usage';
 import { notificationsDigestRecipientSchema } from './users';
 
@@ -73,6 +82,7 @@ export type EventRecord = {
   post_author_id: Nullable<number>;
   target_post_id: Nullable<UUID>;
   target_comment_id: Nullable<UUID>;
+  article_id: Nullable<UUID>;
 };
 
 type ListAttachmentsOptions = { userId: UUID; limit: number } & (
@@ -194,6 +204,8 @@ export class DbAdapter {
    */
   refreshHashtagStats(): Promise<void>;
 
+  getOrCreateHashtagIdsByNames(names: string[]): Promise<number[]>;
+
   setFirstUserInteraction(userId: UUID): Promise<Date | null>;
 
   getUsersIdsByIntIds(intIds: number[]): Promise<{ id: number; uid: UUID }[]>;
@@ -286,7 +298,8 @@ export class DbAdapter {
 
   // Attachments
   getAttachmentById(id: UUID): Promise<Attachment | null>;
-  getAttachmentsByIds(ids: UUID[]): Promise<(Attachment | null)[]>;
+  getAttachmentsByIds(ids: readonly UUID[]): Promise<(Attachment | null)[]>;
+  dropCachedAttachmentData(attachmentId: UUID): Promise<void>;
   getPostAttachments(id: UUID): Promise<UUID[]>;
   getAttachmentsOfPost(postId: UUID): Promise<Attachment[]>;
   listAttachments(options: ListAttachmentsOptions): Promise<Attachment[]>;
@@ -380,6 +393,7 @@ export class DbAdapter {
     postAuthorIntId?: Nullable<number>,
     targetPostId?: Nullable<UUID>,
     targetCommentId?: Nullable<UUID>,
+    articleId?: Nullable<UUID>,
   ): Promise<EventRecord>;
   getEventById(eventId: UUID): Promise<Nullable<EventRecord>>;
   getUserEvents(
@@ -517,4 +531,41 @@ export class DbAdapter {
   getCommentEventsListenersForPost(postId: UUID): Promise<Map<UUID, boolean>>;
   setCommentEventsStatusForPost(postId: UUID, userId: UUID, isEnabled: boolean): Promise<void>;
   cleanCommentEventsSubscriptions(userId: UUID): Promise<void>;
+
+  // Articles
+  getArticleById(uid: UUID): Promise<Article | null>;
+  getArticleByShortId(shortId: string): Promise<Article | null>;
+  getArticleRevisionById(uid: UUID): Promise<ArticleRevision | null>;
+  createArticle(row: ArticleCreationParams): Promise<Article>;
+  updateArticle(
+    uid: UUID,
+    expectedVersion: number,
+    params: ArticleEditableContent,
+  ): Promise<ArticleUpdateResult>;
+  setArticlePost(uid: UUID, postId: UUID | null): Promise<boolean>;
+  getVisibleArticleIds(
+    viewerId: UUID | null,
+    params: {
+      authorId: UUID | null;
+      published: boolean;
+      tag?: string;
+      limit: number;
+      offset: number;
+    },
+  ): Promise<UUID[]>;
+  getArticleSummariesByIds(articleIds: UUID[]): Promise<Map<UUID, ArticleSummaryData>>;
+  getArticleSummariesByPostIds(postIds: UUID[]): Promise<Map<UUID, ArticleSummaryData>>;
+  deactivateArticle(uid: UUID): Promise<boolean>;
+  activateArticle(uid: UUID): Promise<boolean>;
+  destroyArticle(uid: UUID): Promise<boolean>;
+  getArticleLongId(shortId: string): Promise<UUID | null>;
+  getArticleShortId(articleId: UUID): Promise<string>;
+  getArticleRevisions(
+    articleId: UUID,
+    limit: number,
+    offset: number,
+    descOrder?: boolean,
+  ): Promise<ArticleRevision[]>;
+  setArticleTags(articleId: UUID, tags: string[]): Promise<void>;
+  getArticleTags(articleId: UUID): Promise<readonly string[]>;
 }

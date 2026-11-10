@@ -1,7 +1,7 @@
-import { type Context } from 'koa';
+import type { Context } from 'koa';
 
 import { Comment, Group, Post, User } from '../../app/models';
-import { type UUID } from '../../app/support/types';
+import type { UUID } from '../../app/support/types';
 
 export type UserCtx = {
   authToken: string;
@@ -13,22 +13,25 @@ export type UserCtx = {
 
 export function createTestUser(username?: string): Promise<UserCtx>;
 export function createTestUsers(usernames: string[]): Promise<UserCtx[]>;
+export function createMockAttachmentAsync(userCtx: UserCtx): Promise<{ id: UUID }>;
 export function createUserAsync(
   username: string,
   password?: string,
   attributes?: object,
 ): Promise<UserCtx>;
 
-export function performJSONRequest(
+export function performJSONRequest<T extends object = object>(
   method: string,
   path: string,
   body?: unknown,
   header?: Record<string, string>,
-): Promise<{ __httpCode: number }>;
+): Promise<T & { __httpCode: number }>;
 
 export function authHeaders(userCtx: Pick<UserCtx, 'authToken'> | null): {
   Authorization?: `Bearer ${string}`;
 };
+
+export function goPrivate(userCtx: UserCtx): Promise<unknown>;
 
 export function fileFrom(filePath: string, mimeType: string): Promise<File>;
 

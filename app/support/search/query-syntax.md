@@ -6,7 +6,9 @@ You can put the minus sign (`-`) right before the text term or operator to _excl
 
 ## Search scopes
 
-The search is performed across post and comment texts, as well as usernames, screennames, and descriptions of users and groups. By default, the search covers all these texts, but the search scope can be narrowed using scope operators.
+The search is performed across post and comment texts, titles and digests of published articles, as well as usernames, screennames, and descriptions of users and groups. By default, the search covers all these texts, but the search scope can be narrowed using scope operators.
+
+An article is searched as part of its linked post. The search result is the post, and the post's visibility rules apply.
 
 Full syntax is available in all search scopes except usernames (logins). Username search is limited: morphology is not used, _substrings_ of the login are searched, and only the _and_, _or_, and _not_ operators can be used (others are ignored). For example, the username `badapple` will be found by queries `bad`, `apple`, `apple bad`, or `apple | pear -good`.
 
@@ -53,11 +55,11 @@ Some operators take a user name as an argument. In such operators you can use a 
 
 ⚠ Warning: you can not use minus modifier with global search scope operators.
 
-By default, the search is performed both in post and comment bodies. The following operators change this behavior.
+By default, the search is performed in post and comment bodies and in titles and digests of linked articles. The following operators change this behavior.
 
-**in-body:** — starting from this operator the search will be performed only in the post bodies. 
+**in-body:** — starting from this operator the search will be performed only in post bodies.
 
-Example: `cat in-body: mouse` — the "cat" will be searched in posts and comments but the "mouse" will be searched only in post bodies. Note that there's a space after a colon because "in-body:" is a separate operator here.
+Example: `cat in-body: mouse` — the "cat" will be searched in posts, comments, and linked articles, but the "mouse" will be searched only in post bodies. Note that there's a space after a colon because "in-body:" is a separate operator here.
 
 **in-comments:** — starting from this operator the search will be performed only in the comment bodies.
 
@@ -86,11 +88,11 @@ Some operators allow to specify the interval of the values. The interval syntax 
 
 Local search scope operators are like global ones but without switching the global search scope.
 
-**in-body:word1,word2** or **in-body:"quoted text"** will search _any_ of word1, word2 or the "quoted text" in post body but will not change the global query scope. Note that there is no space after a colon.
+**in-body:word1,word2** or **in-body:"quoted text"** will search _any_ of word1, word2 or the "quoted text" in post bodies but will not change the global query scope. Note that there is no space after a colon.
 
 **in-comments:word1,word2** or **in-comments:"quoted text"** does the same for comments.
 
-Example: `cat in-body:mouse dog` — the "cat" and "dog" will be searched in post and comments but the "mouse" will be searched only in posts.
+Example: `cat in-body:mouse dog` — the "cat" and "dog" will be searched in posts, comments, and linked articles, but the "mouse" will be searched only in post bodies.
 
 ### Content filtering
 
@@ -130,7 +132,7 @@ Since `cliked-by:` makes sense only for comments, it switches the search scope t
 
 **is:private,protected** limits search to posts with the specified visibility. These are `private`, `protected` and `public`.
 
-**has:images,audio** limits search to posts with files of the specified type. It has a **with:** alias. You can specify the concrete file type (`images`, `audio` or `video`), or search for any files using the `has:files` form. You can also specify the file extension, for example `has:mp3` will search for files with the `mp3` extension.
+**has:images,audio** limits search to posts with attached content of the specified type. It has a **with:** alias. You can specify a concrete file type (`images`, `audio` or `video`), search for any files using `has:files`, or search for posts with a linked article using `has:article`. You can also specify a file extension; for example, `has:mp3` searches for files with the `mp3` extension.
 
 **comments:*(interval)*** limits search to posts with the specified number of comments.
 
@@ -152,8 +154,8 @@ The `post-date:` always sets the post date. The `in-comments: foo post-date:2020
 
 **author:user1,user2** performs search only in content from user1 or user2. It has a **by:** alias.
 
-The "content" is defined by the current search scope. By default it is a post and comment bodies: `cat author:alice` will search the "cat" word in all Alice's posts and comments bodies.
+The "content" is defined by the current search scope. By default it includes post and comment bodies and titles and digests of linked articles: `cat author:alice` will search the "cat" word in all such content authored by Alice.
 
-`in-body: author:alice cat` will search the "cat" word only in Alice's posts bodies. In this context, 'author:' works in the same way as 'from:'.
+`in-body: author:alice cat` will search the "cat" word only in Alice's post bodies. In this context, 'author:' works in the same way as 'from:'.
 
 `in-comments: author:alice cat` will search the "cat" word only in Alice's comments bodies.

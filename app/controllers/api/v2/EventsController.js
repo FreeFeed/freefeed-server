@@ -8,7 +8,12 @@ import { authRequired } from '../../middlewares';
 import { NotFoundException } from '../../../support/exceptions';
 
 const EVENT_GROUPS = {
-  mentions: [ET.MENTION_IN_POST, ET.MENTION_IN_COMMENT, ET.MENTION_COMMENT_TO],
+  mentions: [
+    ET.MENTION_IN_POST,
+    ET.MENTION_IN_ARTICLE,
+    ET.MENTION_IN_COMMENT,
+    ET.MENTION_COMMENT_TO,
+  ],
   comments: [
     ET.POST_COMMENT,
     ET.DIRECT_COMMENT_CREATED,

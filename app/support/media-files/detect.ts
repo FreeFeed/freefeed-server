@@ -3,13 +3,13 @@ import { open } from 'fs/promises';
 import { runImageMagick } from '../image-magick';
 import { spawnAsync } from '../spawn-async';
 
-import {
-  type AvcStream,
-  type FfprobeResult,
-  type H264Info,
-  type MediaInfo,
-  type MediaInfoVideo,
-  type VideoStream,
+import type {
+  AvcStream,
+  FfprobeResult,
+  H264Info,
+  MediaInfo,
+  MediaInfoVideo,
+  VideoStream,
 } from './types';
 import { addFileExtension } from './file-ext';
 
