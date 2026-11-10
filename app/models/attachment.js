@@ -8,9 +8,9 @@ import createDebug from 'debug';
 import mime, { lookup } from 'mime-types';
 import mv from 'mv';
 import Raven from 'raven';
-import monitor from 'monitor-dog';
 import { uniq } from 'lodash-es';
 
+import monitor from '../support/monitor';
 import { s3Client } from '../support/s3';
 import { sanitizeMediaMetadata, SANITIZE_NONE, SANITIZE_VERSION } from '../support/sanitize-media';
 import { processMediaFile } from '../support/media-files/process';

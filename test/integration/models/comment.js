@@ -320,5 +320,26 @@ describe('Comment', () => {
       expect(comment.seqNumber, 'to be', 1);
       expect(await post.getComments(), 'to have length', 1);
     });
+
+    it(`should use the highest number when comment timestamps are not monotonic`, async () => {
+      const comments = await dbAdapter.getPostComments(post.id);
+      await Promise.all(comments.map((c) => c.destroy()));
+
+      const firstComment = await userA.newComment({ body: 'Comment body', postId: post.id });
+      await firstComment.create();
+      const secondComment = await userA.newComment({ body: 'Comment body', postId: post.id });
+      await secondComment.create();
+
+      await dbAdapter
+        .database('comments')
+        .where('uid', secondComment.id)
+        .update({
+          created_at: new Date(0),
+        });
+
+      const comment = await userA.newComment({ body: 'Comment body', postId: post.id });
+      await comment.create();
+      expect(comment.seqNumber, 'to be', 3);
+    });
   });
 });

@@ -1,10 +1,10 @@
 import crypto from 'crypto';
 import util from 'util';
 
-import monitorDog from 'monitor-dog';
 import * as _ from 'lodash-es';
 import compose from 'koa-compose';
 
+import monitorDog from '../../../support/monitor';
 import {
   dbAdapter,
   User,

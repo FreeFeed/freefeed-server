@@ -1,8 +1,8 @@
 import compose from 'koa-compose';
-import monitor from 'monitor-dog';
 import { difference, uniq } from 'lodash-es';
 import validator from 'validator';
 
+import monitor from '../../../support/monitor';
 import { dbAdapter, Comment, AppTokenV1 } from '../../../models';
 import {
   ForbiddenException,

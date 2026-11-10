@@ -17,6 +17,8 @@ declare module 'config' {
     trustProxyHeaders: boolean;
     proxyIpHeader: string;
     logResponseTime: boolean;
+    monitorPrefix: string;
+    datadog: { host: string | null; port: number | null };
     adminEmail: string;
     media: {
       url: string;

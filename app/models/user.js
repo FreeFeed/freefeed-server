@@ -8,12 +8,12 @@ import { unlink } from 'fs/promises';
 import bcrypt from 'bcrypt';
 import GraphemeBreaker from 'grapheme-breaker';
 import * as _ from 'lodash-es';
-import monitor from 'monitor-dog';
 import mv from 'mv';
 import validator from 'validator';
 import { v4 as uuidv4 } from 'uuid';
 import config from 'config';
 
+import monitor from '../support/monitor';
 import { s3Client } from '../support/s3';
 import { BadRequestException, NotFoundException, ValidationException } from '../support/exceptions';
 import { Comment, Post, PubSub as pubSub } from '../models';

@@ -26,7 +26,10 @@
     "paths": {
       // The "media-type" package has a broken exports/types configuration where TypeScript
       // ignores the top-level "types" field when "exports" are present.
-      "media-type": ["./node_modules/media-type/index.d.ts"]
+      "media-type": ["./node_modules/media-type/index.d.ts"],
+      // koa-body's own declarations add `body` to http.IncomingMessage, which
+      // conflicts with the `body` that @types/express declares on its Request.
+      "koa-body": ["./types/koa-body.d.ts"]
     }
   },
   "include": ["app", "config", "lib", "migrations", "test", "types"]

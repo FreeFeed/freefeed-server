@@ -1,7 +1,7 @@
 import _, { difference, differenceBy, uniqBy } from 'lodash-es';
-import monitor from 'monitor-dog';
 import compose from 'koa-compose';
 
+import monitor from '../../../support/monitor';
 import { dbAdapter, Post, AppTokenV1 } from '../../../models';
 /** @typedef {import('../../../models').User} User */
 /** @typedef {import('../../../models').Timeline} Timeline */

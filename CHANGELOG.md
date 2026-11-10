@@ -11,6 +11,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added the [Articles API](doc/articles.md) for long-form drafts, publication through posts,
   revision history, tags, attachments, visibility-aware listings, and search.
 
+## [2.31.6] - 2026-10-30
+### Security
+- Updated dependencies to close npm security advisories: engine.io (via
+  socket.io), fast-uri, morgan, undici, sanitize-html, qs, zod, moment, js-yaml,
+  nodemailer (to 10.2) and koa-body (to 8).
+### Changed
+- Replaced the unmaintained `monitor-dog` package with `hot-shots`. The
+  `DATADOG_HOST`, `DATADOG_PORT` and `MONITOR_PREFIX` environment variables work
+  as before; the agent address is also available in config as _datadog.host_ and
+  _datadog.port_. A colon in a metric name is now replaced with an underscore, so
+  the `undo:*` metrics are reported as `undo_*`.
+- Mail is now sent through the nodemailer built-in SMTP transport instead of the
+  unmaintained `nodemailer-smtp-transport` package. The _mailer.options_ config
+  keeps the same shape. NTLM SMTP authentication is no longer supported.
+### Fixed
+- Uploads that are too large or malformed are now answered with 413 or 400
+  instead of 500.
+
+## [2.31.5] - 2026-10-09
+### Fixed
+- Prevented test database cleanup from deleting Knex migration history or running
+  outside the test environment.
+- Prevented duplicate per-post comment sequence numbers when database timestamps
+  are not monotonic, and made comments-by-ID ordering deterministic for equal timestamps.
+
 ## [2.31.4] - 2026-09-17
 ### Fixed
 - Applied the primary image's EXIF orientation to HDR gain maps when generating
