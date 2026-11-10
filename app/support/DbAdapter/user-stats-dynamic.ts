@@ -20,6 +20,7 @@ export type UserStats = {
   // is number of post written by user (excluding directs). Only posts that visible to the current
   // viewer are counted.
   posts: number | null;
+  articles: number | null;
   // Number of account's comments. For groups, it is always null. For users, it is number of
   // comments that visible to the current viewer.
   comments: number | null;
@@ -48,6 +49,7 @@ export default (superClass: typeof DbAdapter) =>
           subscribers: null,
           subscriptions: null,
           posts: null,
+          articles: null,
           comments: null,
           likes: null,
         };
@@ -113,6 +115,21 @@ export default (superClass: typeof DbAdapter) =>
         );
       };
 
+      const getArticlesCount = () => {
+        const accountFilter = user.isGroup()
+          ? sqlIntarrayIn('p.destination_feed_ids', [postsFeed?.intId ?? 0])
+          : 'a.author_id = :userId';
+
+        return this.database.getOne<number>(
+          `select count(*)::int from articles a
+            join posts p on p.uid = a.post_id
+            join users u on u.uid = p.user_id
+            where ${accountFilter} and not a.to_delete
+              and ${postsVisibilitySQL}`,
+          { userId },
+        );
+      };
+
       const getCommentsCount = () => {
         if (user.isGroup()) {
           return null;
@@ -147,14 +164,15 @@ export default (superClass: typeof DbAdapter) =>
         );
       };
 
-      const [subscribers, subscriptions, posts, comments, likes] = await Promise.all([
+      const [subscribers, subscriptions, posts, articles, comments, likes] = await Promise.all([
         getSubscribersCount(),
         getSubscriptionsCount(),
         getPostsCount(),
+        getArticlesCount(),
         getCommentsCount(),
         getLikesCount(),
       ]);
 
-      return { subscribers, subscriptions, posts, comments, likes };
+      return { subscribers, subscriptions, posts, articles, comments, likes };
     }
   };

@@ -29,6 +29,98 @@ describe('Articles API: reading', () => {
     luna = await createTestUser('luna');
   });
 
+  describe('User statistics', () => {
+    for (const isPrivate of [false, true]) {
+      it(`should count articles in a ${isPrivate ? 'private' : 'public'} group feed`, async () => {
+        const mars = await createTestUser('mars');
+        const group = await justCreateGroup(luna, 'selenites', 'Selenites', { isPrivate });
+        const otherGroup = await justCreateGroup(luna, 'other-group', 'Other group', { isPrivate });
+        await dbAdapter.createArticle({ author_id: luna.user.id, ...content });
+        await Promise.all(
+          [luna, mars].map(async (author) => {
+            const article = await dbAdapter.createArticle({
+              author_id: author.user.id,
+              ...content,
+            });
+            const post = await createPost(author.user, 'Announcement', [group, otherGroup]);
+            await article.setPost(post.id);
+          }),
+        );
+        const outside = await dbAdapter.createArticle({ author_id: luna.user.id, ...content });
+        await outside.setPost((await createPost(luna.user, 'Outside group')).id);
+
+        const viewers = [
+          [null, isPrivate ? 0 : 2],
+          [luna, 2],
+        ] as const;
+        await Promise.all(
+          viewers.map(async ([viewer, count]) => {
+            const response = await performJSONRequest(
+              'GET',
+              '/v2/users/selenites/statistics',
+              undefined,
+              viewer ? authHeaders(viewer) : undefined,
+            );
+            expect(response, 'to satisfy', { __httpCode: 200, statistics: { articles: count } });
+          }),
+        );
+        const response = await performJSONRequest(
+          'GET',
+          '/v2/users/other-group/statistics',
+          undefined,
+          authHeaders(luna),
+        );
+        expect(response, 'to satisfy', { __httpCode: 200, statistics: { articles: 2 } });
+      });
+    }
+
+    for (const privacy of ['public', 'protected', 'private']) {
+      it(`should count only visible published articles of a ${privacy} author`, async () => {
+        const mars = await createTestUser('mars');
+
+        if (privacy !== 'public') {
+          await luna.user.update({
+            isProtected: '1',
+            isPrivate: privacy === 'private' ? '1' : '0',
+          });
+        }
+
+        await dbAdapter.createArticle({ author_id: luna.user.id, ...content });
+        const published = await dbAdapter.createArticle({ author_id: luna.user.id, ...content });
+        const post = await createPost(luna.user, 'Announcement');
+        await published.setPost(post.id);
+        const other = await dbAdapter.createArticle({ author_id: mars.user.id, ...content });
+        await other.setPost((await createPost(mars.user, 'Other announcement')).id);
+
+        const viewers = [
+          [null, privacy === 'public' ? 1 : 0],
+          [mars, privacy === 'private' ? 0 : 1],
+          [luna, 1],
+        ] as const;
+        await Promise.all(
+          viewers.map(async ([viewer, count]) => {
+            const response = await performJSONRequest(
+              'GET',
+              '/v2/users/luna/statistics',
+              undefined,
+              viewer ? authHeaders(viewer) : undefined,
+            );
+            expect(response, 'to satisfy', { __httpCode: 200, statistics: { articles: count } });
+          }),
+        );
+
+        await published.deactivate();
+        const response = await performJSONRequest(
+          'GET',
+          '/v2/users/luna/statistics',
+          undefined,
+          authHeaders(luna),
+        );
+        expect(response, 'to satisfy', { __httpCode: 200, statistics: { articles: 0 } });
+      });
+    }
+  });
+
   describe('List', () => {
     it('should list only the viewer’s drafts by default, newest first', async () => {
       const mars = await createTestUser('mars');

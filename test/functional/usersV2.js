@@ -606,7 +606,14 @@ describe('UsersControllerV2', () => {
             subscriptions: '0',
           },
         },
-        statistics: { subscribers: 1, subscriptions: 1, posts: 0, comments: 0, likes: 0 },
+        statistics: {
+          subscribers: 1,
+          subscriptions: 1,
+          posts: 0,
+          articles: 0,
+          comments: 0,
+          likes: 0,
+        },
       });
     });
   });
