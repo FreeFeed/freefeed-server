@@ -52,28 +52,29 @@ export async function up(knex) {
     let feedUIDToKeep = feeds[0].uid;
 
     if (feedsWithPosts.includes(name) || feedsWithSubscribers.includes(name)) {
-      const props = await Promise.all(
-        feeds.map(async (feed) => {
-          const [[{ exists: hasPosts }], [{ exists: hasSubscribers }]] = await Promise.all([
-            query(
-              `select exists (select 1 from posts where (feed_ids && :feedIds) or (destination_feed_ids && :feedIds))`,
-              { feedIds: [feed.id] },
-            ),
-            query(`select exists (select 1 from subscriptions where feed_id = ?)`, [feed.uid]),
-          ]);
+      const props = [];
 
-          const inUse =
-            (feedsWithPosts.includes(name) && hasPosts) ||
-            (feedsWithSubscribers.includes(name) && hasSubscribers);
-          return {
-            id: feed.id,
-            uid: feed.uid,
-            hasPosts,
-            hasSubscribers,
-            inUse,
-          };
-        }),
-      );
+      for (const feed of feeds) {
+        const [{ exists: hasPosts }] = await query(
+          `select exists (select 1 from posts where (feed_ids && :feedIds) or (destination_feed_ids && :feedIds))`,
+          { feedIds: [feed.id] },
+        );
+        const [{ exists: hasSubscribers }] = await query(
+          `select exists (select 1 from subscriptions where feed_id = ?)`,
+          [feed.uid],
+        );
+
+        const inUse =
+          (feedsWithPosts.includes(name) && hasPosts) ||
+          (feedsWithSubscribers.includes(name) && hasSubscribers);
+        props.push({
+          id: feed.id,
+          uid: feed.uid,
+          hasPosts,
+          hasSubscribers,
+          inUse,
+        });
+      }
 
       const inUseCount = props.filter((p) => p.inUse).length;
 
@@ -90,16 +91,14 @@ export async function up(knex) {
             [uidsToDelete],
           );
 
-          await Promise.all(
-            allSubscriptions.map((s) =>
-              query(
-                `insert into subscriptions
+          for (const s of allSubscriptions) {
+            await query(
+              `insert into subscriptions
               (feed_id, user_id, created_at) values (:feed_id, :user_id, :created_at)
               on conflict do nothing`,
-                { ...s, feed_id: first.uid },
-              ),
-            ),
-          );
+              { ...s, feed_id: first.uid },
+            );
+          }
 
           await query(`delete from subscriptions where feed_id = any(?)`, [uidsToDelete]);
         }
@@ -111,24 +110,20 @@ export async function up(knex) {
           const fields = ['feed_ids', 'destination_feed_ids'];
 
           // Add firstId to posts with idsToDelete
-          await Promise.all(
-            fields.map((field) =>
-              query(
-                `update posts set ${field} = (${field} | :firstId::int) where ${field} && :idsToDelete`,
-                { firstId, idsToDelete },
-              ),
-            ),
-          );
+          for (const field of fields) {
+            await query(
+              `update posts set ${field} = (${field} | :firstId::int) where ${field} && :idsToDelete`,
+              { firstId, idsToDelete },
+            );
+          }
 
           // Remove idsToDelete
-          await Promise.all(
-            fields.map((field) =>
-              query(
-                `update posts set ${field} = (${field} - :idsToDelete) where ${field} && :idsToDelete`,
-                { firstId, idsToDelete },
-              ),
-            ),
-          );
+          for (const field of fields) {
+            await query(
+              `update posts set ${field} = (${field} - :idsToDelete) where ${field} && :idsToDelete`,
+              { firstId, idsToDelete },
+            );
+          }
         }
       } else if (inUseCount === 1) {
         feedUIDToKeep = props.find((p) => p.inUse).uid;
