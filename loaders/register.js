@@ -1,5 +1,6 @@
-import { register } from 'node:module';
-import { pathToFileURL } from 'node:url';
+import { registerHooks } from 'node:module';
 
-register('extensionless', pathToFileURL('./'));
-register('./loaders/jsx-loader.js', pathToFileURL('./'));
+import { resolve } from './extensionless.js';
+import { load } from './jsx-loader.js';
+
+registerHooks({ resolve, load });

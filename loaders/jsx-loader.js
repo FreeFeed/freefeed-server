@@ -1,14 +1,14 @@
-import { readFile } from 'node:fs/promises';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-import { transform } from 'esbuild';
+import { transformSync } from 'esbuild';
 
-export async function load(url, context, nextLoad) {
+export function load(url, context, nextLoad) {
   if (url.startsWith('file:') && url.endsWith('.jsx')) {
     const filename = fileURLToPath(url);
-    const source = await readFile(filename, 'utf8');
+    const source = readFileSync(filename, 'utf8');
 
-    const out = await transform(source, {
+    const out = transformSync(source, {
       loader: 'jsx',
       format: 'esm',
       jsx: 'automatic',

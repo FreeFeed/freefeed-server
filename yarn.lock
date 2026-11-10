@@ -4709,13 +4709,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"extensionless@npm:~2.0.6":
-  version: 2.0.6
-  resolution: "extensionless@npm:2.0.6"
-  checksum: 10c0/00f0cbf3676d7fb57ed3c4da64a6c6168f244f4c056f56d9af51b4952470474b296a1a9bd11d4d0ef97813848142bfa3bba6cc2bac5f5bb8af2e7ac808570a08
-  languageName: node
-  linkType: hard
-
 "falafel@npm:^2.1.0":
   version: 2.2.5
   resolution: "falafel@npm:2.2.5"
@@ -5060,7 +5053,6 @@ __metadata:
     eslint-plugin-promise: "npm:~7.3.0"
     eslint-plugin-you-dont-need-lodash-underscore: "npm:~6.14.0"
     exiftool-vendored: "npm:~37.0.0"
-    extensionless: "npm:~2.0.6"
     ff-url-finder: "npm:~2.3.7"
     globals: "npm:~17.8.0"
     grapheme-breaker: "npm:0.3.2"
